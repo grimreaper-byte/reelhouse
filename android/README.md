@@ -52,8 +52,9 @@ The app picks a route (at home, tunnel or web), and pages update live when somet
 
 ## Installing it on a phone
 
-1. Build the release APK (below), then in Reelhouse open **Settings → Android app** and upload
-   `app/build/outputs/apk/release/app-release.apk`. Reelhouse checks it's a signed release build of this app.
+1. Download the APK from the [latest release](https://github.com/grimreaper-byte/reelhouse/releases/latest), or build
+   the release APK (below: it's then `app/build/outputs/apk/release/app-release.apk`). In Reelhouse open **Settings →
+   Android app** and upload it. Reelhouse checks it's a signed release build of this app.
 2. On the phone, open `http://<your Reelhouse>/android/` (at home), or scan the QR code under **Don't have the app
    yet?** in the pairing dialog (**Your account → Apps and devices → Pair the Reelhouse app**, or an admin's
    **Settings → Users** → the link button next to that person). Download it and
@@ -61,10 +62,10 @@ The app picks a route (at home, tunnel or web), and pages update live when somet
    the Play Store; either choice works.
 3. Open Reelhouse on the phone and pair it (see **Trying it** below).
 
-**Updating:** build and upload a newer version (raise `versionCode` and `versionName` in `app/build.gradle.kts`).
-Phones notice the next time they connect: your picture at the top of Home gets a dot, and **Settings → About → Download and
-install** updates the app in place, still paired and with its downloads. The first time, Android asks to allow
-Reelhouse to install apps.
+**Updating:** upload a newer version, from the latest release or your own build (raise `versionCode` and `versionName`
+in `app/build.gradle.kts`). Phones notice the next time they connect: your picture at the top of Home gets a dot, and
+**Settings → About → Download and install** updates the app in place, still paired and with its downloads. The first
+time, Android asks to allow Reelhouse to install apps.
 
 **Playing:**
 - **Direct or converted:** the phone plays the file itself when its decoders can, and the server converts it when

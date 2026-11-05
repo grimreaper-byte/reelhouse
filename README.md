@@ -67,7 +67,22 @@ runs as its own user and keeps data in `/var/lib/reelhouse`.
 
 ### Docker
 
-Edit the media paths in [docker-compose.yml](docker-compose.yml), then:
+The ready-made image is on GitHub's container registry, for 64-bit Intel/AMD servers (`x86_64`). Copy
+[docker-compose.yml](docker-compose.yml) to your server, edit the media paths in it, delete its `build: .` line and
+change its `image:` line to:
+
+```yaml
+image: ghcr.io/grimreaper-byte/reelhouse:latest
+```
+
+Then start it:
+
+```bash
+docker compose up -d
+```
+
+To build the image yourself instead (for your own changes, say), keep those two lines as they are and run this in the
+project folder:
 
 ```bash
 docker compose up -d --build
@@ -97,8 +112,14 @@ docker compose up -d --build
   `REELHOUSE_HOST_NETWORK` to `1` or `0`.
 - Finish the first-run setup before exposing the port to the internet.
 
-**Without building on the server** (e.g. a server managed with Portainer): build the image on another machine,
-save it to a file, and load that on the server. The image is for 64-bit Intel/AMD servers (`x86_64`).
+**In Portainer:** add a stack with the compose file above, with those two lines changed and your own full host paths,
+or use **Containers → Add container**: image `ghcr.io/grimreaper-byte/reelhouse:latest`, network `host` (or publish
+port 8484), environment `TZ`, `PUID`, `PGID`, bind volumes `/config` and `/media` (read-only), restart policy *Unless
+stopped*, and for a GPU the `/dev/dri` device or the NVIDIA GPU option. To update, **Recreate** the container (or
+**Update the stack**) with re-pulling turned on.
+
+**From an image file** (a server without internet access, or your own build): build the image on another machine, save
+it to a file, and load that on the server.
 
 ```bash
 docker save -o reelhouse-image.tar reelhouse:latest
@@ -107,12 +128,9 @@ docker save -o reelhouse-image.tar reelhouse:latest
 Building with `--build-arg REELHOUSE_COMMIT=$(git rev-parse --short HEAD)` (with `docker build` or
 `docker compose build`) lets the server say which commit it was built from.
 
-In Portainer: **Images → Import** the file (it arrives as `reelhouse:latest`). Then either add a stack with the
-compose file above, minus its `build:` line and with your own full host paths, or use **Containers → Add container**:
-image `reelhouse:latest` with **Always pull the image** off, network `host` (or publish port 8484), environment
-`TZ`, `PUID`, `PGID`, bind volumes `/config` and `/media` (read-only), restart policy *Unless stopped*, and for a GPU
-the `/dev/dri` device or the NVIDIA GPU option. To update, import the new image and **Recreate** the container (or
-**Update the stack**) with re-pulling turned off.
+In Portainer: **Images → Import** the file (it arrives as `reelhouse:latest`), then set up the container as above with
+image `reelhouse:latest` and **Always pull the image** off. To update, import the new image and **Recreate** the
+container (or **Update the stack**) with re-pulling turned off.
 
 **Docker on Windows through WSL 2** (Docker Engine installed inside Ubuntu, without Docker Desktop):
 - WSL shuts Ubuntu down a few seconds after the last WSL window or command closes, and that stops Docker and the
@@ -224,12 +242,13 @@ and only Reelhouse can be reached through it (not the rest of the machine).
    or type the code while at home. Each phone gets its own key; signing the phone out removes it. An admin can
    also make the code for someone else, without their password: **Settings → Users**, the link button next to them.
 
-The Docker image includes the tunnel; on a Windows or Linux install, build it first ([tunnel/README.md](tunnel/README.md)).
-The app itself is in [android/](android/README.md). It pairs, browses, searches, updates live, plays (directly or
-converted, with resume and the next episode) and downloads for offline viewing. Phones install it from Reelhouse
-itself: upload the APK in **Settings → Android app**, then open `http://<server>/android/` on the
-phone (the pairing dialog has a QR code for it). Uploading a newer version lets every phone update itself from
-Settings in the app.
+The Docker image includes the tunnel; on a Windows or Linux install, build it first
+([tunnel/README.md](tunnel/README.md)). The app itself is in [android/](android/README.md). It pairs, browses,
+searches, updates live, plays (directly or converted, with resume and the next episode) and downloads for offline
+viewing. Phones install it from Reelhouse itself: download the APK from the [latest
+release](https://github.com/grimreaper-byte/reelhouse/releases/latest) (or build it yourself), upload it in **Settings
+→ Android app**, then open `http://<server>/android/` on the phone (the pairing dialog has a QR code for it).
+Uploading a newer version lets every phone update itself from Settings in the app.
 
 For a web browser, a laptop, an iPhone or Kodi away from home, use Option 2 as well.
 
@@ -504,13 +523,16 @@ up twice. For the same reason, don't add your media folders to Kodi yourself.
 
 ## Updating
 
-Replace the project files with the new version (or `git pull`), then:
-
-- **Docker:** `docker compose up -d --build`. The container is recreated from the new image; `./config` is kept.
-  With an image file instead (Portainer): import the new file, then recreate the container without re-pulling.
-- **Android app:** upload the newer APK in Settings → Android app; phones offer the update in
-  Settings → About (a dot appears on your picture at the top of Home, and on Settings in the sidebar).
-- **Windows / Linux:** `npm install`, then restart Reelhouse (or `sudo systemctl restart reelhouse`).
+- **Docker, with the ready-made image:** `docker compose pull`, then `docker compose up -d`. The container is
+  recreated from the new image; `./config` is kept. In Portainer, recreate the container with re-pulling turned on.
+- **Docker, building it yourself:** replace the project files with the new version (or `git pull`), then
+  `docker compose up -d --build`. With an image file instead (Portainer): import the new file, then recreate the
+  container without re-pulling.
+- **Android app:** upload the newer APK from the [latest
+  release](https://github.com/grimreaper-byte/reelhouse/releases/latest) in Settings → Android app; phones offer the
+  update in Settings → About (a dot appears on your picture at the top of Home, and on Settings in the sidebar).
+- **Windows / Linux:** replace the project files with the new version (or `git pull`), run `npm install`, then restart
+  Reelhouse (or `sudo systemctl restart reelhouse`).
 - **Kodi:** the add-on doesn't update itself. When `/kodi/` offers a newer zip, install it the same way as the first
   time (Add-ons → Install from zip file); its settings and sign-in are kept.
 
@@ -571,7 +593,9 @@ npm run icons   # regenerates favicon.ico and the PNG app icons after editing we
 
 ## Licence
 
-Reelhouse is released under the [MIT License](LICENSE); the Kodi add-on carries a copy as `LICENSE.txt`. The
-libraries it uses keep their own (permissive) licences: the Android app lists them, with their licence texts, in
-**Settings → About → Open-source licences**. The Docker image's FFmpeg is Debian's package, under the GPL. Posters, descriptions and cast come from TMDB: this product uses the TMDB API but is not endorsed or
-certified by TMDB.
+Reelhouse is released under the [MIT License](LICENSE); the Kodi add-on carries a copy as `LICENSE.txt`. The libraries
+it uses keep their own (permissive) licences: the Android app lists them, with their licence texts, in **Settings →
+About → Open-source licences**. The Docker image's FFmpeg is Debian's package, under the GPL: its source is at
+[sources.debian.org](https://sources.debian.org/src/ffmpeg/), as is that of the image's other Debian packages
+(`ffmpeg -version` in the container says which version it has). Posters, descriptions and cast come from TMDB: this
+product uses the TMDB API but is not endorsed or certified by TMDB.
