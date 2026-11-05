@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="14" fill="#1a1d21"/>
+  <!-- film coming out of the reel: its bottom edge continues the bottom of the reel -->
+  <g fill="#e5a00d">
+    <rect x="26" y="43" width="24" height="8"/>
+    <rect x="46" y="43" width="12" height="8" rx="1.5"/>
+  </g>
+  <!-- sprocket holes; the reel (drawn next) covers the first one's top-left corner -->
+  <g fill="#1a1d21">
+    <rect x="38" y="45.5" width="3" height="3" rx="0.6"/>
+    <rect x="43" y="45.5" width="3" height="3" rx="0.6"/>
+    <rect x="48" y="45.5" width="3" height="3" rx="0.6"/>
+    <rect x="53" y="45.5" width="3" height="3" rx="0.6"/>
+  </g>
+  <g fill="#e5a00d">
+    <circle cx="26" cy="32" r="19"/>
+  </g>
+  <!-- reel windows and hub -->
+  <g fill="#1a1d21">
+    <circle cx="26" cy="21.5" r="5"/>
+    <circle cx="35.99" cy="28.76" r="5"/>
+    <circle cx="32.17" cy="40.49" r="5"/>
+    <circle cx="19.83" cy="40.49" r="5"/>
+    <circle cx="16.01" cy="28.76" r="5"/>
+    <circle cx="26" cy="32" r="2.5"/>
+  </g>
+</svg>

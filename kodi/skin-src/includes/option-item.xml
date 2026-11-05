@@ -1,0 +1,24 @@
+<!-- One choice: its name, a tag on the right (such as "Plays by default") and, when it has one, a line of detail. -->
+<control type="label">
+  <left>28</left><top>0</top><width>480</width><height>90</height>
+  <font>font13</font><textcolor>{{text}}</textcolor><aligny>center</aligny>
+  <label>$INFO[ListItem.Label]</label>
+  <visible>String.IsEmpty(ListItem.Label2)</visible>
+</control>
+<control type="label">
+  <left>28</left><top>8</top><width>480</width><height>44</height>
+  <font>font13</font><textcolor>{{text}}</textcolor><aligny>center</aligny>
+  <label>$INFO[ListItem.Label]</label>
+  <visible>!String.IsEmpty(ListItem.Label2)</visible>
+</control>
+<control type="label">
+  <left>440</left><top>8</top><width>292</width><height>44</height>
+  <font>font12</font><textcolor>{{tag}}</textcolor><align>right</align><aligny>center</aligny>
+  <label>$INFO[ListItem.Property(tag)]</label>
+</control>
+<control type="label">
+  <left>28</left><top>48</top><width>704</width><height>34</height>
+  <font>font10</font><textcolor>{{sub}}</textcolor><aligny>center</aligny>
+  <label>$INFO[ListItem.Label2]</label>
+  <visible>!String.IsEmpty(ListItem.Label2)</visible>
+</control>

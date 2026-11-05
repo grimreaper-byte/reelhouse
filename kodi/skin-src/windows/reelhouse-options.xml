@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A small menu over the screen: ⋯ on a page, Play version…, sort and filter choices, a programme's Record. Its words are
+     window properties set before it opens (options.py): changes made once a dialog is up aren't drawn, so the list holds
+     seven fixed entries, each shown when it has a label, and the box is the height for the number of choices. -->
+<window type="dialog">
+  <defaultcontrol always="true">800</defaultcontrol>
+  <controls>
+    <control type="image">
+      <left>0</left><top>0</top><width>1920</width><height>1080</height>
+      <texture colordiffuse="B0000000">reelhouse/ui/white.png</texture>
+    </control>
+    <control type="group" id="801">
+      <left>560</left><top>200</top>
+      <!-- repeat n=1..7 -->
+      <!-- include options-box n={{n}} h={{152+90*n}} owner="String.IsEmpty(Window.Property(owner.names))" -->
+      <!-- include options-box n={{n}} h={{196+90*n}} owner="!String.IsEmpty(Window.Property(owner.names))" -->
+      <!-- /repeat -->
+      <control type="label">
+        <left>40</left><top>24</top><width>720</width><height>60</height>
+        <font>font36_title</font><textcolor>{{TEXT}}</textcolor><aligny>center</aligny>
+        <label>$INFO[Window.Property(heading)]</label>
+      </control>
+      <control type="label">
+        <left>40</left><top>78</top><width>720</width><height>40</height>
+        <font>font12</font><textcolor>{{TEXT_DIM}}</textcolor><aligny>center</aligny>
+        <label>$INFO[Window.Property(subheading)]</label>
+      </control>
+      <!-- Who set a recording (its details): their picture, else their first letter, and the words; the list makes room. -->
+      <control type="group">
+        <left>40</left><top>122</top>
+        <visible>!String.IsEmpty(Window.Property(owner.letter))</visible>
+        <control type="image">
+          <width>36</width><height>36</height>
+          <texture colordiffuse="{{ACCENT}}">reelhouse/ui/circle.png</texture>
+        </control>
+        <control type="label">
+          <width>36</width><height>36</height>
+          <font>font12</font><textcolor>{{ACCENT_TEXT}}</textcolor><align>center</align><aligny>center</aligny>
+          <label>$INFO[Window.Property(owner.letter)]</label>
+          <visible>String.IsEmpty(Window.Property(owner.avatar))</visible>
+        </control>
+        <control type="image">
+          <width>36</width><height>36</height><aspectratio>scale</aspectratio>
+          <texture diffuse="reelhouse/ui/circle.png" background="true">$INFO[Window.Property(owner.avatar)]</texture>
+        </control>
+        <control type="label">
+          <left>46</left><width>674</width><height>36</height>
+          <font>font12</font><textcolor>{{TEXT_DIM}}</textcolor><aligny>center</aligny>
+          <label>$INFO[Window.Property(owner.names)]</label>
+        </control>
+      </control>
+      <control type="label">
+        <left>40</left><top>122</top><width>720</width><height>36</height>
+        <font>font12</font><textcolor>{{TEXT_FAINT}}</textcolor><aligny>center</aligny>
+        <label>$INFO[Window.Property(owner.names)]</label>
+        <visible>String.IsEmpty(Window.Property(owner.letter))</visible>
+      </control>
+      <control type="list" id="800">
+        <left>20</left><top>126</top><width>760</width><height>630</height>
+        <animation effect="slide" end="0,44" time="0" condition="!String.IsEmpty(Window.Property(owner.names))">Conditional</animation>
+        <orientation>vertical</orientation>
+        <scrolltime tween="cubic" easing="out">150</scrolltime>
+        <itemlayout width="760" height="90">
+          <!-- include option-item text={{TEXT}} sub={{TEXT_DIM}} tag={{ACCENT}} -->
+        </itemlayout>
+        <focusedlayout width="760" height="90">
+          <control type="image">
+            <left>0</left><top>4</top><width>760</width><height>82</height>
+            <texture border="16" colordiffuse="{{ACCENT}}">reelhouse/ui/box.png</texture>
+          </control>
+          <!-- include option-item text={{ACCENT_TEXT}} sub={{ACCENT_TEXT}} tag={{ACCENT_TEXT}} -->
+        </focusedlayout>
+        <content>
+          <!-- repeat n=0..39 -->
+          <item>
+            <label>$INFO[Window.Property(option.{{n}}.label)]</label>
+            <label2>$INFO[Window.Property(option.{{n}}.label2)]</label2>
+            <property name="tag">$INFO[Window.Property(option.{{n}}.tag)]</property>
+            <property name="choice">choice{{n}}</property>
+            <visible>!String.IsEmpty(Window.Property(option.{{n}}.label))</visible>
+          </item>
+          <!-- /repeat -->
+        </content>
+      </control>
+    </control>
+  </controls>
+</window>

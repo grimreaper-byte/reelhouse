@@ -1,0 +1,60 @@
+<!-- A show on Manage Recordings (recordings.py), or a series on a show's page (recording_show.py), as a library's
+     poster: its cover art, else its channel's logo and name; a red REC mark while it's recording, the count of its
+     recordings in the corner, its name and what it has; on Everyone's, who set it. -->
+<control type="image">
+  <left>12</left><top>12</top><width>190</width><height>285</height>
+  <texture border="16" colordiffuse="{{ELEV2}}">reelhouse/ui/box.png</texture>
+</control>
+<control type="image">
+  <left>47</left><top>86</top><width>120</width><height>90</height>
+  <aspectratio>keep</aspectratio>
+  <texture background="true">$INFO[ListItem.Art(thumb)]</texture>
+  <visible>String.IsEmpty(ListItem.Art(poster))</visible>
+</control>
+<control type="label">
+  <left>22</left><top>186</top><width>170</width><height>100</height>
+  <font>font12</font><textcolor>{{TEXT_FAINT}}</textcolor><align>center</align><aligny>top</aligny><wrapmultiline>true</wrapmultiline>
+  <label>$INFO[ListItem.Label]</label>
+  <visible>String.IsEmpty(ListItem.Art(poster))</visible>
+</control>
+<control type="image">
+  <left>12</left><top>12</top><width>190</width><height>285</height>
+  <aspectratio>scale</aspectratio><fadetime>200</fadetime>
+  <texture background="true" diffuse="reelhouse/ui/mask-poster.png">$INFO[ListItem.Art(poster)]</texture>
+</control>
+<control type="group">
+  <left>20</left><top>20</top>
+  <visible>String.IsEqual(ListItem.Property(recording),true)</visible>
+  <control type="image"><width>78</width><height>32</height><texture border="15" colordiffuse="{{DANGER}}">reelhouse/ui/pill-small.png</texture></control>
+  <control type="label">
+    <width>78</width><height>32</height>
+    <font>font10</font><textcolor>FFFFFFFF</textcolor><align>center</align><aligny>center</aligny>
+    <label>● REC</label>
+  </control>
+</control>
+<control type="group">
+  <left>146</left><top>20</top>
+  <visible>!String.IsEmpty(ListItem.Property(badge))</visible>
+  <control type="image"><width>48</width><height>32</height><texture border="15" colordiffuse="{{ACCENT}}">reelhouse/ui/pill-small.png</texture></control>
+  <control type="label">
+    <width>48</width><height>32</height>
+    <font>font20_title</font><textcolor>{{ACCENT_TEXT}}</textcolor><align>center</align><aligny>center</aligny>
+    <label>$INFO[ListItem.Property(badge)]</label>
+  </control>
+</control>
+<control type="label">
+  <left>12</left><top>300</top><width>190</width><height>30</height>
+  <font>font12</font><textcolor>{{TEXT}}</textcolor>
+  <label>$INFO[ListItem.Label]</label>
+</control>
+<control type="label">
+  <left>12</left><top>330</top><width>210</width><height>28</height>
+  <font>font10</font><textcolor>{{TEXT_DIM}}</textcolor>
+  <label>$INFO[ListItem.Label2]</label>
+</control>
+<control type="label">
+  <left>12</left><top>358</top><width>190</width><height>28</height>
+  <font>font10</font><textcolor>{{TEXT_DIM}}</textcolor>
+  <label>$INFO[ListItem.Property(line3)]</label>
+</control>
+<!-- include recording-owner-line top=358 width=190 namewidth=152 -->

@@ -1,0 +1,14 @@
+<!-- A quality badge (SD, 1080p…) in a box, as on the web app's pages. -->
+<control type="group">
+  <width>104</width><height>44</height>
+  <visible>!String.IsEmpty(Window.Property(badge.{{n}}))</visible>
+  <control type="image">
+    <left>0</left><top>4</top><width>104</width><height>36</height>
+    <texture border="8" colordiffuse="{{TEXT_FAINT}}">reelhouse/ui/frame.png</texture>
+  </control>
+  <control type="label">
+    <left>0</left><top>4</top><width>104</width><height>36</height>
+    <font>font20_title</font><textcolor>{{TEXT_DIM}}</textcolor><align>center</align><aligny>center</aligny>
+    <label>$INFO[Window.Property(badge.{{n}})]</label>
+  </control>
+</control>

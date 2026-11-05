@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A library: its posters in a grid, with Sort, Show (watched or not) and Genre, as in the web app. -->
+<window>
+  <defaultcontrol always="false">500</defaultcontrol>
+  <controls>
+    <!-- include background -->
+    <control type="grouplist" id="510">
+      <left>150</left><top>116</top><width>1400</width><height>64</height>
+      <orientation>horizontal</orientation>
+      <itemgap>14</itemgap>
+      <onleft>9000</onleft>
+      <ondown>500</ondown>
+      <!-- include chip-button id=511 label=$INFO[Window.Property(sort.label)] -->
+      <!-- include chip-button id=512 label=$INFO[Window.Property(filter.label)] -->
+      <!-- include chip-button id=513 label=$INFO[Window.Property(genre.label)] -->
+    </control>
+    <control type="label">
+      <left>1500</left><top>116</top><width>270</width><height>64</height>
+      <font>font12</font><textcolor>{{TEXT_FAINT}}</textcolor><align>right</align><aligny>center</aligny>
+      <label>$INFO[Window.Property(count)]</label>
+    </control>
+    <control type="panel" id="500">
+      <left>138</left><top>196</top><width>1782</width><height>884</height>
+      <orientation>vertical</orientation>
+      <onleft>9000</onleft>
+      <onup>510</onup>
+      <scrolltime tween="cubic" easing="out">220</scrolltime>
+      <preloaditems>2</preloaditems>
+      <itemlayout width="222" height="420">
+        <!-- include grid-item -->
+      </itemlayout>
+      <focusedlayout width="222" height="420">
+        <!-- include grid-item -->
+        <control type="image">
+          <left>5</left><top>5</top><width>204</width><height>299</height>
+          <texture border="16" colordiffuse="{{ACCENT}}">reelhouse/ui/frame.png</texture>
+          <visible>Control.HasFocus(500)</visible>
+        </control>
+      </focusedlayout>
+    </control>
+    <!-- include message -->
+    <!-- include topbar -->
+    <!-- include sidebar -->
+  </controls>
+</window>

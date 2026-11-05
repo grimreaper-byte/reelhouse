@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A show's series (recording_show.py), as a library's seasons: its cover, what it has and Delete show across the
+     top, then its series' covers. -->
+<window>
+  <defaultcontrol always="false">700</defaultcontrol>
+  <controls>
+    <!-- include background -->
+    <control type="group">
+      <left>150</left><top>110</top>
+      <control type="image">
+        <left>0</left><top>0</top><width>120</width><height>180</height>
+        <texture border="16" colordiffuse="{{ELEV2}}">reelhouse/ui/box.png</texture>
+      </control>
+      <control type="image">
+        <left>14</left><top>52</top><width>92</width><height>70</height>
+        <aspectratio>keep</aspectratio>
+        <texture background="true">$INFO[Window.Property(logo)]</texture>
+        <visible>String.IsEmpty(Window.Property(poster))</visible>
+      </control>
+      <control type="image">
+        <left>0</left><top>0</top><width>120</width><height>180</height>
+        <aspectratio>scale</aspectratio><fadetime>200</fadetime>
+        <texture background="true" diffuse="reelhouse/ui/mask-poster.png">$INFO[Window.Property(poster)]</texture>
+      </control>
+      <control type="label">
+        <left>150</left><top>0</top><width>1470</width><height>50</height>
+        <font>font13</font><textcolor>{{TEXT_DIM}}</textcolor><aligny>center</aligny>
+        <label>$INFO[Window.Property(meta)]</label>
+      </control>
+    </control>
+    <control type="grouplist" id="710">
+      <left>300</left><top>176</top><width>1400</width><height>64</height>
+      <orientation>horizontal</orientation>
+      <itemgap>14</itemgap>
+      <onleft>9000</onleft>
+      <ondown>700</ondown>
+      <!-- include chip-button id=711 label=$INFO[Window.Property(deleteshow.label)] -->
+    </control>
+    <control type="panel" id="700">
+      <left>138</left><top>300</top><width>1782</width><height>780</height>
+      <orientation>vertical</orientation>
+      <onleft>9000</onleft>
+      <onup>710</onup>
+      <scrolltime tween="cubic" easing="out">220</scrolltime>
+      <itemlayout width="222" height="420">
+        <!-- include recording-show-item -->
+      </itemlayout>
+      <focusedlayout width="222" height="420">
+        <!-- include recording-show-item -->
+        <control type="image">
+          <left>5</left><top>5</top><width>204</width><height>299</height>
+          <texture border="16" colordiffuse="{{ACCENT}}">reelhouse/ui/frame.png</texture>
+          <visible>Control.HasFocus(700)</visible>
+        </control>
+      </focusedlayout>
+    </control>
+    <!-- include message -->
+    <!-- include topbar -->
+    <!-- include sidebar -->
+  </controls>
+</window>

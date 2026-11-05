@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Live TV (and Radio): the web app's guide. The days along the top and the highlighted programme's details under the
+     grid are here; the grid itself (channels, times, programmes, the line at now) is drawn by livetv.py. -->
+<window>
+  <defaultcontrol always="false">820</defaultcontrol>
+  <controls>
+    <!-- include background -->
+    <control type="list" id="820">
+      <left>138</left><top>110</top><width>1700</width><height>76</height>
+      <orientation>horizontal</orientation>
+      <onleft>9000</onleft>
+      <itemlayout width="236" height="76">
+        <control type="image">
+          <left>12</left><top>6</top><width>214</width><height>62</height>
+          <texture border="31" colordiffuse="{{ELEV2}}">reelhouse/ui/pill.png</texture>
+        </control>
+        <control type="label">
+          <left>12</left><top>6</top><width>214</width><height>62</height>
+          <font>font12</font><align>center</align><aligny>center</aligny>
+          <textcolor>{{TEXT_DIM}}</textcolor>
+          <label>$INFO[ListItem.Label]</label>
+          <visible>!String.IsEqual(ListItem.Property(active),true)</visible>
+        </control>
+        <control type="label">
+          <left>12</left><top>6</top><width>214</width><height>62</height>
+          <font>font12</font><align>center</align><aligny>center</aligny>
+          <textcolor>{{ACCENT}}</textcolor>
+          <label>$INFO[ListItem.Label]</label>
+          <visible>String.IsEqual(ListItem.Property(active),true)</visible>
+        </control>
+      </itemlayout>
+      <focusedlayout width="236" height="76">
+        <control type="image">
+          <left>12</left><top>6</top><width>214</width><height>62</height>
+          <texture border="31" colordiffuse="{{ELEV2}}">reelhouse/ui/pill.png</texture>
+          <visible>!Control.HasFocus(820)</visible>
+        </control>
+        <control type="image">
+          <left>12</left><top>6</top><width>214</width><height>62</height>
+          <texture border="31" colordiffuse="{{ACCENT}}">reelhouse/ui/pill.png</texture>
+          <visible>Control.HasFocus(820)</visible>
+        </control>
+        <control type="label">
+          <left>12</left><top>6</top><width>214</width><height>62</height>
+          <font>font12</font><align>center</align><aligny>center</aligny>
+          <textcolor>{{ACCENT_TEXT}}</textcolor>
+          <label>$INFO[ListItem.Label]</label>
+          <visible>Control.HasFocus(820)</visible>
+        </control>
+        <control type="label">
+          <left>12</left><top>6</top><width>214</width><height>62</height>
+          <font>font12</font><align>center</align><aligny>center</aligny>
+          <textcolor>{{ACCENT}}</textcolor>
+          <label>$INFO[ListItem.Label]</label>
+          <visible>!Control.HasFocus(820) + String.IsEqual(ListItem.Property(active),true)</visible>
+        </control>
+        <control type="label">
+          <left>12</left><top>6</top><width>214</width><height>62</height>
+          <font>font12</font><align>center</align><aligny>center</aligny>
+          <textcolor>{{TEXT_DIM}}</textcolor>
+          <label>$INFO[ListItem.Label]</label>
+          <visible>!Control.HasFocus(820) + !String.IsEqual(ListItem.Property(active),true)</visible>
+        </control>
+      </focusedlayout>
+    </control>
+    <!-- The grid's panel: the channel column's and the times' backgrounds (livetv.py draws on top). -->
+    <control type="group">
+      <visible>String.IsEmpty(Window.Property(message.title))</visible>
+      <control type="image">
+        <left>150</left><top>200</top><width>1740</width><height>644</height>
+        <texture border="16" colordiffuse="{{ELEV}}">reelhouse/ui/box.png</texture>
+      </control>
+      <control type="image">
+        <left>150</left><top>200</top><width>260</width><height>644</height>
+        <texture border="16" colordiffuse="{{ELEV2}}">reelhouse/ui/box.png</texture>
+      </control>
+      <control type="label">
+        <left>170</left><top>200</top><width>230</width><height>50</height>
+        <font>font12</font><textcolor>{{TEXT_DIM}}</textcolor><aligny>center</aligny>
+        <label>$INFO[Window.Property(day)]</label>
+      </control>
+    </control>
+    <!-- The highlighted programme. -->
+    <control type="group">
+      <left>150</left><top>860</top>
+      <visible>!String.IsEmpty(Window.Property(summary.title))</visible>
+      <control type="label">
+        <left>0</left><top>0</top><width>1600</width><height>50</height>
+        <font>font30_title</font><textcolor>{{TEXT}}</textcolor><aligny>center</aligny>
+        <label>[COLOR {{TEXT_DIM}}]$INFO[Window.Property(summary.time)][/COLOR]   $INFO[Window.Property(summary.title)]$INFO[Window.Property(summary.rec),   [COLOR {{WARN}}],[/COLOR]]</label>
+      </control>
+      <control type="grouplist">
+        <left>0</left><top>52</top><width>1740</width><height>40</height>
+        <orientation>horizontal</orientation><itemgap>18</itemgap>
+        <control type="label">
+          <width>auto</width><height>40</height>
+          <font>font12</font><textcolor>{{TEXT_DIM}}</textcolor><aligny>center</aligny>
+          <label>$INFO[Window.Property(summary.meta)]</label>
+        </control>
+        <control type="group">
+          <width>26</width><height>40</height>
+          <visible>!String.IsEmpty(Window.Property(summary.genre))</visible>
+          <control type="image">
+            <left>6</left><top>13</top><width>14</width><height>14</height>
+            <texture colordiffuse="FF808080">reelhouse/ui/circle.png</texture>
+            <visible>String.IsEmpty(Window.Property(summary.group))</visible>
+          </control>
+          <!-- repeat n=1..11 -->
+          <control type="image">
+            <left>6</left><top>13</top><width>14</width><height>14</height>
+            <texture colordiffuse="{{GENRE{{n}}}}">reelhouse/ui/circle.png</texture>
+            <visible>String.IsEqual(Window.Property(summary.group),{{n}})</visible>
+          </control>
+          <!-- /repeat -->
+        </control>
+        <control type="label">
+          <width>auto</width><height>40</height>
+          <font>font12</font><textcolor>{{TEXT_DIM}}</textcolor><aligny>center</aligny>
+          <label>$INFO[Window.Property(summary.genre)]</label>
+        </control>
+      </control>
+      <control type="textbox">
+        <left>0</left><top>96</top><width>1740</width><height>110</height>
+        <font>font12</font><textcolor>{{TEXT}}</textcolor>
+        <label>$INFO[Window.Property(summary.description)]</label>
+      </control>
+    </control>
+    <!-- include message -->
+    <!-- include topbar -->
+    <!-- include sidebar -->
+  </controls>
+</window>

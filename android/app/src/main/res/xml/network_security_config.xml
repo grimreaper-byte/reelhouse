@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Reelhouse at home is plain http://192.168.x.x:8484, and the app tunnel's local address is http://127.0.0.1 (the
+     tunnel itself is encrypted), so cleartext has to be allowed. Web addresses use HTTPS. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

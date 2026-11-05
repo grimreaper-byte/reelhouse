@@ -1,0 +1,101 @@
+{
+  "item": {
+    "id": 2,
+    "libraryId": 1,
+    "type": "movie",
+    "title": "Another Film",
+    "year": 2021,
+    "parentId": null,
+    "showId": null,
+    "seasonNumber": null,
+    "episodeNumber": null,
+    "episodeEnd": null,
+    "airDate": null,
+    "rating": null,
+    "contentRating": null,
+    "duration": 120,
+    "addedAt": 1792052590866,
+    "images": {
+      "poster": "/api/images/2/poster?v=1792156049901",
+      "backdrop": null,
+      "thumb": "/api/images/2/thumb?v=1792156049901"
+    },
+    "state": {
+      "position": 76.358,
+      "watched": false,
+      "viewCount": 0,
+      "lastViewedAt": 1792188379464
+    },
+    "videoResolution": "1080p",
+    "originalTitle": null,
+    "overview": null,
+    "tagline": null,
+    "genres": [],
+    "cast": [],
+    "directors": [],
+    "studio": null,
+    "tmdbId": null,
+    "imdbId": null,
+    "matchLocked": false,
+    "media": {
+      "container": "mkv",
+      "duration": 120,
+      "bitrate": 769187,
+      "fileSize": 11537819,
+      "video": {
+        "index": 0,
+        "codec": "h264",
+        "profile": "Constrained Baseline",
+        "level": 40,
+        "width": 1920,
+        "height": 1080,
+        "pixFmt": "yuv420p",
+        "bitDepth": 8,
+        "fps": 25,
+        "interlaced": false,
+        "colorTransfer": null,
+        "colorPrimaries": null,
+        "hdr": null,
+        "bitrate": null
+      },
+      "audio": [
+        {
+          "index": 1,
+          "codec": "ac3",
+          "profile": null,
+          "channels": 2,
+          "layout": "stereo",
+          "language": "eng",
+          "title": null,
+          "isDefault": true,
+          "bitrate": 192000
+        },
+        {
+          "index": 2,
+          "codec": "ac3",
+          "profile": null,
+          "channels": 2,
+          "layout": "stereo",
+          "language": "spa",
+          "title": "Spanish Commentary",
+          "isDefault": false,
+          "bitrate": 192000
+        }
+      ],
+      "subtitles": [
+        {
+          "index": 3,
+          "codec": "subrip",
+          "language": "eng",
+          "title": null,
+          "isDefault": false,
+          "forced": false,
+          "text": true,
+          "image": false
+        }
+      ],
+      "external": [],
+      "chapters": []
+    }
+  }
+}

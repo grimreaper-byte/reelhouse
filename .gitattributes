@@ -1,0 +1,8 @@
+# Keep LF line endings in the repository and working tree on every OS. Shell scripts and the
+# Dockerfile break with CRLF endings when a Windows checkout is built into a Linux image.
+* text=auto eol=lf
+# Windows batch files misread labels and jumps with LF endings.
+*.bat text eol=crlf
+*.png binary
+*.jpg binary
+*.ico binary

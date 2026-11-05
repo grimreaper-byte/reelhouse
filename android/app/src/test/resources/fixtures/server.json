@@ -1,0 +1,12 @@
+{
+  "id": "4466a09bf68ec4109835",
+  "name": "MY-PC",
+  "version": "0.1.0",
+  "setupRequired": false,
+  "network": {
+    "ip": "127.0.0.1",
+    "local": true,
+    "wireguard": false,
+    "tunnel": false
+  }
+}

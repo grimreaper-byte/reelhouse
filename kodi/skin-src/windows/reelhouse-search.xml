@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Search: the box (Kodi's keyboard), then the web app's sections as rows: movies, TV shows, episodes, and titles
+     whose cast or crew matched. -->
+<window>
+  <defaultcontrol always="false">700</defaultcontrol>
+  <controls>
+    <!-- include background -->
+    <control type="group">
+      <left>150</left><top>116</top>
+      <control type="button" id="700">
+        <left>0</left><top>0</top><width>1100</width><height>76</height>
+        <font>font13</font><textoffsetx>86</textoffsetx><aligny>center</aligny>
+        <texturefocus border="16" colordiffuse="{{ELEV3}}">reelhouse/ui/box.png</texturefocus>
+        <texturenofocus border="16" colordiffuse="{{ELEV2}}">reelhouse/ui/box.png</texturenofocus>
+        <textcolor>{{TEXT}}</textcolor><focusedcolor>{{TEXT}}</focusedcolor>
+        <label>$INFO[Window.Property(query.label)]</label>
+        <onleft>9000</onleft>
+        <ondown>721</ondown>
+      </control>
+      <control type="image">
+        <left>0</left><top>0</top><width>1100</width><height>76</height>
+        <texture border="16" colordiffuse="{{ACCENT}}">reelhouse/ui/frame.png</texture>
+        <visible>Control.HasFocus(700)</visible>
+      </control>
+      <control type="image">
+        <left>28</left><top>20</top><width>36</width><height>36</height>
+        <texture colordiffuse="{{TEXT_FAINT}}">reelhouse/icons/search.png</texture>
+      </control>
+    </control>
+    <control type="grouplist" id="710">
+      <left>138</left><top>220</top><width>1782</width><height>860</height>
+      <orientation>vertical</orientation>
+      <usecontrolcoords>true</usecontrolcoords>
+      <itemgap>14</itemgap>
+      <scrolltime tween="cubic" easing="out">250</scrolltime>
+      <onleft>9000</onleft>
+      <onup>700</onup>
+      <!-- include poster-row group=711 list=721 up=700 down=722 title=Movies -->
+      <!-- include poster-row group=712 list=722 up=721 down=723 title="TV Shows" -->
+      <!-- include landscape-row group=713 list=723 up=722 down=724 title=Episodes -->
+      <!-- include poster-row group=714 list=724 up=723 down=724 title="Cast &amp; Crew" -->
+    </control>
+    <!-- include message -->
+    <!-- include topbar -->
+    <!-- include sidebar -->
+  </controls>
+</window>

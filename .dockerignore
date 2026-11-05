@@ -1,0 +1,13 @@
+node_modules
+data
+config
+.git
+.claude
+test
+*.log
+Dockerfile
+docker-compose.yml
+plan.md
+tunnel/bin
+android
+tunnel/mobile

@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Manage Recordings: the Live TV recordings you set from the guide, by show (recordings.py), under the headings
+     Recording now, Recorded and Scheduled, then the series recordings, each a grid like a library's; admins have a chip to show everyone's. How many
+     of each sits on the right, and how full the recordings drive is across from the title. -->
+<window>
+  <defaultcontrol always="false">601</defaultcontrol>
+  <controls>
+    <!-- include background -->
+    <control type="grouplist" id="610">
+      <left>150</left><top>116</top><width>900</width><height>64</height>
+      <orientation>horizontal</orientation>
+      <itemgap>14</itemgap>
+      <onleft>9000</onleft>
+      <ondown>601</ondown>
+      <visible>String.IsEqual(Window.Property(admin),true)</visible>
+      <!-- include chip-button id=611 label=$INFO[Window.Property(whose.label)] -->
+    </control>
+    <control type="label">
+      <left>1070</left><top>116</top><width>700</width><height>64</height>
+      <font>font12</font><textcolor>{{TEXT_FAINT}}</textcolor><align>right</align><aligny>center</aligny>
+      <label>$INFO[Window.Property(count)]</label>
+    </control>
+    <control type="grouplist" id="620">
+      <left>138</left><top>184</top><width>1782</width><height>896</height>
+      <orientation>vertical</orientation>
+      <usecontrolcoords>true</usecontrolcoords>
+      <itemgap>14</itemgap>
+      <scrolltime tween="cubic" easing="out">250</scrolltime>
+      <onleft>9000</onleft>
+      <!-- include recording-show-grid group=621 list=601 up=610 down=602 title="Recording now" -->
+      <!-- include recording-show-grid group=622 list=602 up=601 down=603 title=Recorded -->
+      <!-- include recording-show-grid group=623 list=603 up=602 down=604 title=Scheduled -->
+      <!-- include recording-show-grid group=624 list=604 up=603 down=604 title="Series recordings" -->
+    </control>
+    <!-- include message -->
+    <!-- include topbar -->
+    <control type="group">
+      <left>890</left><top>24</top>
+      <visible>!String.IsEmpty(Window.Property(drive.label))</visible>
+      <control type="label">
+        <width>720</width><height>30</height>
+        <font>font10</font><textcolor>{{TEXT_DIM}}</textcolor><align>right</align><aligny>center</aligny>
+        <label>$INFO[Window.Property(drive.label)]</label>
+      </control>
+      <control type="progress" id="631">
+        <left>400</left><top>36</top><width>320</width><height>8</height>
+        <texturebg colordiffuse="{{ELEV2}}">reelhouse/ui/white.png</texturebg>
+        <midtexture colordiffuse="{{ACCENT}}">reelhouse/ui/white.png</midtexture>
+        <visible>String.IsEmpty(Window.Property(drive.low))</visible>
+      </control>
+      <control type="progress" id="632">
+        <left>400</left><top>36</top><width>320</width><height>8</height>
+        <texturebg colordiffuse="{{ELEV2}}">reelhouse/ui/white.png</texturebg>
+        <midtexture colordiffuse="{{DANGER}}">reelhouse/ui/white.png</midtexture>
+        <visible>!String.IsEmpty(Window.Property(drive.low))</visible>
+      </control>
+      <control type="label">
+        <top>48</top><width>720</width><height>30</height>
+        <font>font10</font><textcolor>{{TEXT_FAINT}}</textcolor><align>right</align><aligny>center</aligny>
+        <label>$INFO[Window.Property(drive.hint)]</label>
+      </control>
+    </control>
+    <!-- include sidebar -->
+  </controls>
+</window>

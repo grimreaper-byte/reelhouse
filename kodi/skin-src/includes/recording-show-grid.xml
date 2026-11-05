@@ -1,0 +1,33 @@
+<!-- A titled section of shows on Manage Recordings (recordings.py: Recording now, Recorded, Scheduled, Series recordings), a grid like a
+     library's. Two rows show at once, so a section fits on the screen under its heading, and more scroll inside it; its
+     group is made shorter when it has only one row (model.section_height). -->
+<control type="group" id="{{group}}">
+  <width>1782</width><height>896</height>
+  <!-- shown while it has the focus too: refilling empties it for a moment, and hidden it would lose the focus -->
+  <visible>Integer.IsGreater(Container({{list}}).NumItems,0) | Control.HasFocus({{list}})</visible>
+  <control type="label">
+    <left>12</left><top>0</top><width>1700</width><height>48</height>
+    <font>font30_title</font><textcolor>{{TEXT}}</textcolor><aligny>center</aligny>
+    <label>{{title}}</label>
+  </control>
+  <control type="panel" id="{{list}}">
+    <left>0</left><top>48</top><width>1782</width><height>848</height>
+    <orientation>vertical</orientation>
+    <onleft>9000</onleft>
+    <onup>{{up}}</onup>
+    <ondown>{{down}}</ondown>
+    <scrolltime tween="cubic" easing="out">220</scrolltime>
+    <preloaditems>2</preloaditems>
+    <itemlayout width="222" height="420">
+      <!-- include recording-show-item -->
+    </itemlayout>
+    <focusedlayout width="222" height="420">
+      <!-- include recording-show-item -->
+      <control type="image">
+        <left>5</left><top>5</top><width>204</width><height>299</height>
+        <texture border="16" colordiffuse="{{ACCENT}}">reelhouse/ui/frame.png</texture>
+        <visible>Control.HasFocus({{list}})</visible>
+      </control>
+    </focusedlayout>
+  </control>
+</control>

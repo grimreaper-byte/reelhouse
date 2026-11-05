@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The app icon's foreground: the logo in the 108 dp adaptive-icon canvas, centred between its box and the
+     smallest circle around it (the logo is lopsided), as large as the 66 dp safe zone allows. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- The film-reel logo (web/favicon.svg) as one outline with its windows and sprocket holes cut out, so
+         themed (monochrome) icons show them too. Logo units (64 per side). -->
+    <group
+        android:scaleX="1.12"
+        android:scaleY="1.12"
+        android:translateX="17.04"
+        android:translateY="15.696">
+        <path
+            android:fillColor="#E5A00D"
+            android:fillType="evenOdd"
+            android:pathData="M26,51 H56.5 A1.5,1.5 0 0,0 58,49.5 V44.5 A1.5,1.5 0 0,0 56.5,43 H41.4919 A19,19 0 1,0 26,51 Z M21,21.5 a5,5 0 1,0 10,0 a5,5 0 1,0 -10,0 Z M30.99,28.76 a5,5 0 1,0 10,0 a5,5 0 1,0 -10,0 Z M27.17,40.49 a5,5 0 1,0 10,0 a5,5 0 1,0 -10,0 Z M14.83,40.49 a5,5 0 1,0 10,0 a5,5 0 1,0 -10,0 Z M11.01,28.76 a5,5 0 1,0 10,0 a5,5 0 1,0 -10,0 Z M23.5,32 a2.5,2.5 0 1,0 5,0 a2.5,2.5 0 1,0 -5,0 Z M39.3697,45.5 H40.4 A0.6,0.6 0 0,1 41,46.1 V47.9 A0.6,0.6 0 0,1 40.4,48.5 H38.6 A0.6,0.6 0 0,1 38,47.9 V46.7309 A19,19 0 0,0 39.3697,45.5 Z M43.6,45.5 H45.4 A0.6,0.6 0 0,1 46,46.1 V47.9 A0.6,0.6 0 0,1 45.4,48.5 H43.6 A0.6,0.6 0 0,1 43,47.9 V46.1 A0.6,0.6 0 0,1 43.6,45.5 Z M48.6,45.5 H50.4 A0.6,0.6 0 0,1 51,46.1 V47.9 A0.6,0.6 0 0,1 50.4,48.5 H48.6 A0.6,0.6 0 0,1 48,47.9 V46.1 A0.6,0.6 0 0,1 48.6,45.5 Z M53.6,45.5 H55.4 A0.6,0.6 0 0,1 56,46.1 V47.9 A0.6,0.6 0 0,1 55.4,48.5 H53.6 A0.6,0.6 0 0,1 53,47.9 V46.1 A0.6,0.6 0 0,1 53.6,45.5 Z" />
+    </group>
+</vector>

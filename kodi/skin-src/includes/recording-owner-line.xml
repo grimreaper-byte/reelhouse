@@ -1,0 +1,32 @@
+<!-- Who set what's on a cover on Everyone's (Screen.owner_line): the first person's picture, else their first letter,
+     and all their names; only words when nobody here set it through Reelhouse. Empty on Yours. -->
+<control type="group">
+  <left>12</left><top>{{top}}</top>
+  <visible>!String.IsEmpty(ListItem.Property(owner.letter))</visible>
+  <control type="image">
+    <width>30</width><height>30</height>
+    <texture colordiffuse="{{ACCENT}}">reelhouse/ui/circle.png</texture>
+  </control>
+  <control type="label">
+    <width>30</width><height>30</height>
+    <font>font10</font><textcolor>{{ACCENT_TEXT}}</textcolor><align>center</align><aligny>center</aligny>
+    <label>$INFO[ListItem.Property(owner.letter)]</label>
+    <visible>String.IsEmpty(ListItem.Art(avatar))</visible>
+  </control>
+  <control type="image">
+    <width>30</width><height>30</height><aspectratio>scale</aspectratio>
+    <texture diffuse="reelhouse/ui/circle.png" background="true">$INFO[ListItem.Art(avatar)]</texture>
+  </control>
+  <control type="label">
+    <left>38</left><width>{{namewidth}}</width><height>30</height>
+    <font>font10</font><textcolor>{{TEXT_DIM}}</textcolor><aligny>center</aligny>
+    <label>$INFO[ListItem.Property(owner.names)]</label>
+  </control>
+</control>
+<!-- A textbox, as a label in a list doesn't wrap: this is too long for a poster's width. -->
+<control type="textbox">
+  <left>12</left><top>{{top}}</top><width>{{width}}</width><height>60</height>
+  <font>font10</font><textcolor>{{TEXT_FAINT}}</textcolor>
+  <label>$INFO[ListItem.Property(owner.names)]</label>
+  <visible>String.IsEmpty(ListItem.Property(owner.letter))</visible>
+</control>

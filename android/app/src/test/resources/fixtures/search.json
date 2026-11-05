@@ -1,0 +1,68 @@
+{
+  "movies": [
+    {
+      "id": 4,
+      "libraryId": 1,
+      "type": "movie",
+      "title": "Big Test Movie",
+      "year": 2019,
+      "parentId": null,
+      "showId": null,
+      "seasonNumber": null,
+      "episodeNumber": null,
+      "episodeEnd": null,
+      "airDate": null,
+      "rating": null,
+      "contentRating": null,
+      "duration": 90,
+      "addedAt": 1792052578465,
+      "images": {
+        "poster": "/api/images/4/poster?v=1792181632599",
+        "backdrop": "/api/images/4/backdrop?v=1792181632599",
+        "thumb": "/api/images/4/thumb?v=1792181632599"
+      },
+      "state": {
+        "position": 0,
+        "watched": false,
+        "viewCount": 1,
+        "lastViewedAt": 1792185935034
+      },
+      "videoResolution": "720p"
+    }
+  ],
+  "shows": [
+    {
+      "id": 5,
+      "libraryId": 2,
+      "type": "show",
+      "title": "Test Show",
+      "year": 2020,
+      "parentId": null,
+      "showId": null,
+      "seasonNumber": null,
+      "episodeNumber": null,
+      "episodeEnd": null,
+      "airDate": null,
+      "rating": null,
+      "contentRating": null,
+      "duration": null,
+      "addedAt": 1792156050576,
+      "images": {
+        "poster": "/api/images/5/poster?v=1792173267008",
+        "backdrop": null,
+        "thumb": null
+      },
+      "state": {
+        "position": 0,
+        "watched": false,
+        "viewCount": 0,
+        "lastViewedAt": null
+      },
+      "leafCount": 4,
+      "viewedLeafCount": 0,
+      "childCount": 2
+    }
+  ],
+  "episodes": [],
+  "people": []
+}

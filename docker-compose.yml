@@ -1,0 +1,50 @@
+# Reelhouse with Docker Compose:
+#   1. Point the media volumes below at your folders.
+#   2. docker compose up -d --build
+#   3. Open http://<host-ip>:8484 and add libraries from /media/movies and /media/tv.
+services:
+  reelhouse:
+    build: .
+    image: reelhouse:latest
+    container_name: reelhouse
+    restart: unless-stopped
+    ports:
+      - "8484:8484"     # web app (HTTP)
+      # - "8443:8443"   # HTTPS, once enabled in Settings → Remote access
+      # - "51821:51821/udp"  # app tunnel for the Reelhouse app, once enabled in Settings → Remote access
+    environment:
+      TZ: Etc/UTC                    # your time zone, e.g. Europe/London
+      REELHOUSE_SERVER_NAME: Reelhouse
+      PUID: "1000"                   # user/group that owns your media and config folders
+      PGID: "1000"
+      # REELHOUSE_ACME_PORT: "8080"  # Let's Encrypt HTTP check; forward router port 80 → host 8080
+    volumes:
+      - ./config:/config                 # database, artwork cache, certificates, WireGuard files
+      - /path/to/movies:/media/movies:ro
+      - /path/to/tv:/media/tv:ro
+      # Optional: put transcoding on fast/temporary storage, then set
+      # Settings → Transcoder → Temporary folder to /transcode
+      # - /tmp/reelhouse:/transcode
+
+    # GPU transcoding — the GPU driver must be installed on the host. Step-by-step guides for
+    # Linux, OpenMediaVault, TrueNAS, Proxmox and WSL: docs/gpu.md. Check the result in
+    # Settings → Transcoder → Hardware acceleration.
+
+    # Intel/AMD GPU, including integrated graphics (VAAPI): pass the render device through.
+    # devices:
+    #   - /dev/dri:/dev/dri
+
+    # NVIDIA GPU: requires the NVIDIA Container Toolkit on the host.
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu, video, compute, utility]
+    # (On systems that use the older runtime setting, "runtime: nvidia" works instead.)
+
+    # Host networking (Linux): the container uses the host's network directly, so nothing needs publishing,
+    # pairing codes carry the server's home address, and automatic router setup (UPnP) works.
+    # Use this instead of "ports:" above.
+    # network_mode: host

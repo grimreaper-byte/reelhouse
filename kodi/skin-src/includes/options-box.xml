@@ -1,0 +1,6 @@
+<!-- The menu's box for {{n}} choice(s): 126 for the headings, 44 more with who set it, 90 a choice, 26 below. -->
+<control type="image">
+  <left>0</left><top>0</top><width>800</width><height>{{h}}</height>
+  <texture border="16" colordiffuse="{{ELEV}}">reelhouse/ui/box.png</texture>
+  <visible>String.IsEqual(Window.Property(count),{{n}}) + {{owner}}</visible>
+</control>

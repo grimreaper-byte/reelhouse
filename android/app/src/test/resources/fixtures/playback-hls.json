@@ -1,0 +1,60 @@
+{
+  "playId": "b82c2a31b61ee114d47796cfafbd7740",
+  "mode": "hls",
+  "url": "/api/hls/b82c2a31b61ee114d47796cfafbd7740/index.m3u8",
+  "sessionId": "b82c2a31b61ee114d47796cfafbd7740",
+  "reasons": [
+    "ac3 audio"
+  ],
+  "quality": "original",
+  "duration": 120,
+  "audioIndex": 1,
+  "burnSubtitle": null,
+  "audioOffsetMs": 0,
+  "subtitleOffsetMs": 0,
+  "offsetLimits": {
+    "audioMs": 10000,
+    "subtitleMs": 600000
+  },
+  "audioTracks": [
+    {
+      "index": 1,
+      "codec": "ac3",
+      "channels": 2,
+      "language": "eng",
+      "title": null,
+      "isDefault": true
+    },
+    {
+      "index": 2,
+      "codec": "ac3",
+      "channels": 2,
+      "language": "spa",
+      "title": "Spanish Commentary",
+      "isDefault": false
+    }
+  ],
+  "subtitleTracks": [
+    {
+      "id": "s3",
+      "streamIndex": 3,
+      "language": "eng",
+      "title": null,
+      "codec": "subrip",
+      "forced": false,
+      "isDefault": false,
+      "external": false,
+      "kind": "text",
+      "url": "/api/subtitles/2/s3.vtt?token=TEST"
+    }
+  ],
+  "chapters": [],
+  "video": {
+    "codec": "h264",
+    "width": 1920,
+    "height": 1080,
+    "hdr": null
+  },
+  "next": null,
+  "prev": null
+}

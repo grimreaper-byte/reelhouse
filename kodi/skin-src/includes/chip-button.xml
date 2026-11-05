@@ -1,0 +1,8 @@
+<control type="button" id="{{id}}">
+  <width>auto</width><height>64</height>
+  <font>font12</font><textoffsetx>28</textoffsetx><aligny>center</aligny>
+  <texturefocus border="31" colordiffuse="{{ACCENT}}">reelhouse/ui/pill.png</texturefocus>
+  <texturenofocus border="31" colordiffuse="{{ELEV2}}">reelhouse/ui/pill.png</texturenofocus>
+  <textcolor>{{TEXT}}</textcolor><focusedcolor>{{ACCENT_TEXT}}</focusedcolor>
+  <label>{{label}}</label>
+</control>

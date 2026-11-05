@@ -1,0 +1,44 @@
+# systemd unit for running Reelhouse on Linux without Docker.
+#
+#   sudo useradd --system --home /var/lib/reelhouse --shell /usr/sbin/nologin reelhouse
+#   sudo git clone <repo> /opt/reelhouse && cd /opt/reelhouse && sudo npm ci --omit=dev
+#   sudo cp deploy/reelhouse.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now reelhouse
+#
+# The "reelhouse" user needs read access to your media folders.
+
+[Unit]
+Description=Reelhouse media server
+After=network-online.target remote-fs.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=reelhouse
+Group=reelhouse
+WorkingDirectory=/opt/reelhouse
+# Adjust if node lives elsewhere (`which node`); Node.js 22.13+ is required.
+ExecStart=/usr/bin/node --disable-warning=ExperimentalWarning server/index.js
+Environment=NODE_ENV=production
+Environment=REELHOUSE_DATA=/var/lib/reelhouse
+StateDirectory=reelhouse
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=15
+
+# Intel/AMD hardware encoding (VAAPI) needs access to /dev/dri. Uncomment if those groups exist.
+# SupplementaryGroups=render video
+
+# Let's Encrypt's HTTP check needs port 80, which normal users can't open. Either use the DNS
+# check (Duck DNS / Cloudflare), or allow it here:
+# AmbientCapabilities=CAP_NET_BIND_SERVICE
+
+# Hardening: the service can only write to its data directory. If you pick a custom
+# transcoding folder in Settings, add it to ReadWritePaths.
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/reelhouse
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

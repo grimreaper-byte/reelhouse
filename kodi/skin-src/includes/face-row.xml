@@ -1,0 +1,26 @@
+<!-- A titled row of people (a cast, search results): photo or initials, name, part. -->
+<control type="group" id="{{group}}">
+  <width>1782</width><height>440</height>
+  <!-- shown while it has the focus too: refilling empties it for a moment, and hidden it would lose the focus -->
+  <visible>Integer.IsGreater(Container({{list}}).NumItems,0) | Control.HasFocus({{list}})</visible>
+  <control type="label">
+    <left>12</left><top>0</top><width>1700</width><height>50</height>
+    <font>font30_title</font><textcolor>{{TEXT}}</textcolor><aligny>center</aligny>
+    <label>{{title}}</label>
+  </control>
+  <control type="list" id="{{list}}">
+    <left>0</left><top>50</top><width>1782</width><height>386</height>
+    <orientation>horizontal</orientation>
+    <onleft>9000</onleft>
+    <onup>{{up}}</onup>
+    <ondown>{{down}}</ondown>
+    <scrolltime tween="cubic" easing="out">220</scrolltime>
+    <itemlayout width="214" height="386">
+      <!-- include face-item -->
+    </itemlayout>
+    <focusedlayout width="214" height="386">
+      <!-- include face-item -->
+      <!-- include focus-frame list={{list}} left=5 top=5 width=194 height=284 -->
+    </focusedlayout>
+  </control>
+</control>

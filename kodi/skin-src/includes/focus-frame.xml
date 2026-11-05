@@ -1,0 +1,5 @@
+<control type="image">
+  <left>{{left}}</left><top>{{top}}</top><width>{{width}}</width><height>{{height}}</height>
+  <texture border="16" colordiffuse="{{ACCENT}}">reelhouse/ui/frame.png</texture>
+  <visible>Control.HasFocus({{list}})</visible>
+</control>

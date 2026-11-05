@@ -1,0 +1,49 @@
+{
+  "playId": "28b43a8cf9e3e35d58e83365",
+  "mode": "direct",
+  "url": "/api/stream/4?token=TEST",
+  "sessionId": null,
+  "reasons": [],
+  "quality": "original",
+  "duration": 90,
+  "audioIndex": 1,
+  "burnSubtitle": null,
+  "audioOffsetMs": 0,
+  "subtitleOffsetMs": 0,
+  "offsetLimits": {
+    "audioMs": 10000,
+    "subtitleMs": 600000
+  },
+  "audioTracks": [
+    {
+      "index": 1,
+      "codec": "aac",
+      "channels": 1,
+      "language": null,
+      "title": null,
+      "isDefault": true
+    }
+  ],
+  "subtitleTracks": [
+    {
+      "id": "x0",
+      "language": "en",
+      "title": null,
+      "codec": "srt",
+      "forced": false,
+      "isDefault": false,
+      "external": true,
+      "kind": "text",
+      "url": "/api/subtitles/4/x0.vtt?token=TEST"
+    }
+  ],
+  "chapters": [],
+  "video": {
+    "codec": "h264",
+    "width": 1280,
+    "height": 720,
+    "hdr": null
+  },
+  "next": null,
+  "prev": null
+}

@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Someone in a cast: photo, born/died/from, biography, their titles on the server and their other movies. -->
+<window>
+  <defaultcontrol always="false">600</defaultcontrol>
+  <controls>
+    <!-- include background -->
+    <control type="grouplist" id="600">
+      <left>138</left><top>116</top><width>1782</width><height>964</height>
+      <orientation>vertical</orientation>
+      <usecontrolcoords>true</usecontrolcoords>
+      <itemgap>14</itemgap>
+      <scrolltime tween="cubic" easing="out">250</scrolltime>
+      <onleft>9000</onleft>
+      <control type="group" id="601">
+        <width>1782</width><height>500</height>
+        <left>12</left>
+        <control type="image">
+          <left>0</left><top>8</top><width>300</width><height>450</height>
+          <texture border="16" colordiffuse="{{ELEV2}}">reelhouse/ui/box.png</texture>
+        </control>
+        <control type="label">
+          <left>0</left><top>8</top><width>300</width><height>450</height>
+          <font>font60</font><textcolor>{{TEXT_FAINT}}</textcolor><align>center</align><aligny>center</aligny>
+          <label>$INFO[Window.Property(initials)]</label>
+          <visible>String.IsEmpty(Window.Property(photo))</visible>
+        </control>
+        <control type="image">
+          <left>0</left><top>8</top><width>300</width><height>450</height>
+          <aspectratio aligny="top">scale</aspectratio><fadetime>200</fadetime>
+          <texture background="true" diffuse="reelhouse/ui/mask-poster.png">$INFO[Window.Property(photo)]</texture>
+        </control>
+        <control type="label">
+          <left>340</left><top>0</top><width>1400</width><height>80</height>
+          <font>font52_title</font><textcolor>{{TEXT}}</textcolor>
+          <label>$INFO[Window.Property(name)]</label>
+        </control>
+        <control type="textbox">
+          <left>340</left><top>90</top><width>1300</width><height>110</height>
+          <font>font13</font><textcolor>{{TEXT_DIM}}</textcolor>
+          <label>$INFO[Window.Property(facts)]</label>
+        </control>
+        <control type="textbox" id="602">
+          <left>340</left><top>210</top><width>1300</width><height>250</height>
+          <font>font13</font><textcolor>{{TEXT}}</textcolor>
+          <label>$INFO[Window.Property(biography)]</label>
+        </control>
+      </control>
+      <!-- include poster-row group=603 list=630 up=630 down=640 title=$INFO[Window.Property(here.title)] -->
+      <!-- include poster-row group=604 list=640 up=630 down=640 title=$INFO[Window.Property(others.title)] -->
+    </control>
+    <!-- include message -->
+    <!-- include topbar -->
+    <!-- include sidebar -->
+  </controls>
+</window>

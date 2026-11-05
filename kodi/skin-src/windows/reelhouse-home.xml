@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Home: the web app's rows (Continue Watching, Recently Added in each library, Watched by Others). Python fills up to
+     twelve rows; each is a poster row or (episodes) a 16:9 row, and empty ones don't show. -->
+<window>
+  <defaultcontrol always="false">300</defaultcontrol>
+  <controls>
+    <!-- include background -->
+    <control type="grouplist" id="300">
+      <left>138</left><top>116</top><width>1782</width><height>964</height>
+      <orientation>vertical</orientation>
+      <usecontrolcoords>true</usecontrolcoords>
+      <itemgap>10</itemgap>
+      <scrolltime tween="cubic" easing="out">250</scrolltime>
+      <onleft>9000</onleft>
+      <!-- include poster-row group=200 list=310 up=310 down=340 title=$INFO[Window.Property(hub.0.title)] -->
+      <!-- include landscape-row group=230 list=340 up=310 down=311 title=$INFO[Window.Property(hub.0.title)] -->
+      <!-- repeat n=1..10 -->
+      <!-- include poster-row group={{200+n}} list={{310+n}} up={{339+n}} down={{340+n}} title=$INFO[Window.Property(hub.{{n}}.title)] -->
+      <!-- include landscape-row group={{230+n}} list={{340+n}} up={{310+n}} down={{311+n}} title=$INFO[Window.Property(hub.{{n}}.title)] -->
+      <!-- /repeat -->
+      <!-- include poster-row group=211 list=321 up=350 down=351 title=$INFO[Window.Property(hub.11.title)] -->
+      <!-- include landscape-row group=241 list=351 up=321 down=351 title=$INFO[Window.Property(hub.11.title)] -->
+    </control>
+    <!-- include message -->
+    <!-- include topbar -->
+    <!-- include sidebar -->
+  </controls>
+</window>

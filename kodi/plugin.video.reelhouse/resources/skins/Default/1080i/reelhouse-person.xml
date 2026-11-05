@@ -1,0 +1,587 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Made by kodi/tools/build_skin.py from kodi/skin-src/windows/reelhouse-person.xml: edit that, not this. -->
+<!-- Someone in a cast: photo, born/died/from, biography, their titles on the server and their other movies. -->
+<window>
+  <defaultcontrol always="false">600</defaultcontrol>
+  <controls>
+    <control type="image">
+  <left>0</left><top>0</top><width>1920</width><height>1080</height>
+  <texture colordiffuse="FF111315">reelhouse/ui/white.png</texture>
+</control>
+
+    <control type="grouplist" id="600">
+      <left>138</left><top>116</top><width>1782</width><height>964</height>
+      <orientation>vertical</orientation>
+      <usecontrolcoords>true</usecontrolcoords>
+      <itemgap>14</itemgap>
+      <scrolltime tween="cubic" easing="out">250</scrolltime>
+      <onleft>9000</onleft>
+      <control type="group" id="601">
+        <width>1782</width><height>500</height>
+        <left>12</left>
+        <control type="image">
+          <left>0</left><top>8</top><width>300</width><height>450</height>
+          <texture border="16" colordiffuse="FF22262B">reelhouse/ui/box.png</texture>
+        </control>
+        <control type="label">
+          <left>0</left><top>8</top><width>300</width><height>450</height>
+          <font>font60</font><textcolor>FF6F7882</textcolor><align>center</align><aligny>center</aligny>
+          <label>$INFO[Window.Property(initials)]</label>
+          <visible>String.IsEmpty(Window.Property(photo))</visible>
+        </control>
+        <control type="image">
+          <left>0</left><top>8</top><width>300</width><height>450</height>
+          <aspectratio aligny="top">scale</aspectratio><fadetime>200</fadetime>
+          <texture background="true" diffuse="reelhouse/ui/mask-poster.png">$INFO[Window.Property(photo)]</texture>
+        </control>
+        <control type="label">
+          <left>340</left><top>0</top><width>1400</width><height>80</height>
+          <font>font52_title</font><textcolor>FFECEFF3</textcolor>
+          <label>$INFO[Window.Property(name)]</label>
+        </control>
+        <control type="textbox">
+          <left>340</left><top>90</top><width>1300</width><height>110</height>
+          <font>font13</font><textcolor>FFA2ABB5</textcolor>
+          <label>$INFO[Window.Property(facts)]</label>
+        </control>
+        <control type="textbox" id="602">
+          <left>340</left><top>210</top><width>1300</width><height>250</height>
+          <font>font13</font><textcolor>FFECEFF3</textcolor>
+          <label>$INFO[Window.Property(biography)]</label>
+        </control>
+      </control>
+      <!-- A titled row of poster cards (Home's rows, Related, a person's titles…). -->
+<control type="group" id="603">
+  <width>1782</width><height>500</height>
+  <!-- shown while it has the focus too: refilling empties it for a moment, and hidden it would lose the focus -->
+  <visible>Integer.IsGreater(Container(630).NumItems,0) | Control.HasFocus(630)</visible>
+  <control type="label">
+    <left>12</left><top>0</top><width>1700</width><height>50</height>
+    <font>font30_title</font><textcolor>FFECEFF3</textcolor><aligny>center</aligny>
+    <label>$INFO[Window.Property(here.title)]</label>
+  </control>
+  <control type="list" id="630">
+    <left>0</left><top>50</top><width>1782</width><height>446</height>
+    <orientation>horizontal</orientation>
+    <onleft>9000</onleft>
+    <onup>630</onup>
+    <ondown>640</ondown>
+    <scrolltime tween="cubic" easing="out">220</scrolltime>
+    <preloaditems>2</preloaditems>
+    <itemlayout width="250" height="446">
+      <!-- A poster card (220×330) in a row: picture (its title until it loads), progress, watched tick or unwatched count. -->
+<control type="image">
+  <left>12</left><top>12</top><width>220</width><height>330</height>
+  <texture border="16" colordiffuse="FF22262B">reelhouse/ui/box.png</texture>
+</control>
+<control type="label">
+  <left>24</left><top>24</top><width>196</width><height>306</height>
+  <font>font12</font><textcolor>FF6F7882</textcolor><align>center</align><aligny>center</aligny><wrapmultiline>true</wrapmultiline>
+  <label>$INFO[ListItem.Label]</label>
+  <visible>String.IsEmpty(ListItem.Art(poster))</visible>
+</control>
+<control type="image">
+  <left>12</left><top>12</top><width>220</width><height>330</height>
+  <aspectratio>scale</aspectratio><fadetime>200</fadetime>
+  <texture background="true" diffuse="reelhouse/ui/mask-poster.png">$INFO[ListItem.Art(poster)]</texture>
+</control>
+<control type="progress">
+  <left>22</left><top>326</top><width>200</width><height>6</height>
+  <info>ListItem.PercentPlayed</info>
+  <texturebg colordiffuse="B0000000">reelhouse/ui/white.png</texturebg>
+  <midtexture colordiffuse="FFE5A00D">reelhouse/ui/white.png</midtexture>
+  <visible>Integer.IsGreater(ListItem.PercentPlayed,0)</visible>
+</control>
+<control type="group">
+  <left>194</left><top>20</top>
+  <visible>String.IsEqual(ListItem.Property(watched),true)</visible>
+  <control type="image"><width>30</width><height>30</height><texture colordiffuse="FFE5A00D">reelhouse/ui/circle.png</texture></control>
+  <control type="image"><left>5</left><top>5</top><width>20</width><height>20</height><texture colordiffuse="FF1A1300">reelhouse/icons/check.png</texture></control>
+</control>
+<control type="group">
+  <left>176</left><top>20</top>
+  <visible>!String.IsEmpty(ListItem.Property(badge))</visible>
+  <control type="image"><width>48</width><height>32</height><texture border="15" colordiffuse="FFE5A00D">reelhouse/ui/pill-small.png</texture></control>
+  <control type="label">
+    <width>48</width><height>32</height>
+    <font>font20_title</font><textcolor>FF1A1300</textcolor><align>center</align><aligny>center</aligny>
+    <label>$INFO[ListItem.Property(badge)]</label>
+  </control>
+</control>
+
+      <control type="label">
+  <left>12</left><top>352</top><width>220</width><height>36</height>
+  <font>font12</font><textcolor>FFECEFF3</textcolor><scroll>false</scroll>
+  <label>$INFO[ListItem.Label]</label>
+  <visible>!Control.HasFocus(-1)</visible>
+</control>
+<control type="label">
+  <left>12</left><top>352</top><width>220</width><height>36</height>
+  <font>font12</font><textcolor>FFECEFF3</textcolor><scroll>true</scroll>
+  <label>$INFO[ListItem.Label]</label>
+  <visible>Control.HasFocus(-1)</visible>
+</control>
+<control type="label">
+  <left>12</left><top>388</top><width>220</width><height>32</height>
+  <font>font10</font><textcolor>FFA2ABB5</textcolor>
+  <label>$INFO[ListItem.Label2]</label>
+</control>
+
+    </itemlayout>
+    <focusedlayout width="250" height="446">
+      <!-- A poster card (220×330) in a row: picture (its title until it loads), progress, watched tick or unwatched count. -->
+<control type="image">
+  <left>12</left><top>12</top><width>220</width><height>330</height>
+  <texture border="16" colordiffuse="FF22262B">reelhouse/ui/box.png</texture>
+</control>
+<control type="label">
+  <left>24</left><top>24</top><width>196</width><height>306</height>
+  <font>font12</font><textcolor>FF6F7882</textcolor><align>center</align><aligny>center</aligny><wrapmultiline>true</wrapmultiline>
+  <label>$INFO[ListItem.Label]</label>
+  <visible>String.IsEmpty(ListItem.Art(poster))</visible>
+</control>
+<control type="image">
+  <left>12</left><top>12</top><width>220</width><height>330</height>
+  <aspectratio>scale</aspectratio><fadetime>200</fadetime>
+  <texture background="true" diffuse="reelhouse/ui/mask-poster.png">$INFO[ListItem.Art(poster)]</texture>
+</control>
+<control type="progress">
+  <left>22</left><top>326</top><width>200</width><height>6</height>
+  <info>ListItem.PercentPlayed</info>
+  <texturebg colordiffuse="B0000000">reelhouse/ui/white.png</texturebg>
+  <midtexture colordiffuse="FFE5A00D">reelhouse/ui/white.png</midtexture>
+  <visible>Integer.IsGreater(ListItem.PercentPlayed,0)</visible>
+</control>
+<control type="group">
+  <left>194</left><top>20</top>
+  <visible>String.IsEqual(ListItem.Property(watched),true)</visible>
+  <control type="image"><width>30</width><height>30</height><texture colordiffuse="FFE5A00D">reelhouse/ui/circle.png</texture></control>
+  <control type="image"><left>5</left><top>5</top><width>20</width><height>20</height><texture colordiffuse="FF1A1300">reelhouse/icons/check.png</texture></control>
+</control>
+<control type="group">
+  <left>176</left><top>20</top>
+  <visible>!String.IsEmpty(ListItem.Property(badge))</visible>
+  <control type="image"><width>48</width><height>32</height><texture border="15" colordiffuse="FFE5A00D">reelhouse/ui/pill-small.png</texture></control>
+  <control type="label">
+    <width>48</width><height>32</height>
+    <font>font20_title</font><textcolor>FF1A1300</textcolor><align>center</align><aligny>center</aligny>
+    <label>$INFO[ListItem.Property(badge)]</label>
+  </control>
+</control>
+
+      <control type="image">
+  <left>5</left><top>5</top><width>234</width><height>344</height>
+  <texture border="16" colordiffuse="FFE5A00D">reelhouse/ui/frame.png</texture>
+  <visible>Control.HasFocus(630)</visible>
+</control>
+
+      <control type="label">
+  <left>12</left><top>352</top><width>220</width><height>36</height>
+  <font>font12</font><textcolor>FFECEFF3</textcolor><scroll>false</scroll>
+  <label>$INFO[ListItem.Label]</label>
+  <visible>!Control.HasFocus(630)</visible>
+</control>
+<control type="label">
+  <left>12</left><top>352</top><width>220</width><height>36</height>
+  <font>font12</font><textcolor>FFECEFF3</textcolor><scroll>true</scroll>
+  <label>$INFO[ListItem.Label]</label>
+  <visible>Control.HasFocus(630)</visible>
+</control>
+<control type="label">
+  <left>12</left><top>388</top><width>220</width><height>32</height>
+  <font>font10</font><textcolor>FFA2ABB5</textcolor>
+  <label>$INFO[ListItem.Label2]</label>
+</control>
+
+    </focusedlayout>
+  </control>
+</control>
+
+      <!-- A titled row of poster cards (Home's rows, Related, a person's titles…). -->
+<control type="group" id="604">
+  <width>1782</width><height>500</height>
+  <!-- shown while it has the focus too: refilling empties it for a moment, and hidden it would lose the focus -->
+  <visible>Integer.IsGreater(Container(640).NumItems,0) | Control.HasFocus(640)</visible>
+  <control type="label">
+    <left>12</left><top>0</top><width>1700</width><height>50</height>
+    <font>font30_title</font><textcolor>FFECEFF3</textcolor><aligny>center</aligny>
+    <label>$INFO[Window.Property(others.title)]</label>
+  </control>
+  <control type="list" id="640">
+    <left>0</left><top>50</top><width>1782</width><height>446</height>
+    <orientation>horizontal</orientation>
+    <onleft>9000</onleft>
+    <onup>630</onup>
+    <ondown>640</ondown>
+    <scrolltime tween="cubic" easing="out">220</scrolltime>
+    <preloaditems>2</preloaditems>
+    <itemlayout width="250" height="446">
+      <!-- A poster card (220×330) in a row: picture (its title until it loads), progress, watched tick or unwatched count. -->
+<control type="image">
+  <left>12</left><top>12</top><width>220</width><height>330</height>
+  <texture border="16" colordiffuse="FF22262B">reelhouse/ui/box.png</texture>
+</control>
+<control type="label">
+  <left>24</left><top>24</top><width>196</width><height>306</height>
+  <font>font12</font><textcolor>FF6F7882</textcolor><align>center</align><aligny>center</aligny><wrapmultiline>true</wrapmultiline>
+  <label>$INFO[ListItem.Label]</label>
+  <visible>String.IsEmpty(ListItem.Art(poster))</visible>
+</control>
+<control type="image">
+  <left>12</left><top>12</top><width>220</width><height>330</height>
+  <aspectratio>scale</aspectratio><fadetime>200</fadetime>
+  <texture background="true" diffuse="reelhouse/ui/mask-poster.png">$INFO[ListItem.Art(poster)]</texture>
+</control>
+<control type="progress">
+  <left>22</left><top>326</top><width>200</width><height>6</height>
+  <info>ListItem.PercentPlayed</info>
+  <texturebg colordiffuse="B0000000">reelhouse/ui/white.png</texturebg>
+  <midtexture colordiffuse="FFE5A00D">reelhouse/ui/white.png</midtexture>
+  <visible>Integer.IsGreater(ListItem.PercentPlayed,0)</visible>
+</control>
+<control type="group">
+  <left>194</left><top>20</top>
+  <visible>String.IsEqual(ListItem.Property(watched),true)</visible>
+  <control type="image"><width>30</width><height>30</height><texture colordiffuse="FFE5A00D">reelhouse/ui/circle.png</texture></control>
+  <control type="image"><left>5</left><top>5</top><width>20</width><height>20</height><texture colordiffuse="FF1A1300">reelhouse/icons/check.png</texture></control>
+</control>
+<control type="group">
+  <left>176</left><top>20</top>
+  <visible>!String.IsEmpty(ListItem.Property(badge))</visible>
+  <control type="image"><width>48</width><height>32</height><texture border="15" colordiffuse="FFE5A00D">reelhouse/ui/pill-small.png</texture></control>
+  <control type="label">
+    <width>48</width><height>32</height>
+    <font>font20_title</font><textcolor>FF1A1300</textcolor><align>center</align><aligny>center</aligny>
+    <label>$INFO[ListItem.Property(badge)]</label>
+  </control>
+</control>
+
+      <control type="label">
+  <left>12</left><top>352</top><width>220</width><height>36</height>
+  <font>font12</font><textcolor>FFECEFF3</textcolor><scroll>false</scroll>
+  <label>$INFO[ListItem.Label]</label>
+  <visible>!Control.HasFocus(-1)</visible>
+</control>
+<control type="label">
+  <left>12</left><top>352</top><width>220</width><height>36</height>
+  <font>font12</font><textcolor>FFECEFF3</textcolor><scroll>true</scroll>
+  <label>$INFO[ListItem.Label]</label>
+  <visible>Control.HasFocus(-1)</visible>
+</control>
+<control type="label">
+  <left>12</left><top>388</top><width>220</width><height>32</height>
+  <font>font10</font><textcolor>FFA2ABB5</textcolor>
+  <label>$INFO[ListItem.Label2]</label>
+</control>
+
+    </itemlayout>
+    <focusedlayout width="250" height="446">
+      <!-- A poster card (220×330) in a row: picture (its title until it loads), progress, watched tick or unwatched count. -->
+<control type="image">
+  <left>12</left><top>12</top><width>220</width><height>330</height>
+  <texture border="16" colordiffuse="FF22262B">reelhouse/ui/box.png</texture>
+</control>
+<control type="label">
+  <left>24</left><top>24</top><width>196</width><height>306</height>
+  <font>font12</font><textcolor>FF6F7882</textcolor><align>center</align><aligny>center</aligny><wrapmultiline>true</wrapmultiline>
+  <label>$INFO[ListItem.Label]</label>
+  <visible>String.IsEmpty(ListItem.Art(poster))</visible>
+</control>
+<control type="image">
+  <left>12</left><top>12</top><width>220</width><height>330</height>
+  <aspectratio>scale</aspectratio><fadetime>200</fadetime>
+  <texture background="true" diffuse="reelhouse/ui/mask-poster.png">$INFO[ListItem.Art(poster)]</texture>
+</control>
+<control type="progress">
+  <left>22</left><top>326</top><width>200</width><height>6</height>
+  <info>ListItem.PercentPlayed</info>
+  <texturebg colordiffuse="B0000000">reelhouse/ui/white.png</texturebg>
+  <midtexture colordiffuse="FFE5A00D">reelhouse/ui/white.png</midtexture>
+  <visible>Integer.IsGreater(ListItem.PercentPlayed,0)</visible>
+</control>
+<control type="group">
+  <left>194</left><top>20</top>
+  <visible>String.IsEqual(ListItem.Property(watched),true)</visible>
+  <control type="image"><width>30</width><height>30</height><texture colordiffuse="FFE5A00D">reelhouse/ui/circle.png</texture></control>
+  <control type="image"><left>5</left><top>5</top><width>20</width><height>20</height><texture colordiffuse="FF1A1300">reelhouse/icons/check.png</texture></control>
+</control>
+<control type="group">
+  <left>176</left><top>20</top>
+  <visible>!String.IsEmpty(ListItem.Property(badge))</visible>
+  <control type="image"><width>48</width><height>32</height><texture border="15" colordiffuse="FFE5A00D">reelhouse/ui/pill-small.png</texture></control>
+  <control type="label">
+    <width>48</width><height>32</height>
+    <font>font20_title</font><textcolor>FF1A1300</textcolor><align>center</align><aligny>center</aligny>
+    <label>$INFO[ListItem.Property(badge)]</label>
+  </control>
+</control>
+
+      <control type="image">
+  <left>5</left><top>5</top><width>234</width><height>344</height>
+  <texture border="16" colordiffuse="FFE5A00D">reelhouse/ui/frame.png</texture>
+  <visible>Control.HasFocus(640)</visible>
+</control>
+
+      <control type="label">
+  <left>12</left><top>352</top><width>220</width><height>36</height>
+  <font>font12</font><textcolor>FFECEFF3</textcolor><scroll>false</scroll>
+  <label>$INFO[ListItem.Label]</label>
+  <visible>!Control.HasFocus(640)</visible>
+</control>
+<control type="label">
+  <left>12</left><top>352</top><width>220</width><height>36</height>
+  <font>font12</font><textcolor>FFECEFF3</textcolor><scroll>true</scroll>
+  <label>$INFO[ListItem.Label]</label>
+  <visible>Control.HasFocus(640)</visible>
+</control>
+<control type="label">
+  <left>12</left><top>388</top><width>220</width><height>32</height>
+  <font>font10</font><textcolor>FFA2ABB5</textcolor>
+  <label>$INFO[ListItem.Label2]</label>
+</control>
+
+    </focusedlayout>
+  </control>
+</control>
+
+    </control>
+    <!-- A screen with nothing to show, or that couldn't load: a heading, a line, and Try again when it failed. -->
+<control type="group">
+  <left>150</left><top>360</top>
+  <visible>!String.IsEmpty(Window.Property(message.title))</visible>
+  <control type="label">
+    <left>0</left><top>0</top><width>1620</width><height>70</height>
+    <font>font40_title</font><textcolor>FFECEFF3</textcolor><align>center</align>
+    <label>$INFO[Window.Property(message.title)]</label>
+  </control>
+  <control type="textbox">
+    <left>260</left><top>80</top><width>1100</width><height>120</height>
+    <font>font13</font><textcolor>FFA2ABB5</textcolor><align>center</align>
+    <label>$INFO[Window.Property(message.text)]</label>
+  </control>
+  <control type="button" id="90">
+    <left>660</left><top>220</top><width>300</width><height>72</height>
+    <font>font30_title</font><align>center</align><aligny>center</aligny>
+    <texturefocus border="31" colordiffuse="FFE5A00D">reelhouse/ui/pill.png</texturefocus>
+    <texturenofocus border="31" colordiffuse="FF22262B">reelhouse/ui/pill.png</texturenofocus>
+    <textcolor>FFECEFF3</textcolor><focusedcolor>FF1A1300</focusedcolor>
+    <label>Try again</label>
+    <onleft>9000</onleft>
+    <visible>String.IsEqual(Window.Property(message.retry),true)</visible>
+  </control>
+</control>
+
+    <!-- The screen's title, the time and your picture (or first letter), across the top. -->
+<control type="label">
+  <left>150</left><top>24</top><width>1300</width><height>80</height>
+  <font>font45_title</font><textcolor>FFECEFF3</textcolor><aligny>center</aligny>
+  <label>$INFO[Window.Property(title)]</label>
+</control>
+<control type="label">
+  <left>1470</left><top>24</top><width>300</width><height>80</height>
+  <font>font30_title</font><textcolor>FFA2ABB5</textcolor><align>right</align><aligny>center</aligny>
+  <label>$INFO[System.Time]</label>
+</control>
+<control type="group">
+  <left>1800</left><top>34</top>
+  <control type="image">
+    <width>60</width><height>60</height>
+    <texture colordiffuse="FFE5A00D">reelhouse/ui/circle.png</texture>
+  </control>
+  <control type="label">
+    <width>60</width><height>60</height>
+    <font>font30_title</font><textcolor>FF1A1300</textcolor><align>center</align><aligny>center</aligny>
+    <label>$INFO[Window.Property(avatar.letter)]</label>
+    <visible>String.IsEmpty(Window.Property(avatar))</visible>
+  </control>
+  <control type="image">
+    <width>60</width><height>60</height><aspectratio>scale</aspectratio>
+    <texture diffuse="reelhouse/ui/circle.png" background="true">$INFO[Window.Property(avatar)]</texture>
+  </control>
+</control>
+
+    <!-- The web app's sidebar: a strip of icons, sliding out with names and counts while it has the focus (either of its
+     lists, 9000 at the top and 9002 at the bottom). -->
+<control type="group" id="9001">
+  <left>0</left><top>0</top>
+  <control type="image">
+    <left>0</left><top>0</top><width>112</width><height>1080</height>
+    <texture colordiffuse="FF0B0C0E">reelhouse/ui/white.png</texture>
+  </control>
+  <control type="group">
+    <visible>Control.HasFocus(9000) | Control.HasFocus(9002)</visible>
+    <animation effect="slide" start="-280,0" end="0,0" time="180" tween="cubic" easing="out">Visible</animation>
+    <animation effect="slide" start="0,0" end="-280,0" time="140" tween="cubic" easing="in">Hidden</animation>
+    <control type="image">
+      <left>0</left><top>0</top><width>392</width><height>1080</height>
+      <texture colordiffuse="FF0B0C0E">reelhouse/ui/white.png</texture>
+    </control>
+    <control type="image">
+      <left>392</left><top>0</top><width>90</width><height>1080</height>
+      <texture colordiffuse="99000000">reelhouse/ui/shade-left.png</texture>
+    </control>
+    <control type="label">
+      <left>104</left><top>36</top><width>270</width><height>60</height>
+      <font>font36_title</font><textcolor>FFECEFF3</textcolor><aligny>center</aligny>
+      <label>Reelhouse</label>
+    </control>
+  </control>
+  <control type="image">
+    <left>26</left><top>36</top><width>60</width><height>60</height>
+    <texture>reelhouse/logo.png</texture>
+  </control>
+  <!-- Now playing (while something plays), Home, the libraries and Search from the top; Live TV, Radio, Recordings,
+       Settings and Exit at the bottom (base.py puts the bottom list on the foot for how many entries it holds, and gives
+       the top one the room above it). -->
+    <!-- One of the sidebar's two lists (9000); the names and counts show while either has the focus. -->
+  <control type="list" id="9000">
+    <left>0</left><top>132</top><width>392</width><height>596</height>
+    <onup>9000</onup><ondown>9002</ondown>
+    <orientation>vertical</orientation>
+    <scrolltime tween="cubic" easing="out">150</scrolltime>
+    <itemlayout width="392" height="78">
+      <control type="image">
+        <left>36</left><top>19</top><width>40</width><height>40</height>
+        <texture colordiffuse="FFA2ABB5">$INFO[ListItem.Property(icon)]</texture>
+        <visible>!String.IsEqual(ListItem.Property(active),true)</visible>
+      </control>
+      <control type="image">
+        <left>36</left><top>19</top><width>40</width><height>40</height>
+        <texture colordiffuse="FFE5A00D">$INFO[ListItem.Property(icon)]</texture>
+        <visible>String.IsEqual(ListItem.Property(active),true)</visible>
+      </control>
+      <control type="image">
+        <left>36</left><top>19</top><width>40</width><height>40</height>
+        <texture colordiffuse="FFE5534B">$INFO[ListItem.Property(spot)]</texture>
+      </control>
+      <control type="label">
+        <left>104</left><top>0</top><width>210</width><height>78</height>
+        <font>font13</font><textcolor>FFA2ABB5</textcolor><aligny>center</aligny>
+        <label>$INFO[ListItem.Label]</label>
+        <visible>Control.HasFocus(9000) | Control.HasFocus(9002)</visible>
+      </control>
+      <control type="label">
+        <left>300</left><top>0</top><width>70</width><height>78</height>
+        <font>font12</font><textcolor>FF6F7882</textcolor><align>right</align><aligny>center</aligny>
+        <label>$INFO[ListItem.Label2]</label>
+        <visible>Control.HasFocus(9000) | Control.HasFocus(9002)</visible>
+      </control>
+    </itemlayout>
+    <focusedlayout width="392" height="78">
+      <control type="image">
+        <left>14</left><top>4</top><width>364</width><height>70</height>
+        <texture border="16" colordiffuse="FF22262B">reelhouse/ui/box.png</texture>
+        <visible>Control.HasFocus(9000)</visible>
+      </control>
+      <control type="image">
+        <left>36</left><top>19</top><width>40</width><height>40</height>
+        <texture colordiffuse="FFA2ABB5">$INFO[ListItem.Property(icon)]</texture>
+        <visible>!String.IsEqual(ListItem.Property(active),true) + !Control.HasFocus(9000)</visible>
+      </control>
+      <control type="image">
+        <left>36</left><top>19</top><width>40</width><height>40</height>
+        <texture colordiffuse="FFECEFF3">$INFO[ListItem.Property(icon)]</texture>
+        <visible>!String.IsEqual(ListItem.Property(active),true) + Control.HasFocus(9000)</visible>
+      </control>
+      <control type="image">
+        <left>36</left><top>19</top><width>40</width><height>40</height>
+        <texture colordiffuse="FFE5A00D">$INFO[ListItem.Property(icon)]</texture>
+        <visible>String.IsEqual(ListItem.Property(active),true)</visible>
+      </control>
+      <control type="image">
+        <left>36</left><top>19</top><width>40</width><height>40</height>
+        <texture colordiffuse="FFE5534B">$INFO[ListItem.Property(spot)]</texture>
+      </control>
+      <control type="label">
+        <left>104</left><top>0</top><width>210</width><height>78</height>
+        <font>font13</font><textcolor>FFECEFF3</textcolor><aligny>center</aligny>
+        <label>$INFO[ListItem.Label]</label>
+        <visible>Control.HasFocus(9000) | Control.HasFocus(9002)</visible>
+      </control>
+      <control type="label">
+        <left>300</left><top>0</top><width>70</width><height>78</height>
+        <font>font12</font><textcolor>FFA2ABB5</textcolor><align>right</align><aligny>center</aligny>
+        <label>$INFO[ListItem.Label2]</label>
+        <visible>Control.HasFocus(9000) | Control.HasFocus(9002)</visible>
+      </control>
+    </focusedlayout>
+  </control>
+
+    <!-- One of the sidebar's two lists (9002); the names and counts show while either has the focus. -->
+  <control type="list" id="9002">
+    <left>0</left><top>744</top><width>392</width><height>312</height>
+    <onup>9000</onup><ondown>9002</ondown>
+    <orientation>vertical</orientation>
+    <scrolltime tween="cubic" easing="out">150</scrolltime>
+    <itemlayout width="392" height="78">
+      <control type="image">
+        <left>36</left><top>19</top><width>40</width><height>40</height>
+        <texture colordiffuse="FFA2ABB5">$INFO[ListItem.Property(icon)]</texture>
+        <visible>!String.IsEqual(ListItem.Property(active),true)</visible>
+      </control>
+      <control type="image">
+        <left>36</left><top>19</top><width>40</width><height>40</height>
+        <texture colordiffuse="FFE5A00D">$INFO[ListItem.Property(icon)]</texture>
+        <visible>String.IsEqual(ListItem.Property(active),true)</visible>
+      </control>
+      <control type="image">
+        <left>36</left><top>19</top><width>40</width><height>40</height>
+        <texture colordiffuse="FFE5534B">$INFO[ListItem.Property(spot)]</texture>
+      </control>
+      <control type="label">
+        <left>104</left><top>0</top><width>210</width><height>78</height>
+        <font>font13</font><textcolor>FFA2ABB5</textcolor><aligny>center</aligny>
+        <label>$INFO[ListItem.Label]</label>
+        <visible>Control.HasFocus(9000) | Control.HasFocus(9002)</visible>
+      </control>
+      <control type="label">
+        <left>300</left><top>0</top><width>70</width><height>78</height>
+        <font>font12</font><textcolor>FF6F7882</textcolor><align>right</align><aligny>center</aligny>
+        <label>$INFO[ListItem.Label2]</label>
+        <visible>Control.HasFocus(9000) | Control.HasFocus(9002)</visible>
+      </control>
+    </itemlayout>
+    <focusedlayout width="392" height="78">
+      <control type="image">
+        <left>14</left><top>4</top><width>364</width><height>70</height>
+        <texture border="16" colordiffuse="FF22262B">reelhouse/ui/box.png</texture>
+        <visible>Control.HasFocus(9002)</visible>
+      </control>
+      <control type="image">
+        <left>36</left><top>19</top><width>40</width><height>40</height>
+        <texture colordiffuse="FFA2ABB5">$INFO[ListItem.Property(icon)]</texture>
+        <visible>!String.IsEqual(ListItem.Property(active),true) + !Control.HasFocus(9002)</visible>
+      </control>
+      <control type="image">
+        <left>36</left><top>19</top><width>40</width><height>40</height>
+        <texture colordiffuse="FFECEFF3">$INFO[ListItem.Property(icon)]</texture>
+        <visible>!String.IsEqual(ListItem.Property(active),true) + Control.HasFocus(9002)</visible>
+      </control>
+      <control type="image">
+        <left>36</left><top>19</top><width>40</width><height>40</height>
+        <texture colordiffuse="FFE5A00D">$INFO[ListItem.Property(icon)]</texture>
+        <visible>String.IsEqual(ListItem.Property(active),true)</visible>
+      </control>
+      <control type="image">
+        <left>36</left><top>19</top><width>40</width><height>40</height>
+        <texture colordiffuse="FFE5534B">$INFO[ListItem.Property(spot)]</texture>
+      </control>
+      <control type="label">
+        <left>104</left><top>0</top><width>210</width><height>78</height>
+        <font>font13</font><textcolor>FFECEFF3</textcolor><aligny>center</aligny>
+        <label>$INFO[ListItem.Label]</label>
+        <visible>Control.HasFocus(9000) | Control.HasFocus(9002)</visible>
+      </control>
+      <control type="label">
+        <left>300</left><top>0</top><width>70</width><height>78</height>
+        <font>font12</font><textcolor>FFA2ABB5</textcolor><align>right</align><aligny>center</aligny>
+        <label>$INFO[ListItem.Label2]</label>
+        <visible>Control.HasFocus(9000) | Control.HasFocus(9002)</visible>
+      </control>
+    </focusedlayout>
+  </control>
+
+</control>
+
+  </controls>
+</window>

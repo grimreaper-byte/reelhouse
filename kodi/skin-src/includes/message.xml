@@ -1,0 +1,25 @@
+<!-- A screen with nothing to show, or that couldn't load: a heading, a line, and Try again when it failed. -->
+<control type="group">
+  <left>150</left><top>360</top>
+  <visible>!String.IsEmpty(Window.Property(message.title))</visible>
+  <control type="label">
+    <left>0</left><top>0</top><width>1620</width><height>70</height>
+    <font>font40_title</font><textcolor>{{TEXT}}</textcolor><align>center</align>
+    <label>$INFO[Window.Property(message.title)]</label>
+  </control>
+  <control type="textbox">
+    <left>260</left><top>80</top><width>1100</width><height>120</height>
+    <font>font13</font><textcolor>{{TEXT_DIM}}</textcolor><align>center</align>
+    <label>$INFO[Window.Property(message.text)]</label>
+  </control>
+  <control type="button" id="90">
+    <left>660</left><top>220</top><width>300</width><height>72</height>
+    <font>font30_title</font><align>center</align><aligny>center</aligny>
+    <texturefocus border="31" colordiffuse="{{ACCENT}}">reelhouse/ui/pill.png</texturefocus>
+    <texturenofocus border="31" colordiffuse="{{ELEV2}}">reelhouse/ui/pill.png</texturenofocus>
+    <textcolor>{{TEXT}}</textcolor><focusedcolor>{{ACCENT_TEXT}}</focusedcolor>
+    <label>Try again</label>
+    <onleft>9000</onleft>
+    <visible>String.IsEqual(Window.Property(message.retry),true)</visible>
+  </control>
+</control>

@@ -1,0 +1,28 @@
+<!-- The screen's title, the time and your picture (or first letter), across the top. -->
+<control type="label">
+  <left>150</left><top>24</top><width>1300</width><height>80</height>
+  <font>font45_title</font><textcolor>{{TEXT}}</textcolor><aligny>center</aligny>
+  <label>$INFO[Window.Property(title)]</label>
+</control>
+<control type="label">
+  <left>1470</left><top>24</top><width>300</width><height>80</height>
+  <font>font30_title</font><textcolor>{{TEXT_DIM}}</textcolor><align>right</align><aligny>center</aligny>
+  <label>$INFO[System.Time]</label>
+</control>
+<control type="group">
+  <left>1800</left><top>34</top>
+  <control type="image">
+    <width>60</width><height>60</height>
+    <texture colordiffuse="{{ACCENT}}">reelhouse/ui/circle.png</texture>
+  </control>
+  <control type="label">
+    <width>60</width><height>60</height>
+    <font>font30_title</font><textcolor>{{ACCENT_TEXT}}</textcolor><align>center</align><aligny>center</aligny>
+    <label>$INFO[Window.Property(avatar.letter)]</label>
+    <visible>String.IsEmpty(Window.Property(avatar))</visible>
+  </control>
+  <control type="image">
+    <width>60</width><height>60</height><aspectratio>scale</aspectratio>
+    <texture diffuse="reelhouse/ui/circle.png" background="true">$INFO[Window.Property(avatar)]</texture>
+  </control>
+</control>

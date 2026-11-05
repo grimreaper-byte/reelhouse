@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<addon id="plugin.video.reelhouse" name="Reelhouse" version="0.11.1" provider-name="Reelhouse">
+  <requires>
+    <import addon="xbmc.python" version="3.0.0"/>
+  </requires>
+  <extension point="xbmc.python.pluginsource" library="default.py">
+    <provides>video</provides>
+  </extension>
+  <extension point="xbmc.service" library="service.py"/>
+  <extension point="xbmc.addon.metadata">
+    <summary lang="en_GB">Your Reelhouse movies, TV shows and live TV in Kodi</summary>
+    <description lang="en_GB">Connects Kodi to a Reelhouse media server. Open Reelhouse for its own screens, as in the web app: Home, libraries, film and show pages, search and the live TV guide, driven with the remote. Movies and TV shows also appear in Kodi's normal Movies and TV Shows sections, home-screen widgets and skins, with posters, cast and resume points. Playback streams straight from Reelhouse, and watched status and resume points stay in sync both ways, also with the Reelhouse web app.</description>
+    <disclaimer lang="en_GB">Writes directly to Kodi's video database (Kodi 19, 20 and 21). Items it adds can be removed again in the add-on's settings.</disclaimer>
+    <platform>all</platform>
+    <license>MIT</license>
+    <assets>
+      <icon>resources/icon.png</icon>
+      <fanart>resources/fanart.jpg</fanart>
+    </assets>
+  </extension>
+</addon>

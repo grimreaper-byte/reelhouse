@@ -1,0 +1,19 @@
+{
+  "user": {
+    "id": 1,
+    "username": "tester",
+    "isAdmin": true,
+    "libraryAccess": null,
+    "createdAt": 1792156049374
+  },
+  "network": {
+    "ip": "127.0.0.1",
+    "local": true,
+    "wireguard": false,
+    "tunnel": false
+  },
+  "defaults": {
+    "remoteQuality": "4m-720",
+    "allowDownloads": true
+  }
+}

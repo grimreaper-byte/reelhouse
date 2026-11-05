@@ -1,0 +1,233 @@
+# Kodi Media Center language file
+# Addon Name: Reelhouse
+# Addon id: plugin.video.reelhouse
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: en_GB\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgctxt "#30000"
+msgid "Server"
+msgstr ""
+
+msgctxt "#30001"
+msgid "Reelhouse address"
+msgstr ""
+
+msgctxt "#30002"
+msgid "The address you open Reelhouse at, for example http://192.168.1.20:8484"
+msgstr ""
+
+msgctxt "#30003"
+msgid "Sign in…"
+msgstr ""
+
+msgctxt "#30004"
+msgid "Sign in with your Reelhouse username and password. Kodi stays signed in; the password is not stored."
+msgstr ""
+
+msgctxt "#30005"
+msgid "Sign out"
+msgstr ""
+
+msgctxt "#30006"
+msgid "Signs this Kodi out of Reelhouse and can remove the Reelhouse items from Kodi's library."
+msgstr ""
+
+msgctxt "#30010"
+msgid "Library sync"
+msgstr ""
+
+msgctxt "#30011"
+msgid "Sync when Kodi starts"
+msgstr ""
+
+msgctxt "#30012"
+msgid "Checks Reelhouse for new, changed and removed items each time Kodi starts."
+msgstr ""
+
+msgctxt "#30013"
+msgid "Live updates"
+msgstr ""
+
+msgctxt "#30014"
+msgid "Picks up new media and watched status from Reelhouse within seconds, while Kodi is running."
+msgstr ""
+
+msgctxt "#30015"
+msgid "Full check every"
+msgstr ""
+
+msgctxt "#30016"
+msgid "A complete comparison with Reelhouse as a safety net, in case a live update was missed."
+msgstr ""
+
+msgctxt "#30017"
+msgid "Sync now"
+msgstr ""
+
+msgctxt "#30018"
+msgid "Brings Kodi's library up to date with Reelhouse right away."
+msgstr ""
+
+msgctxt "#30020"
+msgid "Never"
+msgstr ""
+
+msgctxt "#30021"
+msgid "15 minutes"
+msgstr ""
+
+msgctxt "#30022"
+msgid "30 minutes"
+msgstr ""
+
+msgctxt "#30023"
+msgid "Hour"
+msgstr ""
+
+msgctxt "#30024"
+msgid "3 hours"
+msgstr ""
+
+msgctxt "#30025"
+msgid "12 hours"
+msgstr ""
+
+msgctxt "#30026"
+msgid "Remove Reelhouse items from Kodi"
+msgstr ""
+
+msgctxt "#30027"
+msgid "Takes everything this add-on added out of Kodi's library. Your other Kodi media is not touched."
+msgstr ""
+
+msgctxt "#30090"
+msgid "Device token"
+msgstr ""
+
+msgctxt "#30091"
+msgid "User name"
+msgstr ""
+
+msgctxt "#30092"
+msgid "Server name"
+msgstr ""
+
+msgctxt "#30100"
+msgid "Reelhouse address"
+msgstr ""
+
+msgctxt "#30101"
+msgid "Username"
+msgstr ""
+
+msgctxt "#30102"
+msgid "Password"
+msgstr ""
+
+msgctxt "#30103"
+msgid "Signed in to %s. Syncing your library…"
+msgstr ""
+
+msgctxt "#30104"
+msgid "Could not sign in"
+msgstr ""
+
+msgctxt "#30105"
+msgid "Sign in to Reelhouse…"
+msgstr ""
+
+msgctxt "#30106"
+msgid "Sync library now"
+msgstr ""
+
+msgctxt "#30107"
+msgid "Signed in to %s as %s"
+msgstr ""
+
+msgctxt "#30108"
+msgid "Settings"
+msgstr ""
+
+msgctxt "#30109"
+msgid "Also remove the Reelhouse movies and TV shows from Kodi's library?"
+msgstr ""
+
+msgctxt "#30110"
+msgid "Signed out"
+msgstr ""
+
+msgctxt "#30111"
+msgid "Remove all Reelhouse movies and TV shows from Kodi's library?"
+msgstr ""
+
+msgctxt "#30112"
+msgid "Removed %d items from Kodi's library"
+msgstr ""
+
+msgctxt "#30113"
+msgid "Syncing with Reelhouse"
+msgstr ""
+
+msgctxt "#30114"
+msgid "Library up to date: %d added, %d updated, %d removed"
+msgstr ""
+
+msgctxt "#30115"
+msgid "Sync failed: %s"
+msgstr ""
+
+msgctxt "#30116"
+msgid "Not signed in to Reelhouse. Open the add-on's settings to sign in."
+msgstr ""
+
+msgctxt "#30117"
+msgid "Could not start playback: %s"
+msgstr ""
+
+msgctxt "#30118"
+msgid "Kodi's video database could not be used: %s"
+msgstr ""
+
+msgctxt "#30119"
+msgid "Reelhouse rejected this device (signed out elsewhere?). Sign in again in the add-on's settings."
+msgstr ""
+
+msgctxt "#30120"
+msgid "Sync started in the background"
+msgstr ""
+
+msgctxt "#30121"
+msgid "Connected to %s as %s"
+msgstr ""
+
+msgctxt "#30130"
+msgid "Open Reelhouse"
+msgstr ""
+
+msgctxt "#30131"
+msgid "Reelhouse screens"
+msgstr ""
+
+msgctxt "#30132"
+msgid "Open Reelhouse when Kodi starts"
+msgstr ""
+
+msgctxt "#30133"
+msgid "Kodi opens straight into Reelhouse's own screens: its Home, libraries, pages and TV guide, as in the web app. Back from its Home returns to Kodi."
+msgstr ""
+
+msgctxt "#30134"
+msgid "Reelhouse's own screens in Kodi, as in the web app: Home, libraries, film and show pages, search, and the TV guide. Driven with the remote; films play in Kodi's player."
+msgstr ""
+
+msgctxt "#30136"
+msgid "Could not start live TV: %s"
+msgstr ""
+
+msgctxt "#30137"
+msgid "Reelhouse did not start the channel in time"
+msgstr ""

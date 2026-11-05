@@ -1,0 +1,36 @@
+<!-- The web app's sidebar: a strip of icons, sliding out with names and counts while it has the focus (either of its
+     lists, 9000 at the top and 9002 at the bottom). -->
+<control type="group" id="9001">
+  <left>0</left><top>0</top>
+  <control type="image">
+    <left>0</left><top>0</top><width>112</width><height>1080</height>
+    <texture colordiffuse="{{SIDEBAR}}">reelhouse/ui/white.png</texture>
+  </control>
+  <control type="group">
+    <visible>Control.HasFocus(9000) | Control.HasFocus(9002)</visible>
+    <animation effect="slide" start="-280,0" end="0,0" time="180" tween="cubic" easing="out">Visible</animation>
+    <animation effect="slide" start="0,0" end="-280,0" time="140" tween="cubic" easing="in">Hidden</animation>
+    <control type="image">
+      <left>0</left><top>0</top><width>392</width><height>1080</height>
+      <texture colordiffuse="{{SIDEBAR}}">reelhouse/ui/white.png</texture>
+    </control>
+    <control type="image">
+      <left>392</left><top>0</top><width>90</width><height>1080</height>
+      <texture colordiffuse="99000000">reelhouse/ui/shade-left.png</texture>
+    </control>
+    <control type="label">
+      <left>104</left><top>36</top><width>270</width><height>60</height>
+      <font>font36_title</font><textcolor>{{TEXT}}</textcolor><aligny>center</aligny>
+      <label>Reelhouse</label>
+    </control>
+  </control>
+  <control type="image">
+    <left>26</left><top>36</top><width>60</width><height>60</height>
+    <texture>reelhouse/logo.png</texture>
+  </control>
+  <!-- Now playing (while something plays), Home, the libraries and Search from the top; Live TV, Radio, Recordings,
+       Settings and Exit at the bottom (base.py puts the bottom list on the foot for how many entries it holds, and gives
+       the top one the room above it). -->
+  <!-- include sidebar-list list=9000 top=132 height=596 -->
+  <!-- include sidebar-list list=9002 top=744 height=312 -->
+</control>

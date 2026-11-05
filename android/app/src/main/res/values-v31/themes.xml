@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Android 12 and later always show a launch screen with the app's icon. Here it's the logo alone on the app's
+         colour, the same as the boot screen that follows it (ui/BootScreen.kt), which adds the name under it. -->
+    <style name="Theme.Reelhouse" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/background</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowSplashScreenBackground">@color/background</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="android:windowSplashScreenIconBackgroundColor">@color/background</item>
+    </style>
+</resources>

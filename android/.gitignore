@@ -1,0 +1,18 @@
+*.iml
+.gradle/
+.kotlin/
+/local.properties
+/.idea/
+/build/
+/captures/
+.externalNativeBuild/
+.cxx/
+.DS_Store
+/app/build/
+# Built from tunnel/mobile by the buildTunnelAar task
+/app/libs/rhtunnel.aar
+/app/libs/rhtunnel-sources.jar
+# Release signing
+*.jks
+*.keystore
+/keystore.properties

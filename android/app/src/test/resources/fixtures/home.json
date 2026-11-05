@@ -1,0 +1,330 @@
+{
+  "hubs": [
+    {
+      "id": "continue",
+      "title": "Continue Watching",
+      "style": "poster",
+      "items": [
+        {
+          "id": 2,
+          "libraryId": 1,
+          "type": "movie",
+          "title": "Another Film",
+          "year": 2021,
+          "parentId": null,
+          "showId": null,
+          "seasonNumber": null,
+          "episodeNumber": null,
+          "episodeEnd": null,
+          "airDate": null,
+          "rating": null,
+          "contentRating": null,
+          "duration": 120,
+          "addedAt": 1792052590866,
+          "images": {
+            "poster": "/api/images/2/poster?v=1792156049901",
+            "backdrop": null,
+            "thumb": "/api/images/2/thumb?v=1792156049901"
+          },
+          "state": {
+            "position": 76.358,
+            "watched": false,
+            "viewCount": 0,
+            "lastViewedAt": 1792188379464
+          },
+          "videoResolution": "1080p"
+        },
+        {
+          "id": 11,
+          "libraryId": 2,
+          "type": "episode",
+          "title": "Episode Title 2",
+          "year": null,
+          "parentId": 6,
+          "showId": 5,
+          "seasonNumber": 1,
+          "episodeNumber": 2,
+          "episodeEnd": null,
+          "airDate": null,
+          "rating": null,
+          "contentRating": null,
+          "duration": 75,
+          "addedAt": 1792052599730,
+          "images": {
+            "poster": "/api/images/11/poster?v=1792171469013",
+            "backdrop": "/api/images/11/backdrop?v=1792171469013",
+            "thumb": "/api/images/11/thumb?v=1792171469013"
+          },
+          "state": {
+            "position": 45.49,
+            "watched": false,
+            "viewCount": 0,
+            "lastViewedAt": 1792185964628
+          },
+          "videoResolution": "720p",
+          "overview": null,
+          "show": {
+            "id": 5,
+            "title": "Test Show",
+            "poster": "/api/images/5/poster?v=1792173267008"
+          }
+        }
+      ]
+    },
+    {
+      "id": "recent-1",
+      "title": "Recently Added in Movies",
+      "libraryId": 1,
+      "style": "poster",
+      "items": [
+        {
+          "id": 3,
+          "libraryId": 1,
+          "type": "movie",
+          "title": "Interlaced Tape",
+          "year": 1994,
+          "parentId": null,
+          "showId": null,
+          "seasonNumber": null,
+          "episodeNumber": null,
+          "episodeEnd": null,
+          "airDate": null,
+          "rating": null,
+          "contentRating": null,
+          "duration": 39.993478,
+          "addedAt": 1792074070693,
+          "images": {
+            "poster": "/api/images/3/poster?v=1792156050054",
+            "backdrop": null,
+            "thumb": "/api/images/3/thumb?v=1792156050054"
+          },
+          "state": {
+            "position": 0,
+            "watched": false,
+            "viewCount": 0,
+            "lastViewedAt": null
+          },
+          "videoResolution": "480p"
+        },
+        {
+          "id": 1,
+          "libraryId": 1,
+          "type": "movie",
+          "title": "Hevc Movie",
+          "year": 2018,
+          "parentId": null,
+          "showId": null,
+          "seasonNumber": null,
+          "episodeNumber": null,
+          "episodeEnd": null,
+          "airDate": null,
+          "rating": null,
+          "contentRating": null,
+          "duration": 60.023,
+          "addedAt": 1792052595995,
+          "images": {
+            "poster": "/api/images/1/poster?v=1792156049899",
+            "backdrop": null,
+            "thumb": "/api/images/1/thumb?v=1792156049899"
+          },
+          "state": {
+            "position": 0,
+            "watched": false,
+            "viewCount": 3,
+            "lastViewedAt": 1792188384684
+          },
+          "videoResolution": "720p"
+        },
+        {
+          "id": 2,
+          "libraryId": 1,
+          "type": "movie",
+          "title": "Another Film",
+          "year": 2021,
+          "parentId": null,
+          "showId": null,
+          "seasonNumber": null,
+          "episodeNumber": null,
+          "episodeEnd": null,
+          "airDate": null,
+          "rating": null,
+          "contentRating": null,
+          "duration": 120,
+          "addedAt": 1792052590866,
+          "images": {
+            "poster": "/api/images/2/poster?v=1792156049901",
+            "backdrop": null,
+            "thumb": "/api/images/2/thumb?v=1792156049901"
+          },
+          "state": {
+            "position": 76.358,
+            "watched": false,
+            "viewCount": 0,
+            "lastViewedAt": 1792188379464
+          },
+          "videoResolution": "1080p"
+        },
+        {
+          "id": 4,
+          "libraryId": 1,
+          "type": "movie",
+          "title": "Big Test Movie",
+          "year": 2019,
+          "parentId": null,
+          "showId": null,
+          "seasonNumber": null,
+          "episodeNumber": null,
+          "episodeEnd": null,
+          "airDate": null,
+          "rating": null,
+          "contentRating": null,
+          "duration": 90,
+          "addedAt": 1792052578465,
+          "images": {
+            "poster": "/api/images/4/poster?v=1792181632599",
+            "backdrop": "/api/images/4/backdrop?v=1792181632599",
+            "thumb": "/api/images/4/thumb?v=1792181632599"
+          },
+          "state": {
+            "position": 0,
+            "watched": false,
+            "viewCount": 1,
+            "lastViewedAt": 1792185935034
+          },
+          "videoResolution": "720p"
+        }
+      ]
+    },
+    {
+      "id": "recent-2",
+      "title": "Recently Added in TV Shows",
+      "libraryId": 2,
+      "style": "poster",
+      "items": [
+        {
+          "id": 14,
+          "libraryId": 2,
+          "type": "episode",
+          "title": "Episode 1",
+          "year": null,
+          "parentId": 13,
+          "showId": 12,
+          "seasonNumber": 1,
+          "episodeNumber": 1,
+          "episodeEnd": null,
+          "airDate": null,
+          "rating": null,
+          "contentRating": null,
+          "duration": 60,
+          "addedAt": 1792052606709,
+          "images": {
+            "poster": "/api/images/14/poster?v=1792171469027",
+            "backdrop": "/api/images/14/backdrop?v=1792171469027",
+            "thumb": "/api/images/14/thumb?v=1792171469027"
+          },
+          "state": {
+            "position": 0,
+            "watched": false,
+            "viewCount": 0,
+            "lastViewedAt": null
+          },
+          "videoResolution": "720p",
+          "overview": null,
+          "show": {
+            "id": 12,
+            "title": "Another Show",
+            "poster": "/api/images/12/poster?v=1792156050921"
+          }
+        },
+        {
+          "id": 9,
+          "libraryId": 2,
+          "type": "episode",
+          "title": "Episode 1",
+          "year": null,
+          "parentId": 8,
+          "showId": 5,
+          "seasonNumber": 2,
+          "episodeNumber": 1,
+          "episodeEnd": null,
+          "airDate": null,
+          "rating": null,
+          "contentRating": null,
+          "duration": 75,
+          "addedAt": 1792052603408,
+          "images": {
+            "poster": "/api/images/9/poster?v=1792171468940",
+            "backdrop": "/api/images/9/backdrop?v=1792171468940",
+            "thumb": "/api/images/9/thumb?v=1792171468940"
+          },
+          "state": {
+            "position": 0,
+            "watched": false,
+            "viewCount": 0,
+            "lastViewedAt": null
+          },
+          "videoResolution": "720p",
+          "overview": null,
+          "show": {
+            "id": 5,
+            "title": "Test Show",
+            "poster": "/api/images/5/poster?v=1792173267008"
+          }
+        },
+        {
+          "id": 6,
+          "libraryId": 2,
+          "type": "season",
+          "title": "Season 1",
+          "year": null,
+          "parentId": 5,
+          "showId": 5,
+          "seasonNumber": 1,
+          "episodeNumber": null,
+          "episodeEnd": null,
+          "airDate": null,
+          "rating": null,
+          "contentRating": null,
+          "duration": null,
+          "addedAt": 1792156050576,
+          "images": {
+            "poster": "/api/images/6/poster?v=1792156050576",
+            "backdrop": "/api/images/6/backdrop?v=1792156050576",
+            "thumb": null
+          },
+          "state": {
+            "position": 0,
+            "watched": false,
+            "viewCount": 0,
+            "lastViewedAt": null
+          },
+          "leafCount": 3,
+          "viewedLeafCount": 0,
+          "overview": null,
+          "show": {
+            "id": 5,
+            "title": "Test Show",
+            "poster": "/api/images/5/poster?v=1792173267008"
+          },
+          "newCount": 3
+        }
+      ]
+    }
+  ],
+  "libraries": [
+    {
+      "id": 1,
+      "name": "Movies",
+      "type": "movie",
+      "count": 4,
+      "scannedAt": 1792262443706
+    },
+    {
+      "id": 2,
+      "name": "TV Shows",
+      "type": "show",
+      "count": 2,
+      "scannedAt": 1792262443711
+    }
+  ]
+}

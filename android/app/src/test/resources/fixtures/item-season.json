@@ -1,0 +1,225 @@
+{
+  "item": {
+    "id": 6,
+    "libraryId": 2,
+    "type": "season",
+    "title": "Season 1",
+    "year": null,
+    "parentId": 5,
+    "showId": 5,
+    "seasonNumber": 1,
+    "episodeNumber": null,
+    "episodeEnd": null,
+    "airDate": null,
+    "rating": null,
+    "contentRating": null,
+    "duration": null,
+    "addedAt": 1792156050576,
+    "images": {
+      "poster": "/api/images/6/poster?v=1792156050576",
+      "backdrop": "/api/images/6/backdrop?v=1792156050576",
+      "thumb": null
+    },
+    "state": {
+      "position": 0,
+      "watched": false,
+      "viewCount": 0,
+      "lastViewedAt": null
+    },
+    "leafCount": 3,
+    "viewedLeafCount": 0,
+    "originalTitle": null,
+    "overview": null,
+    "tagline": null,
+    "genres": [],
+    "cast": [],
+    "directors": [],
+    "studio": null,
+    "tmdbId": null,
+    "imdbId": null,
+    "matchLocked": false
+  },
+  "children": [
+    {
+      "id": 10,
+      "libraryId": 2,
+      "type": "episode",
+      "title": "Episode Title 1",
+      "year": null,
+      "parentId": 6,
+      "showId": 5,
+      "seasonNumber": 1,
+      "episodeNumber": 1,
+      "episodeEnd": null,
+      "airDate": null,
+      "rating": null,
+      "contentRating": null,
+      "duration": 75,
+      "addedAt": 1792052597878,
+      "images": {
+        "poster": "/api/images/10/poster?v=1792171468958",
+        "backdrop": "/api/images/10/backdrop?v=1792171468958",
+        "thumb": "/api/images/10/thumb?v=1792171468958"
+      },
+      "state": {
+        "position": 0,
+        "watched": false,
+        "viewCount": 0,
+        "lastViewedAt": null
+      },
+      "videoResolution": "720p",
+      "overview": null
+    },
+    {
+      "id": 11,
+      "libraryId": 2,
+      "type": "episode",
+      "title": "Episode Title 2",
+      "year": null,
+      "parentId": 6,
+      "showId": 5,
+      "seasonNumber": 1,
+      "episodeNumber": 2,
+      "episodeEnd": null,
+      "airDate": null,
+      "rating": null,
+      "contentRating": null,
+      "duration": 75,
+      "addedAt": 1792052599730,
+      "images": {
+        "poster": "/api/images/11/poster?v=1792171469013",
+        "backdrop": "/api/images/11/backdrop?v=1792171469013",
+        "thumb": "/api/images/11/thumb?v=1792171469013"
+      },
+      "state": {
+        "position": 45.49,
+        "watched": false,
+        "viewCount": 0,
+        "lastViewedAt": 1792185964628
+      },
+      "videoResolution": "720p",
+      "overview": null
+    },
+    {
+      "id": 7,
+      "libraryId": 2,
+      "type": "episode",
+      "title": "Episode Title 3",
+      "year": null,
+      "parentId": 6,
+      "showId": 5,
+      "seasonNumber": 1,
+      "episodeNumber": 3,
+      "episodeEnd": null,
+      "airDate": null,
+      "rating": null,
+      "contentRating": null,
+      "duration": 75,
+      "addedAt": 1792052601568,
+      "images": {
+        "poster": "/api/images/7/poster?v=1792171468973",
+        "backdrop": "/api/images/7/backdrop?v=1792171468973",
+        "thumb": "/api/images/7/thumb?v=1792171468973"
+      },
+      "state": {
+        "position": 0,
+        "watched": false,
+        "viewCount": 3,
+        "lastViewedAt": 1792188391226
+      },
+      "videoResolution": "720p",
+      "overview": null
+    }
+  ],
+  "show": {
+    "id": 5,
+    "libraryId": 2,
+    "type": "show",
+    "title": "Test Show",
+    "year": 2020,
+    "parentId": null,
+    "showId": null,
+    "seasonNumber": null,
+    "episodeNumber": null,
+    "episodeEnd": null,
+    "airDate": null,
+    "rating": null,
+    "contentRating": null,
+    "duration": null,
+    "addedAt": 1792156050576,
+    "images": {
+      "poster": "/api/images/5/poster?v=1792173267008",
+      "backdrop": null,
+      "thumb": null
+    },
+    "state": {
+      "position": 0,
+      "watched": false,
+      "viewCount": 0,
+      "lastViewedAt": null
+    },
+    "originalTitle": null,
+    "overview": "Edited plot: the page should update by itself.",
+    "tagline": null,
+    "genres": [],
+    "cast": [
+      {
+        "name": "Ada Lovelace",
+        "role": "The Analyst",
+        "profile": null
+      },
+      {
+        "name": "Alan Turing",
+        "role": "The Codebreaker",
+        "profile": null
+      }
+    ],
+    "directors": [],
+    "studio": null,
+    "tmdbId": null,
+    "imdbId": null,
+    "matchLocked": false
+  },
+  "seasons": [
+    {
+      "id": 6,
+      "title": "Season 1",
+      "seasonNumber": 1
+    },
+    {
+      "id": 8,
+      "title": "Season 2",
+      "seasonNumber": 2
+    }
+  ],
+  "onDeck": {
+    "id": 11,
+    "libraryId": 2,
+    "type": "episode",
+    "title": "Episode Title 2",
+    "year": null,
+    "parentId": 6,
+    "showId": 5,
+    "seasonNumber": 1,
+    "episodeNumber": 2,
+    "episodeEnd": null,
+    "airDate": null,
+    "rating": null,
+    "contentRating": null,
+    "duration": 75,
+    "addedAt": 1792052599730,
+    "images": {
+      "poster": "/api/images/11/poster?v=1792171469013",
+      "backdrop": "/api/images/11/backdrop?v=1792171469013",
+      "thumb": "/api/images/11/thumb?v=1792171469013"
+    },
+    "state": {
+      "position": 45.49,
+      "watched": false,
+      "viewCount": 0,
+      "lastViewedAt": 1792185964628
+    },
+    "videoResolution": "720p",
+    "overview": null
+  }
+}

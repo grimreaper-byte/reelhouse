@@ -1,0 +1,550 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Made by kodi/tools/build_skin.py from kodi/skin-src/windows/reelhouse-options.xml: edit that, not this. -->
+<!-- A small menu over the screen: ⋯ on a page, Play version…, sort and filter choices, a programme's Record. Its words are
+     window properties set before it opens (options.py): changes made once a dialog is up aren't drawn, so the list holds
+     seven fixed entries, each shown when it has a label, and the box is the height for the number of choices. -->
+<window type="dialog">
+  <defaultcontrol always="true">800</defaultcontrol>
+  <controls>
+    <control type="image">
+      <left>0</left><top>0</top><width>1920</width><height>1080</height>
+      <texture colordiffuse="B0000000">reelhouse/ui/white.png</texture>
+    </control>
+    <control type="group" id="801">
+      <left>560</left><top>200</top>
+      
+      <!-- The menu's box for 1 choice(s): 126 for the headings, 44 more with who set it, 90 a choice, 26 below. -->
+<control type="image">
+  <left>0</left><top>0</top><width>800</width><height>242</height>
+  <texture border="16" colordiffuse="FF191C20">reelhouse/ui/box.png</texture>
+  <visible>String.IsEqual(Window.Property(count),1) + String.IsEmpty(Window.Property(owner.names))</visible>
+</control>
+
+      <!-- The menu's box for 1 choice(s): 126 for the headings, 44 more with who set it, 90 a choice, 26 below. -->
+<control type="image">
+  <left>0</left><top>0</top><width>800</width><height>286</height>
+  <texture border="16" colordiffuse="FF191C20">reelhouse/ui/box.png</texture>
+  <visible>String.IsEqual(Window.Property(count),1) + !String.IsEmpty(Window.Property(owner.names))</visible>
+</control>
+
+      
+      <!-- The menu's box for 2 choice(s): 126 for the headings, 44 more with who set it, 90 a choice, 26 below. -->
+<control type="image">
+  <left>0</left><top>0</top><width>800</width><height>332</height>
+  <texture border="16" colordiffuse="FF191C20">reelhouse/ui/box.png</texture>
+  <visible>String.IsEqual(Window.Property(count),2) + String.IsEmpty(Window.Property(owner.names))</visible>
+</control>
+
+      <!-- The menu's box for 2 choice(s): 126 for the headings, 44 more with who set it, 90 a choice, 26 below. -->
+<control type="image">
+  <left>0</left><top>0</top><width>800</width><height>376</height>
+  <texture border="16" colordiffuse="FF191C20">reelhouse/ui/box.png</texture>
+  <visible>String.IsEqual(Window.Property(count),2) + !String.IsEmpty(Window.Property(owner.names))</visible>
+</control>
+
+      
+      <!-- The menu's box for 3 choice(s): 126 for the headings, 44 more with who set it, 90 a choice, 26 below. -->
+<control type="image">
+  <left>0</left><top>0</top><width>800</width><height>422</height>
+  <texture border="16" colordiffuse="FF191C20">reelhouse/ui/box.png</texture>
+  <visible>String.IsEqual(Window.Property(count),3) + String.IsEmpty(Window.Property(owner.names))</visible>
+</control>
+
+      <!-- The menu's box for 3 choice(s): 126 for the headings, 44 more with who set it, 90 a choice, 26 below. -->
+<control type="image">
+  <left>0</left><top>0</top><width>800</width><height>466</height>
+  <texture border="16" colordiffuse="FF191C20">reelhouse/ui/box.png</texture>
+  <visible>String.IsEqual(Window.Property(count),3) + !String.IsEmpty(Window.Property(owner.names))</visible>
+</control>
+
+      
+      <!-- The menu's box for 4 choice(s): 126 for the headings, 44 more with who set it, 90 a choice, 26 below. -->
+<control type="image">
+  <left>0</left><top>0</top><width>800</width><height>512</height>
+  <texture border="16" colordiffuse="FF191C20">reelhouse/ui/box.png</texture>
+  <visible>String.IsEqual(Window.Property(count),4) + String.IsEmpty(Window.Property(owner.names))</visible>
+</control>
+
+      <!-- The menu's box for 4 choice(s): 126 for the headings, 44 more with who set it, 90 a choice, 26 below. -->
+<control type="image">
+  <left>0</left><top>0</top><width>800</width><height>556</height>
+  <texture border="16" colordiffuse="FF191C20">reelhouse/ui/box.png</texture>
+  <visible>String.IsEqual(Window.Property(count),4) + !String.IsEmpty(Window.Property(owner.names))</visible>
+</control>
+
+      
+      <!-- The menu's box for 5 choice(s): 126 for the headings, 44 more with who set it, 90 a choice, 26 below. -->
+<control type="image">
+  <left>0</left><top>0</top><width>800</width><height>602</height>
+  <texture border="16" colordiffuse="FF191C20">reelhouse/ui/box.png</texture>
+  <visible>String.IsEqual(Window.Property(count),5) + String.IsEmpty(Window.Property(owner.names))</visible>
+</control>
+
+      <!-- The menu's box for 5 choice(s): 126 for the headings, 44 more with who set it, 90 a choice, 26 below. -->
+<control type="image">
+  <left>0</left><top>0</top><width>800</width><height>646</height>
+  <texture border="16" colordiffuse="FF191C20">reelhouse/ui/box.png</texture>
+  <visible>String.IsEqual(Window.Property(count),5) + !String.IsEmpty(Window.Property(owner.names))</visible>
+</control>
+
+      
+      <!-- The menu's box for 6 choice(s): 126 for the headings, 44 more with who set it, 90 a choice, 26 below. -->
+<control type="image">
+  <left>0</left><top>0</top><width>800</width><height>692</height>
+  <texture border="16" colordiffuse="FF191C20">reelhouse/ui/box.png</texture>
+  <visible>String.IsEqual(Window.Property(count),6) + String.IsEmpty(Window.Property(owner.names))</visible>
+</control>
+
+      <!-- The menu's box for 6 choice(s): 126 for the headings, 44 more with who set it, 90 a choice, 26 below. -->
+<control type="image">
+  <left>0</left><top>0</top><width>800</width><height>736</height>
+  <texture border="16" colordiffuse="FF191C20">reelhouse/ui/box.png</texture>
+  <visible>String.IsEqual(Window.Property(count),6) + !String.IsEmpty(Window.Property(owner.names))</visible>
+</control>
+
+      
+      <!-- The menu's box for 7 choice(s): 126 for the headings, 44 more with who set it, 90 a choice, 26 below. -->
+<control type="image">
+  <left>0</left><top>0</top><width>800</width><height>782</height>
+  <texture border="16" colordiffuse="FF191C20">reelhouse/ui/box.png</texture>
+  <visible>String.IsEqual(Window.Property(count),7) + String.IsEmpty(Window.Property(owner.names))</visible>
+</control>
+
+      <!-- The menu's box for 7 choice(s): 126 for the headings, 44 more with who set it, 90 a choice, 26 below. -->
+<control type="image">
+  <left>0</left><top>0</top><width>800</width><height>826</height>
+  <texture border="16" colordiffuse="FF191C20">reelhouse/ui/box.png</texture>
+  <visible>String.IsEqual(Window.Property(count),7) + !String.IsEmpty(Window.Property(owner.names))</visible>
+</control>
+
+      
+      <control type="label">
+        <left>40</left><top>24</top><width>720</width><height>60</height>
+        <font>font36_title</font><textcolor>FFECEFF3</textcolor><aligny>center</aligny>
+        <label>$INFO[Window.Property(heading)]</label>
+      </control>
+      <control type="label">
+        <left>40</left><top>78</top><width>720</width><height>40</height>
+        <font>font12</font><textcolor>FFA2ABB5</textcolor><aligny>center</aligny>
+        <label>$INFO[Window.Property(subheading)]</label>
+      </control>
+      <!-- Who set a recording (its details): their picture, else their first letter, and the words; the list makes room. -->
+      <control type="group">
+        <left>40</left><top>122</top>
+        <visible>!String.IsEmpty(Window.Property(owner.letter))</visible>
+        <control type="image">
+          <width>36</width><height>36</height>
+          <texture colordiffuse="FFE5A00D">reelhouse/ui/circle.png</texture>
+        </control>
+        <control type="label">
+          <width>36</width><height>36</height>
+          <font>font12</font><textcolor>FF1A1300</textcolor><align>center</align><aligny>center</aligny>
+          <label>$INFO[Window.Property(owner.letter)]</label>
+          <visible>String.IsEmpty(Window.Property(owner.avatar))</visible>
+        </control>
+        <control type="image">
+          <width>36</width><height>36</height><aspectratio>scale</aspectratio>
+          <texture diffuse="reelhouse/ui/circle.png" background="true">$INFO[Window.Property(owner.avatar)]</texture>
+        </control>
+        <control type="label">
+          <left>46</left><width>674</width><height>36</height>
+          <font>font12</font><textcolor>FFA2ABB5</textcolor><aligny>center</aligny>
+          <label>$INFO[Window.Property(owner.names)]</label>
+        </control>
+      </control>
+      <control type="label">
+        <left>40</left><top>122</top><width>720</width><height>36</height>
+        <font>font12</font><textcolor>FF6F7882</textcolor><aligny>center</aligny>
+        <label>$INFO[Window.Property(owner.names)]</label>
+        <visible>String.IsEmpty(Window.Property(owner.letter))</visible>
+      </control>
+      <control type="list" id="800">
+        <left>20</left><top>126</top><width>760</width><height>630</height>
+        <animation effect="slide" end="0,44" time="0" condition="!String.IsEmpty(Window.Property(owner.names))">Conditional</animation>
+        <orientation>vertical</orientation>
+        <scrolltime tween="cubic" easing="out">150</scrolltime>
+        <itemlayout width="760" height="90">
+          <!-- One choice: its name, a tag on the right (such as "Plays by default") and, when it has one, a line of detail. -->
+<control type="label">
+  <left>28</left><top>0</top><width>480</width><height>90</height>
+  <font>font13</font><textcolor>FFECEFF3</textcolor><aligny>center</aligny>
+  <label>$INFO[ListItem.Label]</label>
+  <visible>String.IsEmpty(ListItem.Label2)</visible>
+</control>
+<control type="label">
+  <left>28</left><top>8</top><width>480</width><height>44</height>
+  <font>font13</font><textcolor>FFECEFF3</textcolor><aligny>center</aligny>
+  <label>$INFO[ListItem.Label]</label>
+  <visible>!String.IsEmpty(ListItem.Label2)</visible>
+</control>
+<control type="label">
+  <left>440</left><top>8</top><width>292</width><height>44</height>
+  <font>font12</font><textcolor>FFE5A00D</textcolor><align>right</align><aligny>center</aligny>
+  <label>$INFO[ListItem.Property(tag)]</label>
+</control>
+<control type="label">
+  <left>28</left><top>48</top><width>704</width><height>34</height>
+  <font>font10</font><textcolor>FFA2ABB5</textcolor><aligny>center</aligny>
+  <label>$INFO[ListItem.Label2]</label>
+  <visible>!String.IsEmpty(ListItem.Label2)</visible>
+</control>
+
+        </itemlayout>
+        <focusedlayout width="760" height="90">
+          <control type="image">
+            <left>0</left><top>4</top><width>760</width><height>82</height>
+            <texture border="16" colordiffuse="FFE5A00D">reelhouse/ui/box.png</texture>
+          </control>
+          <!-- One choice: its name, a tag on the right (such as "Plays by default") and, when it has one, a line of detail. -->
+<control type="label">
+  <left>28</left><top>0</top><width>480</width><height>90</height>
+  <font>font13</font><textcolor>FF1A1300</textcolor><aligny>center</aligny>
+  <label>$INFO[ListItem.Label]</label>
+  <visible>String.IsEmpty(ListItem.Label2)</visible>
+</control>
+<control type="label">
+  <left>28</left><top>8</top><width>480</width><height>44</height>
+  <font>font13</font><textcolor>FF1A1300</textcolor><aligny>center</aligny>
+  <label>$INFO[ListItem.Label]</label>
+  <visible>!String.IsEmpty(ListItem.Label2)</visible>
+</control>
+<control type="label">
+  <left>440</left><top>8</top><width>292</width><height>44</height>
+  <font>font12</font><textcolor>FF1A1300</textcolor><align>right</align><aligny>center</aligny>
+  <label>$INFO[ListItem.Property(tag)]</label>
+</control>
+<control type="label">
+  <left>28</left><top>48</top><width>704</width><height>34</height>
+  <font>font10</font><textcolor>FF1A1300</textcolor><aligny>center</aligny>
+  <label>$INFO[ListItem.Label2]</label>
+  <visible>!String.IsEmpty(ListItem.Label2)</visible>
+</control>
+
+        </focusedlayout>
+        <content>
+          
+          <item>
+            <label>$INFO[Window.Property(option.0.label)]</label>
+            <label2>$INFO[Window.Property(option.0.label2)]</label2>
+            <property name="tag">$INFO[Window.Property(option.0.tag)]</property>
+            <property name="choice">choice0</property>
+            <visible>!String.IsEmpty(Window.Property(option.0.label))</visible>
+          </item>
+          
+          <item>
+            <label>$INFO[Window.Property(option.1.label)]</label>
+            <label2>$INFO[Window.Property(option.1.label2)]</label2>
+            <property name="tag">$INFO[Window.Property(option.1.tag)]</property>
+            <property name="choice">choice1</property>
+            <visible>!String.IsEmpty(Window.Property(option.1.label))</visible>
+          </item>
+          
+          <item>
+            <label>$INFO[Window.Property(option.2.label)]</label>
+            <label2>$INFO[Window.Property(option.2.label2)]</label2>
+            <property name="tag">$INFO[Window.Property(option.2.tag)]</property>
+            <property name="choice">choice2</property>
+            <visible>!String.IsEmpty(Window.Property(option.2.label))</visible>
+          </item>
+          
+          <item>
+            <label>$INFO[Window.Property(option.3.label)]</label>
+            <label2>$INFO[Window.Property(option.3.label2)]</label2>
+            <property name="tag">$INFO[Window.Property(option.3.tag)]</property>
+            <property name="choice">choice3</property>
+            <visible>!String.IsEmpty(Window.Property(option.3.label))</visible>
+          </item>
+          
+          <item>
+            <label>$INFO[Window.Property(option.4.label)]</label>
+            <label2>$INFO[Window.Property(option.4.label2)]</label2>
+            <property name="tag">$INFO[Window.Property(option.4.tag)]</property>
+            <property name="choice">choice4</property>
+            <visible>!String.IsEmpty(Window.Property(option.4.label))</visible>
+          </item>
+          
+          <item>
+            <label>$INFO[Window.Property(option.5.label)]</label>
+            <label2>$INFO[Window.Property(option.5.label2)]</label2>
+            <property name="tag">$INFO[Window.Property(option.5.tag)]</property>
+            <property name="choice">choice5</property>
+            <visible>!String.IsEmpty(Window.Property(option.5.label))</visible>
+          </item>
+          
+          <item>
+            <label>$INFO[Window.Property(option.6.label)]</label>
+            <label2>$INFO[Window.Property(option.6.label2)]</label2>
+            <property name="tag">$INFO[Window.Property(option.6.tag)]</property>
+            <property name="choice">choice6</property>
+            <visible>!String.IsEmpty(Window.Property(option.6.label))</visible>
+          </item>
+          
+          <item>
+            <label>$INFO[Window.Property(option.7.label)]</label>
+            <label2>$INFO[Window.Property(option.7.label2)]</label2>
+            <property name="tag">$INFO[Window.Property(option.7.tag)]</property>
+            <property name="choice">choice7</property>
+            <visible>!String.IsEmpty(Window.Property(option.7.label))</visible>
+          </item>
+          
+          <item>
+            <label>$INFO[Window.Property(option.8.label)]</label>
+            <label2>$INFO[Window.Property(option.8.label2)]</label2>
+            <property name="tag">$INFO[Window.Property(option.8.tag)]</property>
+            <property name="choice">choice8</property>
+            <visible>!String.IsEmpty(Window.Property(option.8.label))</visible>
+          </item>
+          
+          <item>
+            <label>$INFO[Window.Property(option.9.label)]</label>
+            <label2>$INFO[Window.Property(option.9.label2)]</label2>
+            <property name="tag">$INFO[Window.Property(option.9.tag)]</property>
+            <property name="choice">choice9</property>
+            <visible>!String.IsEmpty(Window.Property(option.9.label))</visible>
+          </item>
+          
+          <item>
+            <label>$INFO[Window.Property(option.10.label)]</label>
+            <label2>$INFO[Window.Property(option.10.label2)]</label2>
+            <property name="tag">$INFO[Window.Property(option.10.tag)]</property>
+            <property name="choice">choice10</property>
+            <visible>!String.IsEmpty(Window.Property(option.10.label))</visible>
+          </item>
+          
+          <item>
+            <label>$INFO[Window.Property(option.11.label)]</label>
+            <label2>$INFO[Window.Property(option.11.label2)]</label2>
+            <property name="tag">$INFO[Window.Property(option.11.tag)]</property>
+            <property name="choice">choice11</property>
+            <visible>!String.IsEmpty(Window.Property(option.11.label))</visible>
+          </item>
+          
+          <item>
+            <label>$INFO[Window.Property(option.12.label)]</label>
+            <label2>$INFO[Window.Property(option.12.label2)]</label2>
+            <property name="tag">$INFO[Window.Property(option.12.tag)]</property>
+            <property name="choice">choice12</property>
+            <visible>!String.IsEmpty(Window.Property(option.12.label))</visible>
+          </item>
+          
+          <item>
+            <label>$INFO[Window.Property(option.13.label)]</label>
+            <label2>$INFO[Window.Property(option.13.label2)]</label2>
+            <property name="tag">$INFO[Window.Property(option.13.tag)]</property>
+            <property name="choice">choice13</property>
+            <visible>!String.IsEmpty(Window.Property(option.13.label))</visible>
+          </item>
+          
+          <item>
+            <label>$INFO[Window.Property(option.14.label)]</label>
+            <label2>$INFO[Window.Property(option.14.label2)]</label2>
+            <property name="tag">$INFO[Window.Property(option.14.tag)]</property>
+            <property name="choice">choice14</property>
+            <visible>!String.IsEmpty(Window.Property(option.14.label))</visible>
+          </item>
+          
+          <item>
+            <label>$INFO[Window.Property(option.15.label)]</label>
+            <label2>$INFO[Window.Property(option.15.label2)]</label2>
+            <property name="tag">$INFO[Window.Property(option.15.tag)]</property>
+            <property name="choice">choice15</property>
+            <visible>!String.IsEmpty(Window.Property(option.15.label))</visible>
+          </item>
+          
+          <item>
+            <label>$INFO[Window.Property(option.16.label)]</label>
+            <label2>$INFO[Window.Property(option.16.label2)]</label2>
+            <property name="tag">$INFO[Window.Property(option.16.tag)]</property>
+            <property name="choice">choice16</property>
+            <visible>!String.IsEmpty(Window.Property(option.16.label))</visible>
+          </item>
+          
+          <item>
+            <label>$INFO[Window.Property(option.17.label)]</label>
+            <label2>$INFO[Window.Property(option.17.label2)]</label2>
+            <property name="tag">$INFO[Window.Property(option.17.tag)]</property>
+            <property name="choice">choice17</property>
+            <visible>!String.IsEmpty(Window.Property(option.17.label))</visible>
+          </item>
+          
+          <item>
+            <label>$INFO[Window.Property(option.18.label)]</label>
+            <label2>$INFO[Window.Property(option.18.label2)]</label2>
+            <property name="tag">$INFO[Window.Property(option.18.tag)]</property>
+            <property name="choice">choice18</property>
+            <visible>!String.IsEmpty(Window.Property(option.18.label))</visible>
+          </item>
+          
+          <item>
+            <label>$INFO[Window.Property(option.19.label)]</label>
+            <label2>$INFO[Window.Property(option.19.label2)]</label2>
+            <property name="tag">$INFO[Window.Property(option.19.tag)]</property>
+            <property name="choice">choice19</property>
+            <visible>!String.IsEmpty(Window.Property(option.19.label))</visible>
+          </item>
+          
+          <item>
+            <label>$INFO[Window.Property(option.20.label)]</label>
+            <label2>$INFO[Window.Property(option.20.label2)]</label2>
+            <property name="tag">$INFO[Window.Property(option.20.tag)]</property>
+            <property name="choice">choice20</property>
+            <visible>!String.IsEmpty(Window.Property(option.20.label))</visible>
+          </item>
+          
+          <item>
+            <label>$INFO[Window.Property(option.21.label)]</label>
+            <label2>$INFO[Window.Property(option.21.label2)]</label2>
+            <property name="tag">$INFO[Window.Property(option.21.tag)]</property>
+            <property name="choice">choice21</property>
+            <visible>!String.IsEmpty(Window.Property(option.21.label))</visible>
+          </item>
+          
+          <item>
+            <label>$INFO[Window.Property(option.22.label)]</label>
+            <label2>$INFO[Window.Property(option.22.label2)]</label2>
+            <property name="tag">$INFO[Window.Property(option.22.tag)]</property>
+            <property name="choice">choice22</property>
+            <visible>!String.IsEmpty(Window.Property(option.22.label))</visible>
+          </item>
+          
+          <item>
+            <label>$INFO[Window.Property(option.23.label)]</label>
+            <label2>$INFO[Window.Property(option.23.label2)]</label2>
+            <property name="tag">$INFO[Window.Property(option.23.tag)]</property>
+            <property name="choice">choice23</property>
+            <visible>!String.IsEmpty(Window.Property(option.23.label))</visible>
+          </item>
+          
+          <item>
+            <label>$INFO[Window.Property(option.24.label)]</label>
+            <label2>$INFO[Window.Property(option.24.label2)]</label2>
+            <property name="tag">$INFO[Window.Property(option.24.tag)]</property>
+            <property name="choice">choice24</property>
+            <visible>!String.IsEmpty(Window.Property(option.24.label))</visible>
+          </item>
+          
+          <item>
+            <label>$INFO[Window.Property(option.25.label)]</label>
+            <label2>$INFO[Window.Property(option.25.label2)]</label2>
+            <property name="tag">$INFO[Window.Property(option.25.tag)]</property>
+            <property name="choice">choice25</property>
+            <visible>!String.IsEmpty(Window.Property(option.25.label))</visible>
+          </item>
+          
+          <item>
+            <label>$INFO[Window.Property(option.26.label)]</label>
+            <label2>$INFO[Window.Property(option.26.label2)]</label2>
+            <property name="tag">$INFO[Window.Property(option.26.tag)]</property>
+            <property name="choice">choice26</property>
+            <visible>!String.IsEmpty(Window.Property(option.26.label))</visible>
+          </item>
+          
+          <item>
+            <label>$INFO[Window.Property(option.27.label)]</label>
+            <label2>$INFO[Window.Property(option.27.label2)]</label2>
+            <property name="tag">$INFO[Window.Property(option.27.tag)]</property>
+            <property name="choice">choice27</property>
+            <visible>!String.IsEmpty(Window.Property(option.27.label))</visible>
+          </item>
+          
+          <item>
+            <label>$INFO[Window.Property(option.28.label)]</label>
+            <label2>$INFO[Window.Property(option.28.label2)]</label2>
+            <property name="tag">$INFO[Window.Property(option.28.tag)]</property>
+            <property name="choice">choice28</property>
+            <visible>!String.IsEmpty(Window.Property(option.28.label))</visible>
+          </item>
+          
+          <item>
+            <label>$INFO[Window.Property(option.29.label)]</label>
+            <label2>$INFO[Window.Property(option.29.label2)]</label2>
+            <property name="tag">$INFO[Window.Property(option.29.tag)]</property>
+            <property name="choice">choice29</property>
+            <visible>!String.IsEmpty(Window.Property(option.29.label))</visible>
+          </item>
+          
+          <item>
+            <label>$INFO[Window.Property(option.30.label)]</label>
+            <label2>$INFO[Window.Property(option.30.label2)]</label2>
+            <property name="tag">$INFO[Window.Property(option.30.tag)]</property>
+            <property name="choice">choice30</property>
+            <visible>!String.IsEmpty(Window.Property(option.30.label))</visible>
+          </item>
+          
+          <item>
+            <label>$INFO[Window.Property(option.31.label)]</label>
+            <label2>$INFO[Window.Property(option.31.label2)]</label2>
+            <property name="tag">$INFO[Window.Property(option.31.tag)]</property>
+            <property name="choice">choice31</property>
+            <visible>!String.IsEmpty(Window.Property(option.31.label))</visible>
+          </item>
+          
+          <item>
+            <label>$INFO[Window.Property(option.32.label)]</label>
+            <label2>$INFO[Window.Property(option.32.label2)]</label2>
+            <property name="tag">$INFO[Window.Property(option.32.tag)]</property>
+            <property name="choice">choice32</property>
+            <visible>!String.IsEmpty(Window.Property(option.32.label))</visible>
+          </item>
+          
+          <item>
+            <label>$INFO[Window.Property(option.33.label)]</label>
+            <label2>$INFO[Window.Property(option.33.label2)]</label2>
+            <property name="tag">$INFO[Window.Property(option.33.tag)]</property>
+            <property name="choice">choice33</property>
+            <visible>!String.IsEmpty(Window.Property(option.33.label))</visible>
+          </item>
+          
+          <item>
+            <label>$INFO[Window.Property(option.34.label)]</label>
+            <label2>$INFO[Window.Property(option.34.label2)]</label2>
+            <property name="tag">$INFO[Window.Property(option.34.tag)]</property>
+            <property name="choice">choice34</property>
+            <visible>!String.IsEmpty(Window.Property(option.34.label))</visible>
+          </item>
+          
+          <item>
+            <label>$INFO[Window.Property(option.35.label)]</label>
+            <label2>$INFO[Window.Property(option.35.label2)]</label2>
+            <property name="tag">$INFO[Window.Property(option.35.tag)]</property>
+            <property name="choice">choice35</property>
+            <visible>!String.IsEmpty(Window.Property(option.35.label))</visible>
+          </item>
+          
+          <item>
+            <label>$INFO[Window.Property(option.36.label)]</label>
+            <label2>$INFO[Window.Property(option.36.label2)]</label2>
+            <property name="tag">$INFO[Window.Property(option.36.tag)]</property>
+            <property name="choice">choice36</property>
+            <visible>!String.IsEmpty(Window.Property(option.36.label))</visible>
+          </item>
+          
+          <item>
+            <label>$INFO[Window.Property(option.37.label)]</label>
+            <label2>$INFO[Window.Property(option.37.label2)]</label2>
+            <property name="tag">$INFO[Window.Property(option.37.tag)]</property>
+            <property name="choice">choice37</property>
+            <visible>!String.IsEmpty(Window.Property(option.37.label))</visible>
+          </item>
+          
+          <item>
+            <label>$INFO[Window.Property(option.38.label)]</label>
+            <label2>$INFO[Window.Property(option.38.label2)]</label2>
+            <property name="tag">$INFO[Window.Property(option.38.tag)]</property>
+            <property name="choice">choice38</property>
+            <visible>!String.IsEmpty(Window.Property(option.38.label))</visible>
+          </item>
+          
+          <item>
+            <label>$INFO[Window.Property(option.39.label)]</label>
+            <label2>$INFO[Window.Property(option.39.label2)]</label2>
+            <property name="tag">$INFO[Window.Property(option.39.tag)]</property>
+            <property name="choice">choice39</property>
+            <visible>!String.IsEmpty(Window.Property(option.39.label))</visible>
+          </item>
+          
+        </content>
+      </control>
+    </control>
+  </controls>
+</window>

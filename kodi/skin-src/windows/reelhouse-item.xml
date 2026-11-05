@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A film, show, season or episode: the artwork still behind the page (as in the web app), poster and title, the
+     buttons, the overview, then rows (seasons, episodes, cast, related) that scroll over the artwork. -->
+<window>
+  <defaultcontrol always="false">411</defaultcontrol>
+  <controls>
+    <!-- include background -->
+    <control type="image">
+      <left>0</left><top>0</top><width>1920</width><height>1080</height>
+      <aspectratio aligny="top">scale</aspectratio><fadetime>400</fadetime>
+      <texture background="true">$INFO[Window.Property(backdrop)]</texture>
+    </control>
+    <control type="image">
+      <left>0</left><top>0</top><width>1920</width><height>1080</height>
+      <texture colordiffuse="{{BG}}">reelhouse/ui/shade-left.png</texture>
+    </control>
+    <control type="image">
+      <left>0</left><top>0</top><width>1920</width><height>1080</height>
+      <texture colordiffuse="{{BG}}">reelhouse/ui/shade-bottom.png</texture>
+    </control>
+    <control type="image">
+      <left>0</left><top>0</top><width>1920</width><height>200</height>
+      <texture colordiffuse="{{BG}}">reelhouse/ui/shade-top.png</texture>
+    </control>
+    <!-- Darker all over once the page is scrolled to its rows, so what comes up reads. -->
+    <control type="image">
+      <left>0</left><top>0</top><width>1920</width><height>1080</height>
+      <texture colordiffuse="C8111315">reelhouse/ui/white.png</texture>
+      <visible>!ControlGroup(410).HasFocus + !Control.HasFocus(9000) + !Control.HasFocus(9002)</visible>
+      <animation effect="fade" time="250">VisibleChange</animation>
+    </control>
+    <control type="grouplist" id="400">
+      <left>138</left><top>116</top><width>1782</width><height>964</height>
+      <orientation>vertical</orientation>
+      <usecontrolcoords>true</usecontrolcoords>
+      <itemgap>14</itemgap>
+      <scrolltime tween="cubic" easing="out">250</scrolltime>
+      <onleft>9000</onleft>
+      <control type="group" id="401">
+        <width>1782</width><height>620</height>
+        <left>12</left>
+        <!-- Poster (films, shows, seasons) or the episode's own picture. -->
+        <control type="group">
+          <visible>!String.IsEqual(Window.Property(type),episode)</visible>
+          <control type="image">
+            <left>0</left><top>8</top><width>300</width><height>450</height>
+            <texture border="16" colordiffuse="{{ELEV2}}">reelhouse/ui/box.png</texture>
+          </control>
+          <control type="image">
+            <left>0</left><top>8</top><width>300</width><height>450</height>
+            <aspectratio>scale</aspectratio><fadetime>200</fadetime>
+            <texture background="true" diffuse="reelhouse/ui/mask-poster.png">$INFO[Window.Property(poster)]</texture>
+          </control>
+        </control>
+        <control type="group">
+          <visible>String.IsEqual(Window.Property(type),episode)</visible>
+          <control type="image">
+            <left>0</left><top>8</top><width>480</width><height>270</height>
+            <texture border="16" colordiffuse="{{ELEV2}}">reelhouse/ui/box.png</texture>
+          </control>
+          <control type="image">
+            <left>0</left><top>8</top><width>480</width><height>270</height>
+            <aspectratio>scale</aspectratio><fadetime>200</fadetime>
+            <texture background="true" diffuse="reelhouse/ui/mask-backdrop.png">$INFO[Window.Property(still)]</texture>
+          </control>
+        </control>
+        <!-- Beside the poster; moved right for an episode's wider picture (item.py). -->
+        <control type="group" id="470">
+          <left>340</left><top>0</top>
+          <control type="label">
+            <left>0</left><top>0</top><width>1300</width><height>44</height>
+            <font>font30_title</font><textcolor>{{ACCENT}}</textcolor>
+            <label>$INFO[Window.Property(show)]</label>
+          </control>
+          <control type="label">
+            <left>0</left><top>40</top><width>1400</width><height>80</height>
+            <font>font52_title</font><textcolor>{{TEXT}}</textcolor><scroll>false</scroll>
+            <label>$INFO[Window.Property(heading)]</label>
+          </control>
+          <control type="grouplist" id="420">
+            <left>0</left><top>124</top><width>1400</width><height>44</height>
+            <orientation>horizontal</orientation><itemgap>16</itemgap>
+            <control type="label">
+              <width>auto</width><height>44</height>
+              <font>font13</font><textcolor>{{TEXT_DIM}}</textcolor><aligny>center</aligny>
+              <label>$INFO[Window.Property(meta)]</label>
+            </control>
+            <!-- repeat n=0..2 -->
+            <!-- include badge n={{n}} -->
+            <!-- /repeat -->
+          </control>
+          <control type="label">
+            <left>0</left><top>176</top><width>1300</width><height>40</height>
+            <font>font12</font><textcolor>{{TEXT_FAINT}}</textcolor>
+            <label>$INFO[Window.Property(genres)]</label>
+          </control>
+          <control type="grouplist" id="410">
+            <left>0</left><top>236</top><width>1400</width><height>76</height>
+            <orientation>horizontal</orientation><itemgap>16</itemgap>
+            <onleft>9000</onleft>
+            <ondown>450</ondown>
+            <!-- include action-button id=411 label=$INFO[Window.Property(play.label)] -->
+            <control type="button" id="412">
+              <width>auto</width><height>72</height>
+              <font>font27</font><textoffsetx>34</textoffsetx><aligny>center</aligny>
+              <texturefocus border="31" colordiffuse="{{ACCENT}}">reelhouse/ui/pill.png</texturefocus>
+              <texturenofocus border="31" colordiffuse="{{ELEV2}}">reelhouse/ui/pill.png</texturenofocus>
+              <textcolor>{{TEXT}}</textcolor><focusedcolor>{{ACCENT_TEXT}}</focusedcolor>
+              <label>$INFO[Window.Property(play.again)]</label>
+              <visible>!String.IsEmpty(Window.Property(play.again))</visible>
+            </control>
+            <control type="button" id="413">
+              <width>auto</width><height>72</height>
+              <font>font27</font><textoffsetx>34</textoffsetx><aligny>center</aligny>
+              <texturefocus border="31" colordiffuse="{{ACCENT}}">reelhouse/ui/pill.png</texturefocus>
+              <texturenofocus border="31" colordiffuse="{{ELEV2}}">reelhouse/ui/pill.png</texturenofocus>
+              <textcolor>{{TEXT}}</textcolor><focusedcolor>{{ACCENT_TEXT}}</focusedcolor>
+              <label>$INFO[Window.Property(watched.label)]</label>
+            </control>
+            <control type="group" id="414">
+              <width>72</width><height>72</height>
+              <control type="button" id="415">
+                <width>72</width><height>72</height>
+                <texturefocus border="31" colordiffuse="{{ACCENT}}">reelhouse/ui/pill.png</texturefocus>
+                <texturenofocus border="31" colordiffuse="{{ELEV2}}">reelhouse/ui/pill.png</texturenofocus>
+                <label></label>
+              </control>
+              <control type="image">
+                <left>16</left><top>16</top><width>40</width><height>40</height>
+                <texture colordiffuse="{{TEXT}}">reelhouse/icons/more.png</texture>
+                <visible>!Control.HasFocus(415)</visible>
+              </control>
+              <control type="image">
+                <left>16</left><top>16</top><width>40</width><height>40</height>
+                <texture colordiffuse="{{ACCENT_TEXT}}">reelhouse/icons/more.png</texture>
+                <visible>Control.HasFocus(415)</visible>
+              </control>
+            </control>
+          </control>
+          <control type="label">
+            <left>0</left><top>336</top><width>1300</width><height>44</height>
+            <font>font13</font><textcolor>{{TEXT_DIM}}</textcolor>
+            <label>[I]$INFO[Window.Property(tagline)][/I]</label>
+          </control>
+          <control type="textbox">
+            <left>0</left><top>384</top><width>1260</width><height>164</height>
+            <font>font13</font><textcolor>{{TEXT}}</textcolor>
+            <label>$INFO[Window.Property(overview)]</label>
+          </control>
+          <control type="label">
+            <left>0</left><top>560</top><width>1300</width><height>40</height>
+            <font>font12</font><textcolor>{{TEXT_FAINT}}</textcolor>
+            <label>$INFO[Window.Property(credits)]</label>
+          </control>
+        </control>
+      </control>
+      <!-- include poster-row group=402 list=450 up=410 down=460 title=Seasons -->
+      <!-- include landscape-row group=403 list=460 up=450 down=430 title=Episodes -->
+      <!-- include face-row group=404 list=430 up=460 down=440 title=Cast -->
+      <!-- include poster-row group=405 list=440 up=430 down=441 title=$INFO[Window.Property(related.0.title)] -->
+      <!-- include poster-row group=406 list=441 up=440 down=442 title=$INFO[Window.Property(related.1.title)] -->
+      <!-- include poster-row group=407 list=442 up=441 down=443 title=$INFO[Window.Property(related.2.title)] -->
+      <!-- include poster-row group=408 list=443 up=442 down=443 title=$INFO[Window.Property(related.3.title)] -->
+    </control>
+    <!-- include message -->
+    <!-- include topbar -->
+    <!-- include sidebar -->
+  </controls>
+</window>
