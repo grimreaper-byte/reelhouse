@@ -1,10 +1,15 @@
 package app.reelhouse.android.ui.livetv
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -21,9 +26,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import app.reelhouse.android.data.model.Channel
+import app.reelhouse.android.ui.components.POSTER_WIDTH
 import app.reelhouse.android.ui.components.RemoteImage
 import app.reelhouse.android.ui.theme.Palette
 import kotlinx.coroutines.delay
@@ -81,5 +88,25 @@ fun ChannelLogo(channel: Channel, size: Dp, modifier: Modifier = Modifier) {
                 modifier = Modifier.fillMaxSize().padding(size / 10),
             )
         }
+    }
+}
+
+/** A channel in Continue Watching: its logo and name on a poster's shape, nothing about what's on. It plays straight away. */
+@Composable
+fun ChannelCard(channel: Channel, onClick: () -> Unit) {
+    Column(Modifier.width(POSTER_WIDTH).clickable(onClick = onClick)) {
+        Box(
+            Modifier.fillMaxWidth().aspectRatio(2f / 3f).clip(RoundedCornerShape(6.dp)).background(Palette.Elevated2),
+            contentAlignment = Alignment.Center,
+        ) {
+            ChannelLogo(channel, POSTER_WIDTH * 2 / 3)
+        }
+        Text(
+            channel.name,
+            style = MaterialTheme.typography.bodyMedium,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(top = 6.dp),
+        )
     }
 }

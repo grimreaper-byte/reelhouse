@@ -111,9 +111,9 @@ data class CastMember(val name: String, val role: String? = null, val profile: S
 /** A movie, show, season or episode (serializeItem in server/items.js). */
 @Serializable
 data class Item(
-    val id: Long,
+    val id: Long = 0, // none on a channel
     val libraryId: Long? = null,
-    val type: String, // movie | show | season | episode
+    val type: String, // movie | show | season | episode | channel (Continue Watching)
     val title: String,
     val year: Int? = null,
     val parentId: Long? = null,
@@ -135,6 +135,8 @@ data class Item(
     val overview: String? = null,
     val show: ShowRef? = null,
     val newCount: Int? = null,
+    /** Continue Watching, when Settings → Live TV shows channels there: nothing else of this item says anything. */
+    val channel: Channel? = null,
     // Only on detail pages (full = true):
     val originalTitle: String? = null,
     val tagline: String? = null,

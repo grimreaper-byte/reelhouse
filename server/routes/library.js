@@ -16,6 +16,7 @@ import { ART_KINDS, listArtwork, setArtwork, localArtworkFiles } from '../artwor
 import { relatedFor } from '../related.js';
 import { personPage } from '../people.js';
 import { watchedByOthers } from '../hubs.js';
+import { channelsToContinue } from '../livetv/recent-channels.js';
 import { addLibraryPaths, mergeLibraries, sameNamedLibrary } from '../libraries.js';
 import { versionsOf, versionOut, regroupVersions } from '../versions.js';
 
@@ -277,7 +278,12 @@ function continueWatching(user, libIds) {
     if (ep && !st?.watched) nextUp.push({ ...ep, _ts: s.ts });
   }
   const merged = [...inProgress, ...nextUp].sort((a, b) => b._ts - a._ts).slice(0, 24);
-  return withShowInfo(serializeMany(user.id, merged), merged);
+  const out = withShowInfo(serializeMany(user.id, merged), merged);
+  // When, so that channels can take their places among them.
+  merged.forEach((r, i) => {
+    out[i].lastWatchedAt = r._ts;
+  });
+  return out;
 }
 
 // Adds show title / season info used by episode cards.
@@ -325,11 +331,13 @@ function recentlyAdded(user, lib) {
   return out;
 }
 
-router.get('/hubs/home', requireUser, (req, res) => {
+router.get('/hubs/home', requireUser, async (req, res) => {
   const libIds = allowedLibraryIds(req.user);
   const libs = librariesFor(req.user);
   const hubs = [];
-  const cw = continueWatching(req.user, libIds);
+  // Channels only for pages and apps that ask (?channels=1): older ones expect nothing but titles in this row.
+  const channelCards = req.query.channels ? await channelsToContinue(req.user) : [];
+  const cw = [...continueWatching(req.user, libIds), ...channelCards].sort((a, b) => b.lastWatchedAt - a.lastWatchedAt);
   // Posters like the other rows: an episode's is its season's or show's (server/media/images.js).
   if (cw.length) hubs.push({ id: 'continue', title: 'Continue Watching', style: 'poster', items: cw });
   for (const lib of libs) {

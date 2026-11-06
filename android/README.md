@@ -33,6 +33,8 @@ Status: milestones 1–5 are done. You can:
   Stop recording for accounts allowed to, and Record series / Cancel series recording for those allowed that (since
   0.11.0, with Reelhouse 0.20.0; every episode of the show on that channel, an episode then offering Skip rather than
   Cancel), and a player with channel up/down, pause and Live;
+- see the channels you've watched in Continue Watching, when Settings → Live TV on the server shows them (since
+  0.12.0, with Reelhouse 0.21.0);
 - see the recordings you set in **Manage Recordings** (since 0.6.0, called Recordings before 0.9.0, with Reelhouse
   0.14.0 or later): since 0.8.0 (Reelhouse 0.17.0) like a TV library, shows with their cover art, a show's series as
   covers, a series' episodes as pictures; since 0.9.0 (Reelhouse 0.18.0) the shows under the headings Recording now,

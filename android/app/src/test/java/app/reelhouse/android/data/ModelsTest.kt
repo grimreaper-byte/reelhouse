@@ -40,6 +40,23 @@ class ModelsTest {
     }
 
     @Test
+    fun `a channel in Continue Watching decodes beside the titles`() {
+        val home = AppJson.decodeFromString(
+            HomeResponse.serializer(),
+            """{"hubs":[{"id":"continue","title":"Continue Watching","style":"poster","items":[
+                {"type":"channel","title":"Test One","lastWatchedAt":5,
+                 "channel":{"uuid":"aa","name":"Test One","number":1,"radio":false,"icon":"/api/livetv/channels/aa/icon?v=2"}},
+                {"id":7,"type":"movie","title":"A Film","lastWatchedAt":4}
+            ]}],"libraries":[]}""",
+        )
+        val (channel, film) = home.hubs.single().items
+        assertEquals("aa", channel.channel?.uuid)
+        assertEquals("/api/livetv/channels/aa/icon?v=2", channel.channel?.icon)
+        assertEquals(7L, film.id)
+        assertEquals(null, film.channel)
+    }
+
+    @Test
     fun `detail pages decode, including fields only they have`() {
         val show = AppJson.parseToJsonElement(fixture("item-show.json")).jsonObject
         val item = AppJson.decodeFromJsonElement(app.reelhouse.android.data.model.Item.serializer(), show["item"] as JsonObject)

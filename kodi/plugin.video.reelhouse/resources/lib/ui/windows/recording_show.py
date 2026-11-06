@@ -103,8 +103,8 @@ class RecordingShow(Screen):
 
     def after_change(self):
         self.load()
-        if not self.closed and self.getFocusId() not in (GRID, DELETE_SHOW):
-            self.setFocusId(GRID)
+        if not self.closed:
+            self.keep_focus()  # Delete show hides itself once there's nothing recorded left to delete
 
     # ---------- every minute: the show again ----------
 

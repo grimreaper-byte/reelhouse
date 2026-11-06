@@ -103,7 +103,8 @@ class ReelhouseApi(
 
     suspend fun tunnel(): TunnelSettings? = get("/api/me/tunnel", TunnelResponse.serializer()).tunnel
 
-    suspend fun home(): HomeResponse = get("/api/hubs/home", HomeResponse.serializer())
+    // channels=1: this app knows what a channel in Continue Watching is (older ones are sent only titles).
+    suspend fun home(): HomeResponse = get("/api/hubs/home?channels=1", HomeResponse.serializer())
 
     suspend fun libraries(): List<Library> = get("/api/libraries", LibrariesResponse.serializer()).libraries
 

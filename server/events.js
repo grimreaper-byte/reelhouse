@@ -66,6 +66,11 @@ export function stateChanged(userId, itemIds) {
   send('state', { itemIds: itemIds.slice(0, 5000) }, (user) => user.id === userId);
 }
 
+/** The channels in someone's Continue Watching changed: their pages and apps look again, as for a title. */
+export function recentChannelsChanged(userId) {
+  send('state', { itemIds: [] }, (user) => user.id === userId);
+}
+
 /** A stream started or stopped: admins' pages update the count of what's being watched (server/activity.js). */
 export function activityChanged(count) {
   send('activity', { count }, (user) => user.isAdmin);

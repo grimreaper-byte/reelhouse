@@ -125,8 +125,8 @@ class RecordingSeries(Screen):
 
     def after_change(self):
         self.load()
-        if not self.closed and self.getFocusId() not in (GRID, DELETE_SERIES):
-            self.setFocusId(GRID)
+        if not self.closed:
+            self.keep_focus()  # Delete series hides itself once there's nothing recorded left to delete
 
     # ---------- every minute: the series again ----------
 

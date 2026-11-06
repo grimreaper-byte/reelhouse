@@ -77,12 +77,13 @@ when Kodi starts** in the add-on's settings for a Kodi that's mostly for Reelhou
   has them for you), Manage Recordings (when your account may record; since 0.6.0), Settings (the add-on's settings)
   and Exit. Down from Search moves into the bottom group.
 - **Home:** the web app's rows: Continue Watching (Select carries on where you stopped; the menu or info button opens
-  the page instead), Recently Added in each library, Watched by Others.
+  the page instead; a channel, when Settings → Live TV shows them there, plays straight away), Recently Added in each
+  library, Watched by Others.
 - **Libraries:** a grid of posters, with Sort, Show (unwatched, in progress, watched) and Genre along the top.
 - **Film, show, season and episode pages:** the artwork still behind the page, the poster and title, quality badges
   (one per copy of a film), **Resume** / **From the start** / **Mark watched** and **⋯** (Play version… for a film with
-  more than one copy, Media info, the episodes either side); then a show's seasons, a season's episodes, the cast
-  (each opens their page) and related titles.
+  more than one copy, Media info, the episodes either side); then a show's seasons or a season's episodes as a grid
+  that scrolls, as in the web app, then the cast (each opens their page) and related titles.
 - **Search:** Kodi's keyboard, then movies, TV shows, episodes and titles whose cast or crew matched.
 - **Live TV and Radio:** the web app's guide — channels against time with a line at now, programmes in their genre's
   colour, the highlighted one's details underneath, the days along the top. The arrow keys move as on a remote: left

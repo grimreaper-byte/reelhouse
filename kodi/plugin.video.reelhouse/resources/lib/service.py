@@ -37,6 +37,12 @@ def compact(jobs):
     return out[-UNSENT_MAX:]
 
 
+def stream_id(playing):
+    """The Reelhouse item a stream's URL is for, or None for anything else."""
+    match = re.search(r'/api/stream/(\d+)(?:[/?#]|$)', playing)
+    return int(match.group(1)) if match else None
+
+
 class Player(xbmc.Player):
     def __init__(self, service):
         xbmc.Player.__init__(self)
@@ -46,19 +52,30 @@ class Player(xbmc.Player):
         self.position = 0.0
         self.last_report = 0.0
 
+    def leave(self):
+        """What was playing is over: Reelhouse hears it now, rather than wondering where its player went."""
+        self.report('stopped')
+        self.current = None
+        self.report_live('stopped')  # frees the tuner straight away
+
+    def onPlayBackStarted(self):
+        # Moving on in a playlist (the remote's Next and Previous), this is all Kodi says: never that the item it left
+        # has stopped.
+        self.leave()
+
     def onAVStarted(self):
         window = xbmcgui.Window(utils.HOME)
         raw = window.getProperty(utils.PLAYING_PROPERTY)
-        window.clearProperty(utils.PLAYING_PROPERTY)
         try:
             info = json.loads(raw) if raw else None
             playing = self.getPlayingFile()
         except (ValueError, RuntimeError):
             info, playing = None, ''
         self.live = None
-        # Only the stream the add-on just handed out (a leftover property must not claim some other video).
-        match = re.search(r'/api/stream/(\d+)(?:[/?#]|$)', playing)
-        if info and match and int(match.group(1)) == int(info['id']):
+        # Only the stream the add-on just handed out (a leftover property must not claim some other video). One for
+        # another item stays: skipping quickly, it's the next stream's, and this one is about to make way for it.
+        if info and stream_id(playing) == int(info['id']):
+            window.clearProperty(utils.PLAYING_PROPERTY)
             self.current = info
             if info.get('start'):
                 self.seekTime(float(info['start']))  # the Reelhouse screens' Resume
@@ -109,9 +126,7 @@ class Player(xbmc.Player):
         self.position = seek_time / 1000.0
 
     def onPlayBackStopped(self):
-        self.report('stopped')
-        self.current = None
-        self.report_live('stopped')  # frees the tuner straight away
+        self.leave()
 
     def onPlayBackEnded(self):
         if self.current:
@@ -138,7 +153,8 @@ class Player(xbmc.Player):
         if not self.current:
             return
         try:
-            if not self.isPlayingVideo():
+            # Not while Kodi has moved on and hasn't said so yet: this would be the next item's time.
+            if not self.isPlayingVideo() or stream_id(self.getPlayingFile()) != int(self.current['id']):
                 return
             self.position = self.getTime()
             total = self.getTotalTime()
@@ -489,6 +505,8 @@ class Service(xbmc.Monitor):
                     elif event == 'state':
                         self.request_states(data.get('itemIds') or [])
                         self.changed()
+                    elif event == 'livetv':
+                        self.changed()  # e.g. channels in Continue Watching turned on or off
             except ApiError as err:
                 if err.status == 401:
                     self.on_rejected()

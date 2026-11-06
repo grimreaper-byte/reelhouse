@@ -93,8 +93,21 @@ export function landscapeCard(item) {
   );
 }
 
+/** A channel in Continue Watching: its logo and name, nothing about what's on. It plays straight away. */
+export function channelCard({ channel: c }) {
+  const fallback = () => h('div.card-placeholder', icon('tv', 28), h('div', c.name));
+  return h('a.card.channel-card', { href: `/livetv/watch/${c.uuid}`, title: `Watch ${c.name}` },
+    h('div.card-img',
+      lazyImg(c.icon, { width: 160, fallback }),
+      h('div.card-overlay', h('div.play-circle', icon('play', 24))),
+    ),
+    h('div.card-title', c.name),
+  );
+}
+
 /** Seasons in "recently added" hubs are labelled with their show. */
 export function hubCard(item, style) {
+  if (item.type === 'channel') return channelCard(item);
   if (style === 'landscape') return landscapeCard(item);
   if (item.type === 'season' && item.show) {
     return posterCard(item, { title: item.show.title, subtitle: `${item.title}${item.newCount ? ` · ${item.newCount} new` : ''}` });

@@ -29,6 +29,7 @@ test('the upgrade keeps the order libraries had (by name), and the order is kept
   run('DROP TABLE recording_art'); // v16
   run('DROP TABLE recording_series'); // v19
   run('ALTER TABLE users DROP COLUMN live_tv_series'); // v19
+  run('DROP TABLE channel_views'); // v20
   run('PRAGMA user_version = 10');
   for (const [id, name, type] of [[1, 'TV Shows', 'show'], [2, 'movies', 'movie'], [3, 'Recorded TV', 'show'], [4, 'Anime', 'show']]) {
     run('INSERT INTO libraries (id, name, type, paths, created_at) VALUES (?, ?, ?, ?, ?)', id, name, type, '[]', 1);
@@ -36,7 +37,7 @@ test('the upgrade keeps the order libraries had (by name), and the order is kept
   closeDb();
 
   openDb(file);
-  assert.equal(get('PRAGMA user_version').user_version, 19);
+  assert.equal(get('PRAGMA user_version').user_version, 20);
   assert.deepEqual(names(), ['Anime', 'movies', 'Recorded TV', 'TV Shows']);
 
   // Recorded TV under TV Shows, as someone would set it; still so after the server starts again.

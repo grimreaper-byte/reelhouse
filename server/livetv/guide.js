@@ -2,7 +2,7 @@
 // what its account may do, guide windows), so pages don't each wait for Tvheadend.
 import { getSetting, settingsEvents } from '../settings.js';
 import { Tvheadend, withRadio } from './tvheadend.js';
-import { cachedIcon, clearIcons, prefetchIcons } from './icons.js';
+import { cachedIcon, clearIcons, iconVersion, prefetchIcons } from './icons.js';
 
 const CHANNELS_MS = 10 * 60 * 1000;
 const ACCOUNT_MS = 10 * 60 * 1000;
@@ -95,6 +95,15 @@ async function loadChannels(tvh) {
   ]);
   return withRadio(list, tags, radioServices);
 }
+
+// The logo's address carries when it was fetched, so browsers keep it for long and still see a new one.
+export const publicChannel = (c) => {
+  const v = iconVersion(c.uuid);
+  return {
+    uuid: c.uuid, name: c.name, number: c.number, radio: !!c.radio,
+    icon: c.icon || c.iconSource || v ? `/api/livetv/channels/${c.uuid}/icon${v ? `?v=${v}` : ''}` : null,
+  };
+};
 
 /** A channel turned out to have no picture: it's radio from now on. */
 export function learnRadio(uuid) {

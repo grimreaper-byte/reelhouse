@@ -1,5 +1,8 @@
-# Home: the web app's rows. Continue Watching plays where it stopped (the menu key opens the page instead); every
-# other card opens its page.
+# Home: the web app's rows. Continue Watching plays where it stopped (the menu key opens the page instead), and a channel
+# there plays it; every other card opens its page.
+import xbmcgui
+
+from ...api import ApiError
 from .. import model
 from .base import Screen
 
@@ -22,7 +25,7 @@ class Home(Screen):
     def load(self):
         self.setProperty('title', 'Home')
         first = not getattr(self, 'loaded', False)
-        data = self.fetch('/api/hubs/home')
+        data = self.fetch('/api/hubs/home?channels=1')
         if data is None:
             return
         hubs = data.get('hubs') or []
@@ -65,7 +68,9 @@ class Home(Screen):
         card = self.selected(control_id)
         if not card:
             return
-        if card['play']:
+        if card['type'] == 'channel':
+            self.watch(card['uuid'])
+        elif card['play']:
             self.play(card)
         else:
             self.open_child(('item', card['id']))
@@ -73,8 +78,21 @@ class Home(Screen):
     def on_context(self, control_id):
         if row_of(control_id) is not None:
             card = self.selected(control_id)
-            if card:
+            if card and card['type'] != 'channel':  # a channel has no page
                 self.open_child(('item', card['id']))
+
+    def watch(self, uuid):
+        """A channel: the others follow it in Kodi's playlist, as from the guide, so next and previous change channel."""
+        try:
+            channels = [c for c in self.app.api.get('/api/livetv/channels').get('channels') or [] if not c.get('radio')]
+        except ApiError as err:
+            xbmcgui.Dialog().notification('Reelhouse', str(err), xbmcgui.NOTIFICATION_ERROR)
+            return
+        index = next((n for n, c in enumerate(channels) if c['uuid'] == uuid), None)
+        if index is None:
+            xbmcgui.Dialog().notification('Reelhouse', 'That channel is no longer there', xbmcgui.NOTIFICATION_ERROR)
+            return
+        self.app.play_live(channels, index, False)
 
     def play(self, card):
         start = card['position'] if card['position'] else 0

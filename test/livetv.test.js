@@ -120,7 +120,7 @@ function fakeTvheadend(req, res) {
     const form = Object.fromEntries(new URLSearchParams(body));
     if (url.pathname.startsWith('/stream/channelid/')) {
       if (url.searchParams.get('ticket') !== 'T1') return res.writeHead(401).end();
-      if (url.pathname.endsWith('/2')) return res.writeHead(503).end('No free adapter');
+      if (url.pathname.endsWith('/2') && !tvh.twoHasATuner) return res.writeHead(503).end('No free adapter');
       if (url.pathname.endsWith('/3') || url.pathname.endsWith('/4')) return streamTs(req, res, radioFile);
       return streamTs(req, res);
     }
@@ -137,6 +137,7 @@ function fakeTvheadend(req, res) {
         return json({ name: 'Tvheadend', sw_version: '4.3-2347~g1dc8ffe78', api_version: 19, capabilities: [] });
       case '/api/channel/grid':
         if (tvh.channelsDown) return res.writeHead(500).end();
+        if (tvh.channelsHang) return undefined; // never answers
         return json({ entries: [
           { uuid: TWO, enabled: true, name: 'Two', number: 2, tags: ['2'.repeat(32)] },
           { uuid: ONE, enabled: true, name: 'One', number: 1, icon: 'file:///picons/one.png', icon_public_url: 'imagecache/1', tags: ['2'.repeat(32)] },
@@ -472,6 +473,102 @@ test('radio: tagged stations play as sound only; a station without a picture is 
   const guide = (await call('kid', 'GET', `/api/livetv/guide?from=${now}&to=${now + 3600}`)).data;
   assert.equal(guide.channels.find((c) => c.uuid === UNTAGGED).radio, true);
   assert.ok(await waitFor(() => tvh.openStreams === 0), 'streams closed');
+});
+
+test('Continue Watching: channels watched for 30 seconds, as a switch says, for apps that ask', async (t) => {
+  const row = async (who, query = '?channels=1') => {
+    const { hubs } = (await call(who, 'GET', `/api/hubs/home${query}`)).data;
+    return hubs.find((h) => h.id === 'continue')?.items ?? [];
+  };
+  const names = async (who, query) => (await row(who, query)).map((i) => i.title);
+  const stop = (playId) => call('kid', 'POST', '/api/livetv/progress', { playId, state: 'stopped' });
+  // Plays a channel for `seconds`, as far as Reelhouse can tell, with the heartbeat a player sends.
+  const watch = async (uuid, seconds) => {
+    const { data, status } = await call('kid', 'POST', `/api/livetv/play/${uuid}`, {});
+    assert.equal(status, 200, JSON.stringify(data));
+    listLiveSessions().find((l) => l.id === data.playId).createdAt -= seconds * 1000;
+    await call('kid', 'POST', '/api/livetv/progress', { playId: data.playId, state: 'playing' });
+    await stop(data.playId);
+    await new Promise((r) => setTimeout(r, 5)); // later than the one before
+  };
+
+  tvh.twoHasATuner = true;
+  t.after(() => {
+    tvh.twoHasATuner = false;
+    tvh.channelsDown = false;
+    tvh.channelsHang = false;
+    run('DELETE FROM channel_views');
+  });
+  const off = await call('admin', 'GET', '/api/settings');
+  assert.equal(off.data.settings.liveTv.inContinueWatching, false, 'off until it is turned on');
+
+  await watch(ONE, 40);
+  assert.deepEqual(await names('kid'), [], 'the switch is off');
+
+  const on = await call('admin', 'PUT', '/api/settings', { liveTv: { inContinueWatching: true } });
+  assert.equal(on.data.settings.liveTv.inContinueWatching, true);
+  const [card] = await row('kid');
+  assert.deepEqual(Object.keys(card).sort(), ['channel', 'lastWatchedAt', 'title', 'type'], 'nothing about what is on, and no timeline');
+  assert.equal(card.type, 'channel');
+  assert.equal(card.title, 'One');
+  assert.equal(card.channel.uuid, ONE);
+  assert.match(card.channel.icon, new RegExp(`/api/livetv/channels/${ONE}/icon`));
+
+  assert.deepEqual(await names('kid', ''), [], 'an app that does not ask gets titles only');
+  assert.deepEqual(await names('admin'), [], 'each person has their own');
+
+  await watch(TWO, 10);
+  assert.deepEqual(await names('kid'), ['One'], 'flicking past a channel does not count');
+  await watch(TWO, 31);
+  assert.deepEqual(await names('kid'), ['Two', 'One'], 'the newest first');
+  await watch(ONE, 31);
+  assert.deepEqual(await names('kid'), ['One', 'Two'], 'watching one again brings it forward');
+
+  await watch(RADIO, 60);
+  assert.deepEqual(await names('kid'), ['One', 'Two'], 'radio is not something to carry on watching');
+
+  // Among someone's titles by when each was watched.
+  const lib = run("INSERT INTO libraries (name, type, paths, created_at) VALUES ('Films', 'movie', '[]', ?)", Date.now()).lastInsertRowid;
+  const add = (title, at, position) => {
+    const id = run("INSERT INTO items (library_id, type, title, sort_title, added_at, updated_at) VALUES (?, 'movie', ?, ?, ?, ?)", lib, title, title, at, at).lastInsertRowid;
+    run('INSERT INTO user_state (user_id, item_id, position, watched, view_count, updated_at) VALUES (?, ?, ?, 0, 0, ?)', ids.kid, id, position, at);
+    return id;
+  };
+  const films = [add('Later Film', Date.now() + 60000, 100), add('Earlier Film', Date.now() - 3600000, 100)];
+  assert.deepEqual(await names('kid'), ['Later Film', 'One', 'Two', 'Earlier Film']);
+  assert.deepEqual(await names('kid', ''), ['Later Film', 'Earlier Film'], 'titles alone without asking');
+  run('DELETE FROM user_state WHERE item_id IN (?, ?)', ...films);
+  run('DELETE FROM items WHERE id IN (?, ?)', ...films);
+  run('DELETE FROM libraries WHERE id = ?', lib);
+
+  // Only the newest few, whatever else was watched.
+  for (let n = 0; n < 12; n++) run('INSERT INTO channel_views (user_id, channel_uuid, watched_at) VALUES (?, ?, ?)', ids.kid, ONE.replace(/^a{2}/, String(n).padStart(2, '0')), Date.now() - 1000);
+  assert.deepEqual(await names('kid'), ['One', 'Two'], 'one no longer on the list is left out');
+  run('DELETE FROM channel_views WHERE channel_uuid NOT IN (?, ?)', ONE, TWO);
+
+  // Tvheadend gone, or not answering: Home goes ahead without them, and soon. (Saving Live TV's settings forgets the channels.)
+  const forgetChannels = async () => {
+    await call('admin', 'PUT', '/api/settings', { liveTv: { inContinueWatching: false } });
+    await call('admin', 'PUT', '/api/settings', { liveTv: { inContinueWatching: true } });
+  };
+  tvh.channelsDown = true;
+  await forgetChannels();
+  assert.deepEqual(await names('kid'), [], 'Tvheadend refuses');
+  tvh.channelsDown = false;
+  tvh.channelsHang = true;
+  await forgetChannels();
+  const started = Date.now();
+  assert.deepEqual(await names('kid'), [], 'Tvheadend says nothing');
+  assert.ok(Date.now() - started < 3000, 'Home does not wait for it');
+  tvh.channelsHang = false;
+  await forgetChannels();
+  assert.deepEqual(await names('kid'), ['One', 'Two'], 'back again');
+
+  assert.deepEqual(await names('nolive'), [], 'an account that can not watch live TV');
+  await call('admin', 'PUT', '/api/settings', { liveTv: { enabled: false } });
+  assert.deepEqual(await names('kid'), [], 'Live TV turned off');
+  await call('admin', 'PUT', '/api/settings', { liveTv: { enabled: true, inContinueWatching: false } });
+  assert.deepEqual(await names('kid'), [], 'the switch off again');
 });
 
 test('recording: allowed accounts schedule and cancel from the guide', async () => {

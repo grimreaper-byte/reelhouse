@@ -26,6 +26,7 @@ ACTION_PREVIOUS_MENU, ACTION_NAV_BACK = 10, 92
 ACTION_SHOW_INFO = 11
 ACTION_CONTEXT_MENU = 117
 BACK = (ACTION_PREVIOUS_MENU, ACTION_NAV_BACK)
+ARROWS = (ACTION_MOVE_LEFT, ACTION_MOVE_RIGHT, ACTION_MOVE_UP, ACTION_MOVE_DOWN)
 
 
 def icon(name):
@@ -53,6 +54,7 @@ class Screen(xbmcgui.WindowXML):
     XML = None
     ROOT = False      # Home: the sidebar's jumps start from it
     nav = None        # the sidebar entry lit while this screen shows
+    nav_at_end = False  # that entry is in the sidebar's bottom list
     has_page = False  # something has been read for it
     refresher = None  # the thread reading it again by itself (follow_changes)
 
@@ -100,9 +102,10 @@ class Screen(xbmcgui.WindowXML):
     def back(self, focus):
         end = self.getControl(SIDEBAR_END)
         on_exit = focus == SIDEBAR_END and end.getSelectedPosition() == end.size() - 1  # Exit is last
-        step = model.back_step(self.ROOT, focus in SIDEBARS, self.content_focus, on_exit)
+        target = self.page_focus()
+        step = model.back_step(self.ROOT, focus in SIDEBARS, target if target not in SIDEBARS else None, on_exit)
         if step == 'page':
-            self.setFocusId(self.page_focus())
+            self.setFocusId(target)
         elif step == 'sidebar':
             self.setFocusId(SIDEBAR)
         elif step == 'exit':
@@ -140,14 +143,21 @@ class Screen(xbmcgui.WindowXML):
 
     def onAction(self, action):
         action_id = action.getId()
-        focus = self.getFocusId()
+        focus = self.focused()
         if action_id in BACK:
             self.back(focus)
             return
-        if focus in SIDEBARS and action_id == ACTION_MOVE_RIGHT:
+        if action_id in ARROWS and not xbmc.getInfoLabel('System.CurrentControlId'):
+            # Nothing has the focus, whatever getFocusId says (it goes on naming the last control that did), so no key
+            # would do anything: the first arrow brings it back. Not Select: that's empty too while it opens a screen.
             self.setFocusId(self.page_focus())
             return
-        if action_id in (ACTION_CONTEXT_MENU, ACTION_SHOW_INFO) and focus not in SIDEBARS:
+        if focus in SIDEBARS and action_id == ACTION_MOVE_RIGHT:
+            target = self.page_focus()
+            if target not in SIDEBARS:  # a page with nothing left to go to: the focus stays here
+                self.setFocusId(target)
+            return
+        if action_id in (ACTION_CONTEXT_MENU, ACTION_SHOW_INFO) and focus and focus not in SIDEBARS:
             self.on_context(focus)
             return
         self.on_action(action_id, focus)
@@ -171,11 +181,19 @@ class Screen(xbmcgui.WindowXML):
         self.load()
 
     def default_focus(self):
-        return SIDEBAR
+        return self.sidebar_focus()
+
+    def sidebar_focus(self):
+        """The sidebar's list with this screen's lit entry in it."""
+        return SIDEBAR_END if self.nav_at_end else SIDEBAR
 
     def page_focus(self):
-        """Where the focus goes back to from the sidebar: where it was on the page."""
-        return self.content_focus or self.default_focus()
+        """Where the focus goes back to from the sidebar: where it was on the page, if that's still there (the last
+        recording in a list can be deleted), else where the page starts; the sidebar, if it has nothing to go to now."""
+        for control_id in (self.content_focus, self.default_focus()):
+            if control_id and self.can_focus(control_id):
+                return control_id
+        return self.sidebar_focus()
 
     def on_click(self, control_id):
         pass
@@ -258,7 +276,9 @@ class Screen(xbmcgui.WindowXML):
             return
         target = self.app.target_for(key)
         if key == self.nav:
-            self.setFocusId(self.content_focus or self.default_focus())
+            page = self.page_focus()
+            if page not in SIDEBARS:
+                self.setFocusId(page)
             return
         self.app.pending = target
         if self.ROOT:
@@ -278,6 +298,7 @@ class Screen(xbmcgui.WindowXML):
         li.setProperty('id', str(card['id']))
         li.setProperty('type', card['type'] or '')
         li.setProperty('title', card.get('title') or '')
+        li.setProperty('uuid', card.get('uuid') or '')
         li.setProperty('position', str(card['position'] or 0))
         if card['watched']:
             li.setProperty('watched', 'true')
@@ -303,7 +324,8 @@ class Screen(xbmcgui.WindowXML):
         if li is None:
             return None
         return {'id': int(li.getProperty('id') or 0), 'type': li.getProperty('type'), 'play': li.getProperty('play') == 'true',
-                'position': float(li.getProperty('position') or 0), 'title': li.getProperty('title')}
+                'position': float(li.getProperty('position') or 0), 'title': li.getProperty('title'),
+                'uuid': li.getProperty('uuid')}
 
     def show_message(self, title, text='', retry=False):
         self.setProperty('message.title', title)
@@ -318,6 +340,33 @@ class Screen(xbmcgui.WindowXML):
             self.clearProperty(key)
         if on_retry:
             self.setFocusId(self.page_focus())  # the button has gone: nothing would have the focus, and the keys do nothing
+
+    def focused(self):
+        """What has the focus; 0 when nothing has (what had it has gone, or a screen is coming back)."""
+        try:
+            return self.getFocusId()
+        except RuntimeError:
+            return 0
+
+    def can_focus(self, control_id):
+        """Whether something on the page can take the focus. An empty list or a hidden control can't: the focus would land
+        on nothing, where the keys do nothing."""
+        try:
+            size = getattr(self.getControl(control_id), 'size', None)
+        except RuntimeError:
+            return False
+        if callable(size):  # how many it holds, not whether it shows: that says no for a moment as a screen comes back
+            return size() > 0
+        return bool(xbmc.getCondVisibility('Control.IsVisible({})'.format(control_id)))
+
+    def keep_focus(self):
+        """After what a page shows has changed (a recording deleted here or elsewhere, or one starting): if what had the
+        focus has gone, it moves to what's left."""
+        if xbmc.getCondVisibility('System.HasActiveModalDialog'):
+            return  # the focus is on the dialog's buttons; this comes round again
+        focus = self.focused()
+        if focus not in SIDEBARS and focus != RETRY and not (focus and self.can_focus(focus)):
+            self.focus_soon(self.page_focus())
 
     def focus_soon(self, control_id):
         """Focuses something just made to show (a message's button, a list just filled): it can't take the focus until

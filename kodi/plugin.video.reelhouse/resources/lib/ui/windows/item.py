@@ -1,6 +1,6 @@
 # A film, show, season or episode, as its page in the web app: the artwork still behind it, poster and title, Play or
-# Resume, From the start, Watched, ⋯ (Play version…, Media info, the episodes either side…), the overview, then rows:
-# a show's seasons, a season's episodes, the cast, related titles and "More with …".
+# Resume, From the start, Watched, ⋯ (Play version…, Media info, the episodes either side…), the overview, then a show's
+# seasons or a season's episodes as a scrolling grid, and rows of the cast, related titles and "More with …".
 import xbmcgui
 
 from ...api import ApiError
@@ -11,6 +11,7 @@ from .options import choose
 PLAY, AGAIN, WATCHED, MORE = 411, 412, 413, 415
 INFO = 470
 SEASONS, EPISODES, CAST = 450, 460, 430
+SEASONS_GROUP, EPISODES_GROUP = 402, 403  # each grid with its heading
 RELATED = 440  # .. 443
 RELATED_ROWS = 4
 
@@ -95,7 +96,9 @@ class Item(Screen):
         i = d['item']
         kind = i.get('type')
         children = d.get('children') or []
-        self.fill_list(SEASONS, self.items([model.card(c) for c in children]) if kind == 'show' else [])
+        seasons = [model.card(c) for c in children] if kind == 'show' else []
+        self.fill_list(SEASONS, self.items(seasons))
+        self.getControl(SEASONS_GROUP).setHeight(model.grid_height(len(seasons), model.SEASON_GRID))
         episodes = []
         if kind == 'season':
             for e in children:
@@ -104,6 +107,7 @@ class Item(Screen):
                 c['label'], c['play'] = e.get('title') or '', False
                 episodes.append(c)
         self.fill_list(EPISODES, self.items(episodes))
+        self.getControl(EPISODES_GROUP).setHeight(model.grid_height(len(episodes), model.EPISODE_GRID))
         cast_from = d.get('show') if kind in ('season', 'episode') else i
         cast = (cast_from or {}).get('cast') or i.get('cast') or []
         faces = []

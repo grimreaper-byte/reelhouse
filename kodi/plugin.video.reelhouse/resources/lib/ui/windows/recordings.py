@@ -63,6 +63,8 @@ class Recordings(Screen):
         if not getattr(self, 'loaded', False):
             self.loaded = True
             self.focus_soon(self.default_focus())
+        else:
+            self.keep_focus()  # the list with the focus can empty: its last one deleted, or one that was to come starting
 
     def card(self, show, section, now):
         c = model.show_card(show, section, now)
@@ -184,13 +186,7 @@ class Recordings(Screen):
         else:
             self.open_child(('recording-series', show['key'], show['title'], None, self.everyone))
         if self.app.pending is None:  # back from the show (not on the way to another place)
-            self.load()  # what was changed there
-            try:
-                focus = self.getFocusId()
-            except RuntimeError:  # nothing has the focus
-                focus = None
-            if focus not in (*LISTS.values(), SERIES) or not self.getControl(focus).size():  # its section emptied (all deleted there)
-                self.focus_soon(self.default_focus())
+            self.load()  # what was changed there, which can have emptied the section it came from
 
     # ---------- every minute: the shows again ----------
 

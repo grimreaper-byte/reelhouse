@@ -11,6 +11,9 @@ export async function liveTvTab(ctx) {
   const { settings } = await loadSettings(ctx.signal);
   const s = settings.liveTv;
   const enabled = checkField('Turn on Live TV', s.enabled, { hint: 'Adds Live TV to the sidebar for the accounts allowed to use it (Users).' });
+  const inContinueWatching = checkField('Show channels in Continue Watching', s.inContinueWatching, {
+    hint: 'The channels someone has watched for at least 30 seconds appear on their Home, among the films and episodes they’re part-way through: just the logo and name, and selecting one plays it. Radio stations don’t appear.',
+  });
   const url = textField('Tvheadend address', s.url, {
     placeholder: 'http://192.168.1.50:9981',
     hint: 'Where Reelhouse reaches Tvheadend, with its web port (9981 unless you changed it) and any web root.',
@@ -102,9 +105,15 @@ export async function liveTvTab(ctx) {
       enabled.el, url.el, username.el, password.el,
       result,
       profileHolder,
+      inContinueWatching.el,
       h('div.panel-actions',
         saveButton('Save', () => ({
-          liveTv: { enabled: enabled.value, ...formValues(), ...(profile ? { dvrConfig: profile.value } : {}) },
+          liveTv: {
+            enabled: enabled.value,
+            inContinueWatching: inContinueWatching.value,
+            ...formValues(),
+            ...(profile ? { dvrConfig: profile.value } : {}),
+          },
         }), { after: () => (url.value ? check({}).catch(() => {}) : null) }),
         actionButton('Test connection', async () => {
           const r = await check(formValues());

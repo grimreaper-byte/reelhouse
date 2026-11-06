@@ -399,6 +399,16 @@ class RecordingsTests(unittest.TestCase):
         self.assertEqual(model.recordings_summary([]), '')
         self.assertEqual([model.section_height(n) for n in (1, 8, 9, 40)], [476, 476, 896, 896])
 
+    def test_a_pages_grid_is_as_tall_as_it_needs_and_scrolls_after_two_rows(self):
+        self.assertEqual([model.grid_height(n, model.SEASON_GRID) for n in (1, 8, 9, 16, 17, 40)], [470, 470, 890, 890, 950, 950])
+        self.assertEqual([model.grid_height(n, model.EPISODE_GRID) for n in (1, 4, 5, 8, 9, 24)], [386, 386, 722, 722, 946, 946])
+        # An empty grid (a film's page) is hidden by its layout: what it's asked to be is only used while it shows.
+        self.assertEqual(model.grid_height(0, model.EPISODE_GRID), 386)
+
+    def test_a_seasons_card_counts_its_episodes(self):
+        self.assertEqual(model.card({'type': 'season', 'id': 1, 'title': 'Season 1', 'leafCount': 1})['label2'], '1 episode')
+        self.assertEqual(model.card({'type': 'season', 'id': 1, 'title': 'Season 1', 'leafCount': 4})['label2'], '4 episodes')
+
     def test_deleting_a_series_or_the_show_takes_its_recorded_episodes(self):
         recs = [dict(self.rec, uuid='a', state='recorded', season=1), dict(self.rec, uuid='b', state='failed', season=1, mine=False),
                 dict(self.rec, uuid='c', state='recorded', season=2, canChange=False), dict(self.rec, uuid='d', season=2),
@@ -468,6 +478,25 @@ class RecordingsTests(unittest.TestCase):
         self.assertEqual(model.set_by(dict(self.rec, owner={'id': 3, 'username': 'sam', 'avatar': '/a/3'})),
                          {'names': 'Set by sam', 'letter': 'S', 'avatar': '/a/3'})
         self.assertEqual(model.set_by(dict(self.rec, mine=False, owner=None)), {'names': 'Not set through Reelhouse', 'letter': '', 'avatar': ''})
+
+
+class ChannelCardTests(unittest.TestCase):
+    def test_a_channel_is_its_logo_and_name_with_nothing_about_whats_on(self):
+        cards = model.hub_cards({'id': 'continue', 'items': [{
+            'type': 'channel', 'title': 'Test One', 'lastWatchedAt': 5,
+            'channel': {'uuid': 'a', 'name': 'Test One', 'number': 1, 'radio': False, 'icon': '/api/livetv/channels/a/icon?v=2'},
+        }]})
+        self.assertEqual(len(cards), 1)
+        c = cards[0]
+        self.assertEqual((c['type'], c['uuid'], c['label'], c['label2']), ('channel', 'a', 'Test One', ''))
+        self.assertEqual(c['art'], {'logo': ('/api/livetv/channels/a/icon?v=2', model.LOGO_W)})
+        self.assertEqual((c['position'], c['duration'], c['watched'], c['badge']), (0, 0, False, ''))
+        self.assertTrue(c['play'])
+
+    def test_no_logo_leaves_the_name(self):
+        c = model.channel_card({'type': 'channel', 'channel': {'uuid': 'a', 'name': 'Test One', 'icon': None}})
+        self.assertEqual(c['art'], {'logo': (None, model.LOGO_W)})
+        self.assertEqual(c['label'], 'Test One')
 
 
 if __name__ == '__main__':

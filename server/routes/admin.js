@@ -132,6 +132,7 @@ function validate(update) {
   }
   if (u.liveTv) {
     if ('enabled' in u.liveTv) u.liveTv.enabled = !!u.liveTv.enabled;
+    if ('inContinueWatching' in u.liveTv) u.liveTv.inContinueWatching = !!u.liveTv.inContinueWatching;
     if ('url' in u.liveTv) u.liveTv.url = tvheadendUrl(u.liveTv.url);
     if ('username' in u.liveTv) u.liveTv.username = String(u.liveTv.username ?? '').trim();
     if ('password' in u.liveTv) u.liveTv.password = String(u.liveTv.password ?? '');

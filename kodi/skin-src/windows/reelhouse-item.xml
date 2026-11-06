@@ -154,8 +154,8 @@
           </control>
         </control>
       </control>
-      <!-- include poster-row group=402 list=450 up=410 down=460 title=Seasons -->
-      <!-- include landscape-row group=403 list=460 up=450 down=430 title=Episodes -->
+      <!-- include season-grid group=402 list=450 up=410 down=460 title=Seasons -->
+      <!-- include episode-grid group=403 list=460 up=450 down=430 title=Episodes -->
       <!-- include face-row group=404 list=430 up=460 down=440 title=Cast -->
       <!-- include poster-row group=405 list=440 up=430 down=441 title=$INFO[Window.Property(related.0.title)] -->
       <!-- include poster-row group=406 list=441 up=440 down=442 title=$INFO[Window.Property(related.1.title)] -->

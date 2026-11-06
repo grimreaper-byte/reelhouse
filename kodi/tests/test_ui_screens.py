@@ -9,7 +9,7 @@ import kodistubs
 kodistubs.install()
 
 from resources.lib.api import ApiError  # noqa: E402
-from resources.lib.ui.windows import base, livetv, recordings, search  # noqa: E402
+from resources.lib.ui.windows import base, home, livetv, recordings, search  # noqa: E402
 
 
 class FakeApi(object):
@@ -159,6 +159,186 @@ class FocusTests(unittest.TestCase):
         self.assertEqual(w.getFocusId(), search.BOX, 'a library changing moved it')
         w.find()
         self.assertEqual(w.getFocusId(), search.PEOPLE, 'a search just made goes to what it found')
+
+
+def lists(window, sizes):
+    """Gives a screen Kodi's lists, by id and how many each holds (with the sidebar's); other ids are controls that show."""
+    class List(object):
+        def __init__(self, n):
+            self.n = n
+
+        def size(self):
+            return self.n
+
+        def getSelectedPosition(self):
+            return 0
+
+    def get(control_id):
+        if control_id in sizes:
+            return List(sizes[control_id])
+        if control_id in base.SIDEBARS:
+            return List(5)
+        return object()
+    window.getControl = get
+    return window
+
+
+def key(action_id):
+    return type('Action', (), {'getId': lambda self: action_id})()
+
+
+class LastRecordingGoneTests(unittest.TestCase):
+    """Deleting the only recording, as someone who isn't an admin (no Showing button): the page has nothing left to focus."""
+
+    def page(self, **attrs):
+        w = screen(recordings.Recordings, shows=[], series=[], nav_at_end=True, content_focus=recordings.LISTS['recorded'], **attrs)
+        return lists(w, {control_id: 0 for control_id in (*recordings.LISTS.values(), recordings.SERIES)})
+
+    def test_right_from_the_sidebar_stays_there_rather_than_going_to_the_emptied_list(self):
+        w = self.page()
+        w.setFocusId(base.SIDEBAR_END)
+        w.onAction(key(base.ACTION_MOVE_RIGHT))
+        self.assertEqual(w.getFocusId(), base.SIDEBAR_END)
+
+    def test_choosing_its_own_sidebar_entry_stays_there_too(self):
+        w = self.page(nav='recordings')
+        w.setFocusId(base.SIDEBAR_END)
+        w.app.target_for = lambda entry: ('recordings',)
+        selected = type('Item', (), {'getProperty': lambda self, name: 'recordings'})()
+        sidebar = lists(w, {control_id: 0 for control_id in (*recordings.LISTS.values(), recordings.SERIES)}).getControl
+        w.getControl = lambda control_id: type('Nav', (), {'getSelectedItem': lambda self: selected})() if control_id == base.SIDEBAR_END else sidebar(control_id)
+        w.sidebar_clicked(base.SIDEBAR_END)
+        self.assertEqual(w.getFocusId(), base.SIDEBAR_END)
+
+    def test_back_from_the_sidebar_leaves_the_screen(self):
+        w = self.page()
+        w.setFocusId(base.SIDEBAR_END)
+        w.onAction(key(base.ACTION_NAV_BACK))
+        self.assertTrue(getattr(w, 'was_closed', False), 'Back would have stayed on the sidebar for good')
+
+    def test_the_focus_moves_off_a_list_that_emptied_onto_the_lit_sidebar_entry(self):
+        w = self.page()
+        w.setFocusId(recordings.LISTS['recorded'])
+        w.keep_focus()
+        self.assertEqual(w.getFocusId(), base.SIDEBAR_END)
+
+    def test_an_admin_has_the_showing_button_to_go_to(self):
+        w = self.page()
+        w.setProperty('admin', 'true')
+        w.setFocusId(recordings.LISTS['recorded'])
+        w.keep_focus()
+        self.assertEqual(w.getFocusId(), recordings.WHOSE)
+
+    def test_with_nothing_focused_the_first_arrow_brings_the_focus_back(self):
+        label = base.xbmc.getInfoLabel
+        base.xbmc.getInfoLabel = lambda name: ''
+        try:
+            for action_id in base.ARROWS:
+                w = self.page()
+                # As Kodi does: it goes on naming the last control that had the focus, though nothing has it now.
+                w.focus = recordings.LISTS['recorded']
+                w.onAction(key(action_id))
+                self.assertEqual(w.getFocusId(), base.SIDEBAR_END, action_id)
+        finally:
+            base.xbmc.getInfoLabel = label
+
+    def test_select_leaves_the_focus_alone_as_it_opens_a_screen(self):
+        label = base.xbmc.getInfoLabel
+        base.xbmc.getInfoLabel = lambda name: ''  # empty for a moment while the next screen opens
+        try:
+            w = self.page()
+            lists(w, {recordings.LISTS['recorded']: 1})
+            w.setFocusId(recordings.LISTS['recorded'])
+            w.on_action = lambda action_id, focus: None
+            w.onAction(key(base.ACTION_SELECT))
+            self.assertEqual(w.getFocusId(), recordings.LISTS['recorded'])
+        finally:
+            base.xbmc.getInfoLabel = label
+
+    def test_coming_back_from_a_show_stays_on_a_list_with_something_in_it(self):
+        """Control.IsVisible says no for a moment as a screen comes back: a list isn't judged by that."""
+        w = self.page()
+        lists(w, {recordings.LISTS['recorded']: 3})
+        w.setFocusId(recordings.LISTS['recorded'])
+        visible = base.xbmc.getCondVisibility
+        base.xbmc.getCondVisibility = lambda condition: False
+        try:
+            w.keep_focus()
+        finally:
+            base.xbmc.getCondVisibility = visible
+        self.assertEqual(w.getFocusId(), recordings.LISTS['recorded'])
+
+    def test_with_something_left_the_focus_goes_to_what_is_left(self):
+        w = self.page()
+        w.shows = [{'key': 'a', 'recordingNow': False, 'counts': {'recorded': 0}, 'nextScheduled': 5}]
+        lists(w, {recordings.LISTS['now']: 0, recordings.LISTS['recorded']: 0, recordings.LISTS['scheduled']: 1, recordings.SERIES: 0})
+        w.setFocusId(recordings.LISTS['recorded'])
+        w.keep_focus()
+        self.assertEqual(w.getFocusId(), recordings.LISTS['scheduled'])
+
+    def test_a_list_still_holding_something_keeps_the_focus(self):
+        w = self.page()
+        lists(w, {recordings.LISTS['recorded']: 2})
+        w.setFocusId(recordings.LISTS['recorded'])
+        moved = []
+        w.focus_soon = moved.append
+        w.keep_focus()
+        self.assertEqual(moved, [])
+
+    def test_a_dialog_on_top_is_left_alone(self):
+        w = self.page()
+        w.focus = 0
+        visible = base.xbmc.getCondVisibility
+        base.xbmc.getCondVisibility = lambda condition: condition == 'System.HasActiveModalDialog'
+        try:
+            w.keep_focus()
+        finally:
+            base.xbmc.getCondVisibility = visible
+        self.assertEqual(w.getFocusId(), 0)
+
+    def test_a_hidden_button_gives_up_the_focus(self):
+        w = lists(screen(base.Screen, content_focus=811), {})
+        w.default_focus = lambda: 800
+        visible = base.xbmc.getCondVisibility
+        base.xbmc.getCondVisibility = lambda condition: condition != 'Control.IsVisible(811)' and condition.startswith('Control.IsVisible')
+        try:
+            w.setFocusId(811)
+            w.keep_focus()
+        finally:
+            base.xbmc.getCondVisibility = visible
+        self.assertEqual(w.getFocusId(), 800)
+
+
+class ChannelInContinueWatchingTests(unittest.TestCase):
+    CHANNELS = [{'uuid': 'a', 'name': 'One'}, {'uuid': 'r', 'name': 'Radio One', 'radio': True}, {'uuid': 'b', 'name': 'Two'}]
+
+    def setUp(self):
+        kodistubs.NOTIFICATIONS.clear()
+        self.w = screen(home.Home)
+        self.played = []
+        self.w.app.play_live = lambda channels, index, radio: self.played.append(([c['name'] for c in channels], index, radio))
+        self.w.app.api.get = lambda path, **kw: {'channels': self.CHANNELS}
+        self.opened = []
+        self.w.open_child = self.opened.append
+        self.w.getControl = lambda control_id: type('Row', (), {'getSelectedItem': lambda _self: None})()
+
+    def select(self, card):
+        self.w.selected = lambda control_id: card
+        self.w.on_click(home.POSTER_ROW)
+
+    def test_selecting_it_plays_it_with_the_tv_channels_after_it(self):
+        self.select({'id': 0, 'type': 'channel', 'uuid': 'b', 'play': True, 'position': 0, 'title': 'Two'})
+        self.assertEqual(self.played, [(['One', 'Two'], 1, False)])
+        self.assertEqual(self.opened, [])
+
+    def test_a_channel_no_longer_there_says_so(self):
+        self.select({'id': 0, 'type': 'channel', 'uuid': 'gone', 'play': True, 'position': 0, 'title': 'Gone'})
+        self.assertEqual(self.played, [])
+
+    def test_the_menu_key_does_nothing_on_it_as_it_has_no_page(self):
+        self.w.selected = lambda control_id: {'id': 0, 'type': 'channel', 'uuid': 'a'}
+        self.w.on_context(home.POSTER_ROW)
+        self.assertEqual(self.opened, [])
 
 
 if __name__ == '__main__':

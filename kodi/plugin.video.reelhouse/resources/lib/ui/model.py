@@ -7,6 +7,7 @@ from datetime import datetime
 
 # Image widths asked of Reelhouse (the web app's buckets), per use.
 POSTER_W = 320
+LOGO_W = 240
 STILL_W = 480
 BACKDROP_W = 1920
 FACE_W = 240
@@ -165,7 +166,8 @@ def default_subtitle(item):
     if kind == 'episode':
         return '{} · {}'.format(episode_label(item), item.get('title')) if item.get('show') else episode_label(item)
     if kind == 'season':
-        return '{} episodes'.format(item.get('leafCount') or 0)
+        count = item.get('leafCount') or 0
+        return '1 episode' if count == 1 else '{} episodes'.format(count)
     if kind == 'show':
         count = item.get('childCount') or 0
         if count > 1:
@@ -222,12 +224,25 @@ def card(item, style='poster', subtitle=None, play=False):
     return out
 
 
+def channel_card(item):
+    """A channel in Continue Watching: its logo and name, nothing about what's on. Selecting it plays it."""
+    channel = item.get('channel') or {}
+    name = channel.get('name') or ''
+    return {
+        'id': 0, 'type': 'channel', 'uuid': channel.get('uuid'), 'label': name, 'label2': '', 'title': name,
+        'art': {'logo': (channel.get('icon'), LOGO_W)},
+        'watched': False, 'badge': '', 'position': 0, 'duration': 0, 'play': True,
+    }
+
+
 def hub_cards(hub, now=None):
     """A Home row's cards: Continue Watching plays (and resumes); Watched by Others says who and when."""
     style = hub.get('style') or 'poster'
     cards = []
     for item in hub.get('items') or []:
-        if hub.get('id') == 'others' and style != 'landscape':
+        if item.get('type') == 'channel':
+            cards.append(channel_card(item))
+        elif hub.get('id') == 'others' and style != 'landscape':
             cards.append(card(item, subtitle=watched_by_line(item, now)))
         else:
             cards.append(card(item, style, play=hub.get('id') == 'continue'))
@@ -549,6 +564,20 @@ def section_height(count):
     """How tall a Manage Recordings section with this many shows is (recording-show-grid.xml): its heading and one row
     of covers, or two (more scroll inside it)."""
     return 476 if count <= SECTION_COLUMNS else 896
+
+
+# A page's grids (season-grid.xml, episode-grid.xml): cards across, a row's height, and the most of it that shows.
+SEASON_GRID = (8, 420, 900)
+EPISODE_GRID = (4, 336, 896)
+GRID_HEADING = 50
+
+
+def grid_height(count, grid):
+    """How tall a page's grid with this many cards is: its heading and its rows, up to two and the top of a third, which
+    says there's more (it scrolls inside itself)."""
+    columns, row, most = grid
+    rows = max(1, (count + columns - 1) // columns)
+    return GRID_HEADING + min(rows * row, most)
 
 
 def show_sections(shows):

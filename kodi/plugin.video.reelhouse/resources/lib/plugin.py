@@ -129,6 +129,20 @@ def sign_out():
 
 # ---------- playback ----------
 
+def let_go_of_unstarted(api):
+    """Reelhouse counts a stream as playing from when it's handed out. Skipped again before its picture came up, the
+    service never hears of it, so only this can say it's over."""
+    try:
+        info = json.loads(xbmcgui.Window(utils.HOME).getProperty(utils.PLAYING_PROPERTY) or 'null')
+    except ValueError:
+        return
+    if info:
+        try:
+            api.report_progress(info['id'], 0, info.get('duration'), 'stopped', info.get('playId'), timeout=3)
+        except ApiError:
+            pass  # it counts as gone in a couple of minutes anyway
+
+
 def play(handle, params):
     try:
         item_id = int(params.get('id'))
@@ -138,6 +152,7 @@ def play(handle, params):
         utils.notify(string(30116), error=True)
         return xbmcplugin.setResolvedUrl(handle, False, xbmcgui.ListItem())
     api = connection.api()
+    let_go_of_unstarted(api)
     try:
         info = api.playback(item_id)
     except ApiError as err:

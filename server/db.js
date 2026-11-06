@@ -250,6 +250,15 @@ const MIGRATIONS = [
   );
   CREATE INDEX recording_series_user ON recording_series(user_id);
   `,
+  // v20: the channels each person has been watching, for Continue Watching on Home (server/livetv/recent-channels.js).
+  `
+  CREATE TABLE channel_views (
+    user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    channel_uuid TEXT NOT NULL,         -- Tvheadend's channel
+    watched_at   INTEGER NOT NULL,
+    PRIMARY KEY (user_id, channel_uuid)
+  );
+  `,
 ];
 
 export function openDb(file = path.join(DATA_DIR, 'reelhouse.db')) {

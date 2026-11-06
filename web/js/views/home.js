@@ -6,7 +6,7 @@ import { liveRefresh } from '../live.js';
 
 export async function homeView(ctx) {
   liveRefresh('all');
-  const { hubs, libraries } = await api.get('/api/hubs/home', { signal: ctx.signal });
+  const { hubs, libraries } = await api.get('/api/hubs/home?channels=1', { signal: ctx.signal });
   const page = h('div.page');
   if (!libraries.length) {
     page.append(emptyState(

@@ -47,6 +47,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import app.reelhouse.android.R
 import app.reelhouse.android.container
 import app.reelhouse.android.data.connection.ConnectionManager.Phase
+import app.reelhouse.android.data.model.Channel
 import app.reelhouse.android.data.model.Hub
 import app.reelhouse.android.data.model.Item
 import app.reelhouse.android.ui.common.CenteredMessage
@@ -56,6 +57,7 @@ import app.reelhouse.android.ui.components.ConnectionChip
 import app.reelhouse.android.ui.components.LandscapeCard
 import app.reelhouse.android.ui.components.PosterCard
 import app.reelhouse.android.ui.components.statusRowBar
+import app.reelhouse.android.ui.livetv.ChannelCard
 import app.reelhouse.android.ui.theme.Palette
 
 /**
@@ -65,6 +67,7 @@ import app.reelhouse.android.ui.theme.Palette
  */
 class HomeNav(
     val openItem: (Item) -> Unit,
+    val watchChannel: (Channel) -> Unit,
     val search: () -> Unit,
     val settings: () -> Unit,
     val downloads: () -> Unit,
@@ -123,7 +126,7 @@ fun HomeScreen(nav: HomeNav) {
                         if (ui.hubs.isEmpty()) {
                             item { CenteredMessage("Nothing to show yet. Add libraries in Reelhouse, or pull down to refresh.") }
                         } else {
-                            items(ui.hubs, key = { it.id }) { hub -> HubRow(hub, nav.openItem) }
+                            items(ui.hubs, key = { it.id }) { hub -> HubRow(hub, nav.openItem, nav.watchChannel) }
                         }
                     }
                 }
@@ -160,16 +163,20 @@ private fun Brand() {
 }
 
 @Composable
-private fun HubRow(hub: Hub, onOpenItem: (Item) -> Unit) {
+private fun HubRow(hub: Hub, onOpenItem: (Item) -> Unit, onWatchChannel: (Channel) -> Unit) {
     Text(
         hub.title,
         style = MaterialTheme.typography.titleMedium,
         modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 18.dp, bottom = 10.dp),
     )
     LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        items(hub.items, key = { it.id }) { item ->
-            if (hub.style == "landscape") LandscapeCard(item, onClick = { onOpenItem(item) })
-            else PosterCard(item, onClick = { onOpenItem(item) })
+        items(hub.items, key = { it.channel?.uuid ?: it.id }) { item ->
+            val channel = item.channel
+            when {
+                channel != null -> ChannelCard(channel, onClick = { onWatchChannel(channel) })
+                hub.style == "landscape" -> LandscapeCard(item, onClick = { onOpenItem(item) })
+                else -> PosterCard(item, onClick = { onOpenItem(item) })
+            }
         }
     }
 }

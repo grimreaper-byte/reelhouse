@@ -17,8 +17,8 @@ def install():
     xbmc = types.ModuleType('xbmc')
     xbmc.LOGDEBUG, xbmc.LOGINFO, xbmc.LOGWARNING, xbmc.LOGERROR = 0, 1, 2, 3
     xbmc.log = lambda message, level=1: LOG.append((level, message))
-    xbmc.getCondVisibility = lambda condition: False
-    xbmc.getInfoLabel = lambda label: ''
+    xbmc.getCondVisibility = lambda condition: condition.startswith('Control.IsVisible')
+    xbmc.getInfoLabel = lambda label: '1' if label == 'System.CurrentControlId' else ''  # something has the focus
     xbmc.executebuiltin = lambda command: None
     xbmc.sleep = lambda ms: None
 
@@ -37,6 +37,12 @@ def install():
 
         def getTime(self):
             return 0.0
+
+        def getTotalTime(self):
+            return 0.0
+
+        def isPlayingVideo(self):
+            return True
 
         def seekTime(self, seconds):
             self.seeked = seconds
@@ -85,6 +91,12 @@ def install():
 
         def getFocusId(self):
             return self.focus
+
+        def getControl(self, control_id):
+            return object()  # a control that's showing, and no list
+
+        def close(self):
+            self.was_closed = True
 
     xbmcgui.WindowXML, xbmcgui.WindowXMLDialog = WindowXML, WindowXML
     xbmcgui.getCurrentWindowId = lambda: 0

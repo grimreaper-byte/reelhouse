@@ -86,13 +86,15 @@ const DEFAULTS = {
     endpoint: '',
   },
   // Live TV from Tvheadend (server/livetv/): its address (http://host:9981, plus any web root), the account Reelhouse
-  // signs in with, and the recording profile used when someone records from the guide ('' = Tvheadend's default).
+  // signs in with, the recording profile used when someone records from the guide ('' = Tvheadend's default), and
+  // whether the channels someone has been watching go in their Continue Watching (server/livetv/recent-channels.js).
   liveTv: {
     enabled: false,
     url: '',
     username: '',
     password: '',
     dvrConfig: '',
+    inContinueWatching: false,
   },
 };
 

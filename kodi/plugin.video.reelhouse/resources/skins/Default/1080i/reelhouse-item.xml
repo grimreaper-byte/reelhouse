@@ -5,7 +5,13 @@
 <window>
   <defaultcontrol always="false">411</defaultcontrol>
   <controls>
-    <control type="image">
+    <!-- Kodi's player waits for something to draw a video's pictures: with nothing to, a video carrying on behind a screen stalls,
+     stutters and jumps. As small as can be and first, so the background covers it, nothing shows and little is redrawn. -->
+<control type="videowindow">
+  <left>0</left><top>0</top><width>16</width><height>9</height>
+  <visible>Player.HasVideo</visible>
+</control>
+<control type="image">
   <left>0</left><top>0</top><width>1920</width><height>1080</height>
   <texture colordiffuse="FF111315">reelhouse/ui/white.png</texture>
 </control>
@@ -213,9 +219,10 @@
           </control>
         </control>
       </control>
-      <!-- A titled row of poster cards (Home's rows, Related, a person's titles…). -->
+      <!-- A show's seasons as a grid like a library's, as in the web app (item.py). Two rows show at once, the top of a third says
+     there's more, and it scrolls inside itself; its group is made as tall as it needs (model.grid_height). -->
 <control type="group" id="402">
-  <width>1782</width><height>500</height>
+  <width>1782</width><height>950</height>
   <!-- shown while it has the focus too: refilling empties it for a moment, and hidden it would lose the focus -->
   <visible>Integer.IsGreater(Container(450).NumItems,0) | Control.HasFocus(450)</visible>
   <control type="label">
@@ -223,46 +230,46 @@
     <font>font30_title</font><textcolor>FFECEFF3</textcolor><aligny>center</aligny>
     <label>Seasons</label>
   </control>
-  <control type="list" id="450">
-    <left>0</left><top>50</top><width>1782</width><height>446</height>
-    <orientation>horizontal</orientation>
+  <control type="panel" id="450">
+    <left>0</left><top>50</top><width>1782</width><height>900</height>
+    <orientation>vertical</orientation>
     <onleft>9000</onleft>
     <onup>410</onup>
     <ondown>460</ondown>
     <scrolltime tween="cubic" easing="out">220</scrolltime>
     <preloaditems>2</preloaditems>
-    <itemlayout width="250" height="446">
-      <!-- A poster card (220×330) in a row: picture (its title until it loads), progress, watched tick or unwatched count. -->
+    <itemlayout width="222" height="420">
+      <!-- A poster card in a library's grid (190×285). -->
 <control type="image">
-  <left>12</left><top>12</top><width>220</width><height>330</height>
+  <left>12</left><top>12</top><width>190</width><height>285</height>
   <texture border="16" colordiffuse="FF22262B">reelhouse/ui/box.png</texture>
 </control>
 <control type="label">
-  <left>24</left><top>24</top><width>196</width><height>306</height>
+  <left>22</left><top>22</top><width>170</width><height>265</height>
   <font>font12</font><textcolor>FF6F7882</textcolor><align>center</align><aligny>center</aligny><wrapmultiline>true</wrapmultiline>
   <label>$INFO[ListItem.Label]</label>
   <visible>String.IsEmpty(ListItem.Art(poster))</visible>
 </control>
 <control type="image">
-  <left>12</left><top>12</top><width>220</width><height>330</height>
+  <left>12</left><top>12</top><width>190</width><height>285</height>
   <aspectratio>scale</aspectratio><fadetime>200</fadetime>
   <texture background="true" diffuse="reelhouse/ui/mask-poster.png">$INFO[ListItem.Art(poster)]</texture>
 </control>
 <control type="progress">
-  <left>22</left><top>326</top><width>200</width><height>6</height>
+  <left>22</left><top>281</top><width>170</width><height>6</height>
   <info>ListItem.PercentPlayed</info>
   <texturebg colordiffuse="B0000000">reelhouse/ui/white.png</texturebg>
   <midtexture colordiffuse="FFE5A00D">reelhouse/ui/white.png</midtexture>
   <visible>Integer.IsGreater(ListItem.PercentPlayed,0)</visible>
 </control>
 <control type="group">
-  <left>194</left><top>20</top>
+  <left>164</left><top>20</top>
   <visible>String.IsEqual(ListItem.Property(watched),true)</visible>
   <control type="image"><width>30</width><height>30</height><texture colordiffuse="FFE5A00D">reelhouse/ui/circle.png</texture></control>
   <control type="image"><left>5</left><top>5</top><width>20</width><height>20</height><texture colordiffuse="FF1A1300">reelhouse/icons/check.png</texture></control>
 </control>
 <control type="group">
-  <left>176</left><top>20</top>
+  <left>146</left><top>20</top>
   <visible>!String.IsEmpty(ListItem.Property(badge))</visible>
   <control type="image"><width>48</width><height>32</height><texture border="15" colordiffuse="FFE5A00D">reelhouse/ui/pill-small.png</texture></control>
   <control type="label">
@@ -271,58 +278,50 @@
     <label>$INFO[ListItem.Property(badge)]</label>
   </control>
 </control>
-
-      <control type="label">
-  <left>12</left><top>352</top><width>220</width><height>36</height>
-  <font>font12</font><textcolor>FFECEFF3</textcolor><scroll>false</scroll>
+<control type="label">
+  <left>12</left><top>306</top><width>190</width><height>36</height>
+  <font>font12</font><textcolor>FFECEFF3</textcolor>
   <label>$INFO[ListItem.Label]</label>
-  <visible>!Control.HasFocus(-1)</visible>
 </control>
 <control type="label">
-  <left>12</left><top>352</top><width>220</width><height>36</height>
-  <font>font12</font><textcolor>FFECEFF3</textcolor><scroll>true</scroll>
-  <label>$INFO[ListItem.Label]</label>
-  <visible>Control.HasFocus(-1)</visible>
-</control>
-<control type="label">
-  <left>12</left><top>388</top><width>220</width><height>32</height>
+  <left>12</left><top>342</top><width>190</width><height>32</height>
   <font>font10</font><textcolor>FFA2ABB5</textcolor>
   <label>$INFO[ListItem.Label2]</label>
 </control>
 
     </itemlayout>
-    <focusedlayout width="250" height="446">
-      <!-- A poster card (220×330) in a row: picture (its title until it loads), progress, watched tick or unwatched count. -->
+    <focusedlayout width="222" height="420">
+      <!-- A poster card in a library's grid (190×285). -->
 <control type="image">
-  <left>12</left><top>12</top><width>220</width><height>330</height>
+  <left>12</left><top>12</top><width>190</width><height>285</height>
   <texture border="16" colordiffuse="FF22262B">reelhouse/ui/box.png</texture>
 </control>
 <control type="label">
-  <left>24</left><top>24</top><width>196</width><height>306</height>
+  <left>22</left><top>22</top><width>170</width><height>265</height>
   <font>font12</font><textcolor>FF6F7882</textcolor><align>center</align><aligny>center</aligny><wrapmultiline>true</wrapmultiline>
   <label>$INFO[ListItem.Label]</label>
   <visible>String.IsEmpty(ListItem.Art(poster))</visible>
 </control>
 <control type="image">
-  <left>12</left><top>12</top><width>220</width><height>330</height>
+  <left>12</left><top>12</top><width>190</width><height>285</height>
   <aspectratio>scale</aspectratio><fadetime>200</fadetime>
   <texture background="true" diffuse="reelhouse/ui/mask-poster.png">$INFO[ListItem.Art(poster)]</texture>
 </control>
 <control type="progress">
-  <left>22</left><top>326</top><width>200</width><height>6</height>
+  <left>22</left><top>281</top><width>170</width><height>6</height>
   <info>ListItem.PercentPlayed</info>
   <texturebg colordiffuse="B0000000">reelhouse/ui/white.png</texturebg>
   <midtexture colordiffuse="FFE5A00D">reelhouse/ui/white.png</midtexture>
   <visible>Integer.IsGreater(ListItem.PercentPlayed,0)</visible>
 </control>
 <control type="group">
-  <left>194</left><top>20</top>
+  <left>164</left><top>20</top>
   <visible>String.IsEqual(ListItem.Property(watched),true)</visible>
   <control type="image"><width>30</width><height>30</height><texture colordiffuse="FFE5A00D">reelhouse/ui/circle.png</texture></control>
   <control type="image"><left>5</left><top>5</top><width>20</width><height>20</height><texture colordiffuse="FF1A1300">reelhouse/icons/check.png</texture></control>
 </control>
 <control type="group">
-  <left>176</left><top>20</top>
+  <left>146</left><top>20</top>
   <visible>!String.IsEmpty(ListItem.Property(badge))</visible>
   <control type="image"><width>48</width><height>32</height><texture border="15" colordiffuse="FFE5A00D">reelhouse/ui/pill-small.png</texture></control>
   <control type="label">
@@ -331,38 +330,31 @@
     <label>$INFO[ListItem.Property(badge)]</label>
   </control>
 </control>
-
-      <control type="image">
-  <left>5</left><top>5</top><width>234</width><height>344</height>
-  <texture border="16" colordiffuse="FFE5A00D">reelhouse/ui/frame.png</texture>
-  <visible>Control.HasFocus(450)</visible>
-</control>
-
-      <control type="label">
-  <left>12</left><top>352</top><width>220</width><height>36</height>
-  <font>font12</font><textcolor>FFECEFF3</textcolor><scroll>false</scroll>
+<control type="label">
+  <left>12</left><top>306</top><width>190</width><height>36</height>
+  <font>font12</font><textcolor>FFECEFF3</textcolor>
   <label>$INFO[ListItem.Label]</label>
-  <visible>!Control.HasFocus(450)</visible>
 </control>
 <control type="label">
-  <left>12</left><top>352</top><width>220</width><height>36</height>
-  <font>font12</font><textcolor>FFECEFF3</textcolor><scroll>true</scroll>
-  <label>$INFO[ListItem.Label]</label>
-  <visible>Control.HasFocus(450)</visible>
-</control>
-<control type="label">
-  <left>12</left><top>388</top><width>220</width><height>32</height>
+  <left>12</left><top>342</top><width>190</width><height>32</height>
   <font>font10</font><textcolor>FFA2ABB5</textcolor>
   <label>$INFO[ListItem.Label2]</label>
+</control>
+
+      <control type="image">
+  <left>5</left><top>5</top><width>204</width><height>299</height>
+  <texture border="16" colordiffuse="FFE5A00D">reelhouse/ui/frame.png</texture>
+  <visible>Control.HasFocus(450)</visible>
 </control>
 
     </focusedlayout>
   </control>
 </control>
 
-      <!-- A titled row of 16:9 cards (episodes). -->
+      <!-- A season's episodes as a grid of their pictures, as in the web app (item.py). Two rows show at once, the top of a third says
+     there's more, and it scrolls inside itself; its group is made as tall as it needs (model.grid_height). -->
 <control type="group" id="403">
-  <width>1782</width><height>390</height>
+  <width>1782</width><height>946</height>
   <!-- shown while it has the focus too: refilling empties it for a moment, and hidden it would lose the focus -->
   <visible>Integer.IsGreater(Container(460).NumItems,0) | Control.HasFocus(460)</visible>
   <control type="label">
@@ -370,9 +362,9 @@
     <font>font30_title</font><textcolor>FFECEFF3</textcolor><aligny>center</aligny>
     <label>Episodes</label>
   </control>
-  <control type="list" id="460">
-    <left>0</left><top>50</top><width>1782</width><height>336</height>
-    <orientation>horizontal</orientation>
+  <control type="panel" id="460">
+    <left>0</left><top>50</top><width>1782</width><height>896</height>
+    <orientation>vertical</orientation>
     <onleft>9000</onleft>
     <onup>450</onup>
     <ondown>430</ondown>
@@ -558,7 +550,8 @@
     <scrolltime tween="cubic" easing="out">220</scrolltime>
     <preloaditems>2</preloaditems>
     <itemlayout width="250" height="446">
-      <!-- A poster card (220×330) in a row: picture (its title until it loads), progress, watched tick or unwatched count. -->
+      <!-- A poster card (220×330) in a row: picture (its title until it loads), progress, watched tick or unwatched count. A
+     channel in Continue Watching has its logo instead, whole, in the middle. -->
 <control type="image">
   <left>12</left><top>12</top><width>220</width><height>330</height>
   <texture border="16" colordiffuse="FF22262B">reelhouse/ui/box.png</texture>
@@ -567,7 +560,12 @@
   <left>24</left><top>24</top><width>196</width><height>306</height>
   <font>font12</font><textcolor>FF6F7882</textcolor><align>center</align><aligny>center</aligny><wrapmultiline>true</wrapmultiline>
   <label>$INFO[ListItem.Label]</label>
-  <visible>String.IsEmpty(ListItem.Art(poster))</visible>
+  <visible>String.IsEmpty(ListItem.Art(poster)) + String.IsEmpty(ListItem.Art(logo))</visible>
+</control>
+<control type="image">
+  <left>44</left><top>99</top><width>156</width><height>156</height>
+  <aspectratio>keep</aspectratio><fadetime>200</fadetime>
+  <texture background="true">$INFO[ListItem.Art(logo)]</texture>
 </control>
 <control type="image">
   <left>12</left><top>12</top><width>220</width><height>330</height>
@@ -618,7 +616,8 @@
 
     </itemlayout>
     <focusedlayout width="250" height="446">
-      <!-- A poster card (220×330) in a row: picture (its title until it loads), progress, watched tick or unwatched count. -->
+      <!-- A poster card (220×330) in a row: picture (its title until it loads), progress, watched tick or unwatched count. A
+     channel in Continue Watching has its logo instead, whole, in the middle. -->
 <control type="image">
   <left>12</left><top>12</top><width>220</width><height>330</height>
   <texture border="16" colordiffuse="FF22262B">reelhouse/ui/box.png</texture>
@@ -627,7 +626,12 @@
   <left>24</left><top>24</top><width>196</width><height>306</height>
   <font>font12</font><textcolor>FF6F7882</textcolor><align>center</align><aligny>center</aligny><wrapmultiline>true</wrapmultiline>
   <label>$INFO[ListItem.Label]</label>
-  <visible>String.IsEmpty(ListItem.Art(poster))</visible>
+  <visible>String.IsEmpty(ListItem.Art(poster)) + String.IsEmpty(ListItem.Art(logo))</visible>
+</control>
+<control type="image">
+  <left>44</left><top>99</top><width>156</width><height>156</height>
+  <aspectratio>keep</aspectratio><fadetime>200</fadetime>
+  <texture background="true">$INFO[ListItem.Art(logo)]</texture>
 </control>
 <control type="image">
   <left>12</left><top>12</top><width>220</width><height>330</height>
@@ -705,7 +709,8 @@
     <scrolltime tween="cubic" easing="out">220</scrolltime>
     <preloaditems>2</preloaditems>
     <itemlayout width="250" height="446">
-      <!-- A poster card (220×330) in a row: picture (its title until it loads), progress, watched tick or unwatched count. -->
+      <!-- A poster card (220×330) in a row: picture (its title until it loads), progress, watched tick or unwatched count. A
+     channel in Continue Watching has its logo instead, whole, in the middle. -->
 <control type="image">
   <left>12</left><top>12</top><width>220</width><height>330</height>
   <texture border="16" colordiffuse="FF22262B">reelhouse/ui/box.png</texture>
@@ -714,7 +719,12 @@
   <left>24</left><top>24</top><width>196</width><height>306</height>
   <font>font12</font><textcolor>FF6F7882</textcolor><align>center</align><aligny>center</aligny><wrapmultiline>true</wrapmultiline>
   <label>$INFO[ListItem.Label]</label>
-  <visible>String.IsEmpty(ListItem.Art(poster))</visible>
+  <visible>String.IsEmpty(ListItem.Art(poster)) + String.IsEmpty(ListItem.Art(logo))</visible>
+</control>
+<control type="image">
+  <left>44</left><top>99</top><width>156</width><height>156</height>
+  <aspectratio>keep</aspectratio><fadetime>200</fadetime>
+  <texture background="true">$INFO[ListItem.Art(logo)]</texture>
 </control>
 <control type="image">
   <left>12</left><top>12</top><width>220</width><height>330</height>
@@ -765,7 +775,8 @@
 
     </itemlayout>
     <focusedlayout width="250" height="446">
-      <!-- A poster card (220×330) in a row: picture (its title until it loads), progress, watched tick or unwatched count. -->
+      <!-- A poster card (220×330) in a row: picture (its title until it loads), progress, watched tick or unwatched count. A
+     channel in Continue Watching has its logo instead, whole, in the middle. -->
 <control type="image">
   <left>12</left><top>12</top><width>220</width><height>330</height>
   <texture border="16" colordiffuse="FF22262B">reelhouse/ui/box.png</texture>
@@ -774,7 +785,12 @@
   <left>24</left><top>24</top><width>196</width><height>306</height>
   <font>font12</font><textcolor>FF6F7882</textcolor><align>center</align><aligny>center</aligny><wrapmultiline>true</wrapmultiline>
   <label>$INFO[ListItem.Label]</label>
-  <visible>String.IsEmpty(ListItem.Art(poster))</visible>
+  <visible>String.IsEmpty(ListItem.Art(poster)) + String.IsEmpty(ListItem.Art(logo))</visible>
+</control>
+<control type="image">
+  <left>44</left><top>99</top><width>156</width><height>156</height>
+  <aspectratio>keep</aspectratio><fadetime>200</fadetime>
+  <texture background="true">$INFO[ListItem.Art(logo)]</texture>
 </control>
 <control type="image">
   <left>12</left><top>12</top><width>220</width><height>330</height>
@@ -852,7 +868,8 @@
     <scrolltime tween="cubic" easing="out">220</scrolltime>
     <preloaditems>2</preloaditems>
     <itemlayout width="250" height="446">
-      <!-- A poster card (220×330) in a row: picture (its title until it loads), progress, watched tick or unwatched count. -->
+      <!-- A poster card (220×330) in a row: picture (its title until it loads), progress, watched tick or unwatched count. A
+     channel in Continue Watching has its logo instead, whole, in the middle. -->
 <control type="image">
   <left>12</left><top>12</top><width>220</width><height>330</height>
   <texture border="16" colordiffuse="FF22262B">reelhouse/ui/box.png</texture>
@@ -861,7 +878,12 @@
   <left>24</left><top>24</top><width>196</width><height>306</height>
   <font>font12</font><textcolor>FF6F7882</textcolor><align>center</align><aligny>center</aligny><wrapmultiline>true</wrapmultiline>
   <label>$INFO[ListItem.Label]</label>
-  <visible>String.IsEmpty(ListItem.Art(poster))</visible>
+  <visible>String.IsEmpty(ListItem.Art(poster)) + String.IsEmpty(ListItem.Art(logo))</visible>
+</control>
+<control type="image">
+  <left>44</left><top>99</top><width>156</width><height>156</height>
+  <aspectratio>keep</aspectratio><fadetime>200</fadetime>
+  <texture background="true">$INFO[ListItem.Art(logo)]</texture>
 </control>
 <control type="image">
   <left>12</left><top>12</top><width>220</width><height>330</height>
@@ -912,7 +934,8 @@
 
     </itemlayout>
     <focusedlayout width="250" height="446">
-      <!-- A poster card (220×330) in a row: picture (its title until it loads), progress, watched tick or unwatched count. -->
+      <!-- A poster card (220×330) in a row: picture (its title until it loads), progress, watched tick or unwatched count. A
+     channel in Continue Watching has its logo instead, whole, in the middle. -->
 <control type="image">
   <left>12</left><top>12</top><width>220</width><height>330</height>
   <texture border="16" colordiffuse="FF22262B">reelhouse/ui/box.png</texture>
@@ -921,7 +944,12 @@
   <left>24</left><top>24</top><width>196</width><height>306</height>
   <font>font12</font><textcolor>FF6F7882</textcolor><align>center</align><aligny>center</aligny><wrapmultiline>true</wrapmultiline>
   <label>$INFO[ListItem.Label]</label>
-  <visible>String.IsEmpty(ListItem.Art(poster))</visible>
+  <visible>String.IsEmpty(ListItem.Art(poster)) + String.IsEmpty(ListItem.Art(logo))</visible>
+</control>
+<control type="image">
+  <left>44</left><top>99</top><width>156</width><height>156</height>
+  <aspectratio>keep</aspectratio><fadetime>200</fadetime>
+  <texture background="true">$INFO[ListItem.Art(logo)]</texture>
 </control>
 <control type="image">
   <left>12</left><top>12</top><width>220</width><height>330</height>
@@ -999,7 +1027,8 @@
     <scrolltime tween="cubic" easing="out">220</scrolltime>
     <preloaditems>2</preloaditems>
     <itemlayout width="250" height="446">
-      <!-- A poster card (220×330) in a row: picture (its title until it loads), progress, watched tick or unwatched count. -->
+      <!-- A poster card (220×330) in a row: picture (its title until it loads), progress, watched tick or unwatched count. A
+     channel in Continue Watching has its logo instead, whole, in the middle. -->
 <control type="image">
   <left>12</left><top>12</top><width>220</width><height>330</height>
   <texture border="16" colordiffuse="FF22262B">reelhouse/ui/box.png</texture>
@@ -1008,7 +1037,12 @@
   <left>24</left><top>24</top><width>196</width><height>306</height>
   <font>font12</font><textcolor>FF6F7882</textcolor><align>center</align><aligny>center</aligny><wrapmultiline>true</wrapmultiline>
   <label>$INFO[ListItem.Label]</label>
-  <visible>String.IsEmpty(ListItem.Art(poster))</visible>
+  <visible>String.IsEmpty(ListItem.Art(poster)) + String.IsEmpty(ListItem.Art(logo))</visible>
+</control>
+<control type="image">
+  <left>44</left><top>99</top><width>156</width><height>156</height>
+  <aspectratio>keep</aspectratio><fadetime>200</fadetime>
+  <texture background="true">$INFO[ListItem.Art(logo)]</texture>
 </control>
 <control type="image">
   <left>12</left><top>12</top><width>220</width><height>330</height>
@@ -1059,7 +1093,8 @@
 
     </itemlayout>
     <focusedlayout width="250" height="446">
-      <!-- A poster card (220×330) in a row: picture (its title until it loads), progress, watched tick or unwatched count. -->
+      <!-- A poster card (220×330) in a row: picture (its title until it loads), progress, watched tick or unwatched count. A
+     channel in Continue Watching has its logo instead, whole, in the middle. -->
 <control type="image">
   <left>12</left><top>12</top><width>220</width><height>330</height>
   <texture border="16" colordiffuse="FF22262B">reelhouse/ui/box.png</texture>
@@ -1068,7 +1103,12 @@
   <left>24</left><top>24</top><width>196</width><height>306</height>
   <font>font12</font><textcolor>FF6F7882</textcolor><align>center</align><aligny>center</aligny><wrapmultiline>true</wrapmultiline>
   <label>$INFO[ListItem.Label]</label>
-  <visible>String.IsEmpty(ListItem.Art(poster))</visible>
+  <visible>String.IsEmpty(ListItem.Art(poster)) + String.IsEmpty(ListItem.Art(logo))</visible>
+</control>
+<control type="image">
+  <left>44</left><top>99</top><width>156</width><height>156</height>
+  <aspectratio>keep</aspectratio><fadetime>200</fadetime>
+  <texture background="true">$INFO[ListItem.Art(logo)]</texture>
 </control>
 <control type="image">
   <left>12</left><top>12</top><width>220</width><height>330</height>

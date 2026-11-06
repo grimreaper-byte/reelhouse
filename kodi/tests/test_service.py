@@ -1,4 +1,5 @@
-# The service's progress/watched sending and its matching of the playing stream, with Kodi stubbed out.
+# The service's progress/watched sending, its matching of the playing stream, and what a skip tells Reelhouse, with
+# Kodi stubbed out.
 import json
 import threading
 import time
@@ -9,7 +10,7 @@ import kodistubs
 
 kodistubs.install()
 
-from resources.lib import connection, service, utils  # noqa: E402
+from resources.lib import connection, plugin, service, utils  # noqa: E402
 from resources.lib.api import ApiError  # noqa: E402
 
 
@@ -168,6 +169,7 @@ class CompactTests(unittest.TestCase):
 
 class PlayerTests(unittest.TestCase):
     def setUp(self):
+        kodistubs.PROPERTIES.clear()
         self.sent = []
         owner = type('Owner', (), {'send': lambda _self, *args: self.sent.append(args)})()
         self.player = service.Player(owner)
@@ -208,11 +210,81 @@ class PlayerTests(unittest.TestCase):
         self.player.report_live('stopped')  # the old one's stop arrives late
         self.assertEqual(json.loads(kodistubs.PROPERTIES[utils.LIVE_PROPERTY])['playId'], 'new')
 
+    def test_skipping_on_stops_the_item_left(self):
+        # The remote's Next: Kodi says the next one started, and never that this one stopped.
+        self.start(1, 'http://rh:8484/api/stream/1?X-Reelhouse-Token=t')
+        self.sent.clear()
+        self.player.position = 24.0
+        self.player.playing_file = 'http://rh:8484/api/stream/2?X-Reelhouse-Token=t'
+        self.player.onPlayBackStarted()
+        self.assertEqual(self.sent, [('progress', 1, 24.0, 100, 'stopped', 'p')])
+        self.assertIsNone(self.player.current)
+        self.start(2, 'http://rh:8484/api/stream/2?X-Reelhouse-Token=t')
+        self.assertEqual(self.player.current['id'], 2)
+        self.assertEqual(self.sent[1:], [('progress', 2, 0.0, 100, 'playing', 'p')])
+
+    def test_starting_the_first_item_stops_nothing(self):
+        self.player.onPlayBackStarted()
+        self.assertEqual(self.sent, [])
+
+    def test_leaving_live_tv_for_a_film_frees_the_tuner(self):
+        kodistubs.PROPERTIES[utils.LIVE_PROPERTY] = json.dumps({'playId': 'abc', 'channel': 'Test One'})
+        self.player.playing_file = 'http://rh:8484/api/live/abc/index.m3u8'
+        self.player.onAVStarted()
+        self.player.playing_file = 'http://rh:8484/api/stream/2?X-Reelhouse-Token=t'
+        self.player.onPlayBackStarted()
+        self.assertEqual(self.sent[1:], [('live', 'abc', 'stopped')])
+
+    def test_the_next_items_time_is_not_taken_for_the_one_left(self):
+        self.start(1, 'http://rh:8484/api/stream/1?X-Reelhouse-Token=t')
+        self.player.getTime = lambda: 3.0
+        self.player.tick()
+        self.assertEqual(self.player.position, 3.0)
+        self.player.position = 24.0
+        self.player.playing_file = 'http://rh:8484/api/stream/2?X-Reelhouse-Token=t'  # Kodi moved on, and hasn't said so yet
+        self.player.tick()
+        self.assertEqual(self.player.position, 24.0)
+
+    def test_skipping_quickly_keeps_the_next_streams_details(self):
+        # The second Next was resolved before the first's picture came up: that one isn't reported, the next one is.
+        kodistubs.PROPERTIES[utils.PLAYING_PROPERTY] = json.dumps({'id': 3, 'playId': 'q', 'duration': 100})
+        self.player.playing_file = 'http://rh:8484/api/stream/2?X-Reelhouse-Token=t'
+        self.player.onAVStarted()
+        self.assertIsNone(self.player.current)
+        self.player.playing_file = 'http://rh:8484/api/stream/3?X-Reelhouse-Token=t'
+        self.player.onAVStarted()
+        self.assertEqual(self.player.current['id'], 3)
+        self.assertEqual(self.sent, [('progress', 3, 0.0, 100, 'playing', 'q')])
+        self.assertNotIn(utils.PLAYING_PROPERTY, kodistubs.PROPERTIES)
+
     def test_another_video_is_not_mistaken_for_it(self):
         self.start(1, 'http://rh:8484/api/stream/14?X-Reelhouse-Token=t')
         self.start(1, 'plugin://plugin.video.youtube/play/?video_id=1')
         self.assertIsNone(self.player.current)
         self.assertEqual(self.sent, [])
+
+
+class UnstartedStreamTests(unittest.TestCase):
+    def setUp(self):
+        kodistubs.PROPERTIES.clear()
+        self.sent = []
+        self.api = type('Api', (), {'report_progress': lambda _self, *args, **kw: self.sent.append(args)})()
+
+    def test_a_stream_skipped_before_its_picture_came_up_is_let_go(self):
+        kodistubs.PROPERTIES[utils.PLAYING_PROPERTY] = json.dumps({'id': 2, 'playId': 'p', 'duration': 100})
+        plugin.let_go_of_unstarted(self.api)
+        self.assertEqual(self.sent, [(2, 0, 100, 'stopped', 'p')])
+
+    def test_nothing_waiting_means_nothing_to_say(self):
+        plugin.let_go_of_unstarted(self.api)
+        self.assertEqual(self.sent, [])
+
+    def test_reelhouse_out_of_reach_does_not_stop_the_next_one_being_asked_for(self):
+        def refuse(*args, **kw):
+            raise ApiError('Reelhouse is not reachable at http://rh (timed out)')
+        self.api.report_progress = refuse
+        kodistubs.PROPERTIES[utils.PLAYING_PROPERTY] = json.dumps({'id': 2, 'playId': 'p', 'duration': 100})
+        plugin.let_go_of_unstarted(self.api)  # says nothing, and raises nothing
 
 
 if __name__ == '__main__':

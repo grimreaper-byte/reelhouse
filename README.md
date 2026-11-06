@@ -3,6 +3,15 @@
 A self-hosted media server for your **movies and TV shows**, with a polished web app.
 Everything runs on your own computer: no cloud accounts, no subscriptions, no paywalled features.
 
+![Home in the web app: rows of posters for Continue Watching and what's recently added](docs/screenshots/home.jpg)
+
+<p>
+  <img src="docs/screenshots/movie.jpg" alt="A film's page in the web app, with resume, cast and details" width="76%">
+  <img src="docs/screenshots/android-home.jpg" alt="Home in the Android app" width="22%">
+</p>
+
+*The screenshots show made-up test films and shows.*
+
 - Organizes movie and TV folders automatically (posters, descriptions, cast, seasons and episodes), and open pages
   update by themselves when new media arrives; a library can span several drives (a show split across drives is
   one show), and each can have its own icon in the sidebar
@@ -29,7 +38,7 @@ Everything runs on your own computer: no cloud accounts, no subscriptions, no pa
   kept in sync both ways
 - **Live TV** from [Tvheadend](#live-tv-tvheadend): a TV guide, live channels in the browser and the Android app, and
   recordings scheduled from the guide, one at a time or a whole series, for the accounts you allow, each person seeing
-  their own on a Manage Recordings page
+  their own on a Manage Recordings page, and, if you like, the channels they've watched in Continue Watching
 - **[Requests](#requests)**: anyone can ask for a movie that isn't on the server, and see what everyone has asked for
 
 ## Installing
@@ -416,6 +425,12 @@ has. Without it they stay SVG, which browsers show but the app and Kodi replace 
 logo and programme instead of a picture, and the arrows change between radio stations. Reelhouse knows a station is
 radio from Tvheadend's channel tags (its "Radio channels" tag, made when it maps services with *Create type-based
 tags*; any tag with "radio" in its name works); Settings → Live TV's test says how many it found.
+
+**Channels in Continue Watching** (since 0.21.0; off until you turn it on in Settings → Live TV): a channel someone
+has watched for at least 30 seconds appears on their Home among the films and episodes they're part-way through, the
+most recent first. It's just the logo and name, with nothing about what's on and no timeline, and selecting it plays
+it. Each person has their own, the newest 8 show, and radio stations don't appear. This works in the web app, the
+Android app (since 0.12.0) and the Kodi screens.
 
 The **Android app** has Live TV and Radio in its sidebar too, for the same accounts: a now/next list with the phone
 upright, the grid on its side or on a tablet, the same programme details with **Watch** and recording, and a player

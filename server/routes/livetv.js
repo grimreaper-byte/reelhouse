@@ -8,9 +8,11 @@ import { qualityById } from '../transcode/profile.js';
 import { activeTranscodeCount } from '../transcode/hls.js';
 import { getLiveSession, startLiveSession } from '../transcode/live.js';
 import {
-  account, channelByUuid, channels, forgetGuide, genreNames, guideWindow, learnRadio, liveTvOn, tvheadend, upcomingRecordings,
+  account, channelByUuid, channels, forgetGuide, genreNames, guideWindow, learnRadio, liveTvOn, publicChannel, tvheadend, upcomingRecordings,
 } from '../livetv/guide.js';
-import { channelIcon, iconVersion } from '../livetv/icons.js';
+import { COUNTS_AFTER_MS, noteChannelWatched } from '../livetv/recent-channels.js';
+import { recentChannelsChanged } from '../events.js';
+import { channelIcon } from '../livetv/icons.js';
 import { groupShows, prefetchPoster, recordingArt, seriesList, showKey } from '../livetv/recordings.js';
 import { guideRecordingState, recordingTitle } from '../livetv/tvheadend.js';
 import {
@@ -48,15 +50,6 @@ function requireSeries(req, res, next) {
 }
 
 const fail = (res, err) => res.status(err.status && err.status < 600 ? err.status : 502).json({ error: err.message });
-
-// The logo's address carries when it was fetched, so browsers keep it for long and still see a new one.
-const publicChannel = (c) => {
-  const v = iconVersion(c.uuid);
-  return {
-    uuid: c.uuid, name: c.name, number: c.number, radio: !!c.radio,
-    icon: c.icon || c.iconSource || v ? `/api/livetv/channels/${c.uuid}/icon${v ? `?v=${v}` : ''}` : null,
-  };
-};
 
 // `canChange` (the guide, for one person): whether they may cancel or stop its recording (see mayChange); `upcoming`:
 // what Tvheadend's list of recordings says about it, by uuid, which the guide entry doesn't (see upcomingRecordings).
@@ -250,10 +243,19 @@ router.post('/livetv/progress', requireUser, requireLiveTv, (req, res) => {
     quality: session.quality.id,
     qualityLabel: session.quality.label,
   }));
+  noteWatching(session, state);
   // Stopping frees Tvheadend's tuner straight away rather than when the player goes quiet.
   if (state === 'stopped') session.destroy();
   res.json({ ok: true });
 });
+
+/** A channel on for long enough counts as watched: Home hears when it first does, and when it stops. */
+function noteWatching(session, state) {
+  if (session.radio || Date.now() - session.createdAt < COUNTS_AFTER_MS) return;
+  noteChannelWatched(session.userId, session.channel.uuid);
+  if (!session.counted || state === 'stopped') recentChannelsChanged(session.userId);
+  session.counted = true;
+}
 
 /** A guide entry from the cached windows, for the log's wording. */
 async function knownEvent(eventId) {

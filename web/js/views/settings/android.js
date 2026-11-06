@@ -46,8 +46,9 @@ function apkPanel(app) {
       h('dt', 'Size'), h('dd', `${(app.size / 1024 / 1024).toFixed(1)} MB`),
       h('dt', 'Added'), h('dd', timeAgo(app.uploadedAt)),
       h('dt', 'Download page'), h('dd', h('a', { href: page, target: '_blank', rel: 'noopener' }, page)))
-    : h('p.hint', { style: { margin: 0 } }, 'Not added yet. Build the release APK from the ', h('code', 'android'), ' folder (see ',
-      h('code', 'android/README.md'), ') and upload ', h('code', 'app-release.apk'), ' here.');
+    : h('p.hint', { style: { margin: 0 } }, 'Not added yet. Download the APK from the ',
+      h('a', { href: 'https://github.com/grimreaper-byte/reelhouse/releases/latest', target: '_blank', rel: 'noopener' }, 'latest release'),
+      ' (or build it from the ', h('code', 'android'), ' folder: see ', h('code', 'android/README.md'), ') and upload it here.');
   return panel('Reelhouse for Android',
     'Phones download the app from this server’s /android/ page, and the pairing screen offers it too. Upload a new build to update it; phones install it over the old one.',
     status, file,

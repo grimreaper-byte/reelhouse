@@ -1,0 +1,28 @@
+<!-- A season's episodes as a grid of their pictures, as in the web app (item.py). Two rows show at once, the top of a third says
+     there's more, and it scrolls inside itself; its group is made as tall as it needs (model.grid_height). -->
+<control type="group" id="{{group}}">
+  <width>1782</width><height>946</height>
+  <!-- shown while it has the focus too: refilling empties it for a moment, and hidden it would lose the focus -->
+  <visible>Integer.IsGreater(Container({{list}}).NumItems,0) | Control.HasFocus({{list}})</visible>
+  <control type="label">
+    <left>12</left><top>0</top><width>1700</width><height>50</height>
+    <font>font30_title</font><textcolor>{{TEXT}}</textcolor><aligny>center</aligny>
+    <label>{{title}}</label>
+  </control>
+  <control type="panel" id="{{list}}">
+    <left>0</left><top>50</top><width>1782</width><height>896</height>
+    <orientation>vertical</orientation>
+    <onleft>9000</onleft>
+    <onup>{{up}}</onup>
+    <ondown>{{down}}</ondown>
+    <scrolltime tween="cubic" easing="out">220</scrolltime>
+    <preloaditems>2</preloaditems>
+    <itemlayout width="440" height="336">
+      <!-- include landscape-item -->
+    </itemlayout>
+    <focusedlayout width="440" height="336">
+      <!-- include landscape-item -->
+      <!-- include focus-frame list={{list}} left=5 top=5 width=424 height=244 -->
+    </focusedlayout>
+  </control>
+</control>

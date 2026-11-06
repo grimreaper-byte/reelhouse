@@ -44,6 +44,15 @@ class SkinTests(unittest.TestCase):
             for ref in set(re.findall(r'(reelhouse/[\w/.-]+\.png)', text)):
                 self.assertTrue(os.path.exists(os.path.join(MEDIA, ref)), '{}: {}'.format(name, ref))
 
+    def test_every_screen_keeps_a_video_behind_it_playing(self):
+        # Kodi's player stalls with nothing to draw its pictures: each screen has a video control, under its background.
+        for name in os.listdir(LAYOUTS):
+            if name == 'reelhouse-options.xml':
+                continue  # a dialog: the screen under it goes on drawing
+            controls = list(layout(name).find('controls'))
+            self.assertEqual(controls[0].get('type'), 'videowindow', name)
+            self.assertEqual(controls[1].find('width').text, '1920', '{}: the background covers it'.format(name))
+
     def test_the_python_side_finds_its_controls(self):
         # Each window module's control ids (by constant name, or as numbers) and the layout it opens.
         checks = {

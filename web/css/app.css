@@ -215,6 +215,7 @@ textarea.input { height: auto; min-height: 120px; padding: 10px 12px; font-famil
 .card.landscape .card-img { aspect-ratio: 16 / 9; }
 .card-img img { width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.25s; }
 .card-img img.loaded { opacity: 1; }
+.channel-card .card-img img { object-fit: contain; padding: 20%; }
 .card:hover .card-img { outline-color: var(--accent); }
 .card-placeholder {
   position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;

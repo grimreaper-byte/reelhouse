@@ -95,6 +95,7 @@ private fun SignedIn() {
                     HomeScreen(
                         HomeNav(
                             openItem = { backStack.add(ItemKey(it.id)) },
+                            watchChannel = { backStack.add(LiveKey(it.uuid, it.radio)) },
                             search = { backStack.add(SearchKey()) },
                             settings = { backStack.add(SettingsKey) },
                             downloads = { backStack.add(DownloadsKey) },

@@ -1,4 +1,5 @@
-<!-- A poster card (220×330) in a row: picture (its title until it loads), progress, watched tick or unwatched count. -->
+<!-- A poster card (220×330) in a row: picture (its title until it loads), progress, watched tick or unwatched count. A
+     channel in Continue Watching has its logo instead, whole, in the middle. -->
 <control type="image">
   <left>12</left><top>12</top><width>220</width><height>330</height>
   <texture border="16" colordiffuse="{{ELEV2}}">reelhouse/ui/box.png</texture>
@@ -7,7 +8,12 @@
   <left>24</left><top>24</top><width>196</width><height>306</height>
   <font>font12</font><textcolor>{{TEXT_FAINT}}</textcolor><align>center</align><aligny>center</aligny><wrapmultiline>true</wrapmultiline>
   <label>$INFO[ListItem.Label]</label>
-  <visible>String.IsEmpty(ListItem.Art(poster))</visible>
+  <visible>String.IsEmpty(ListItem.Art(poster)) + String.IsEmpty(ListItem.Art(logo))</visible>
+</control>
+<control type="image">
+  <left>44</left><top>99</top><width>156</width><height>156</height>
+  <aspectratio>keep</aspectratio><fadetime>200</fadetime>
+  <texture background="true">$INFO[ListItem.Art(logo)]</texture>
 </control>
 <control type="image">
   <left>12</left><top>12</top><width>220</width><height>330</height>
