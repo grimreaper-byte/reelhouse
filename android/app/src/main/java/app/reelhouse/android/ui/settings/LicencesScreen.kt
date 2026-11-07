@@ -35,8 +35,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
+import app.reelhouse.android.ui.common.arrowScroll
+import app.reelhouse.android.ui.common.remoteFocus
 import app.reelhouse.android.ui.components.statusRowBar
 import app.reelhouse.android.ui.theme.Palette
+import app.reelhouse.android.ui.theme.TextRing
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -59,25 +62,25 @@ fun LicencesScreen(onBack: () -> Unit) {
     ) { padding ->
         LazyColumn(Modifier.fillMaxSize().padding(padding), contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 32.dp)) {
             item {
-                LibraryRow(ReelhouseLicence) { open = it }
+                LibraryRow(ReelhouseLicence, Modifier.remoteFocus("reelhouse", first = true)) { open = it }
                 Spacer(Modifier.height(12.dp))
                 Text(
-                    "Reelhouse for Android is built with these open-source projects. Tap one to read its licence.",
+                    "Reelhouse for Android is built with these open-source projects. Choose one to read its licence.",
                     style = MaterialTheme.typography.bodySmall,
                     color = Palette.TextDim,
                 )
                 Spacer(Modifier.height(8.dp))
                 HorizontalDivider(color = Palette.Border)
             }
-            items(OpenSourceLibraries, key = { it.name }) { LibraryRow(it) { lib -> open = lib } }
+            items(OpenSourceLibraries, key = { it.name }) { LibraryRow(it, Modifier.remoteFocus(it.name)) { lib -> open = lib } }
         }
     }
     open?.let { LicenceDialog(it, onDismiss = { open = null }) }
 }
 
 @Composable
-private fun LibraryRow(lib: OpenSourceLibrary, onClick: (OpenSourceLibrary) -> Unit) {
-    Column(Modifier.fillMaxWidth().clickable(onClickLabel = "Read the licence") { onClick(lib) }.padding(vertical = 10.dp)) {
+private fun LibraryRow(lib: OpenSourceLibrary, modifier: Modifier, onClick: (OpenSourceLibrary) -> Unit) {
+    Column(modifier.fillMaxWidth().clickable(null, TextRing, onClickLabel = "Read the licence") { onClick(lib) }.padding(vertical = 10.dp)) {
         Text(lib.name, style = MaterialTheme.typography.bodyLarge)
         Text(lib.copyright, style = MaterialTheme.typography.bodySmall, color = Palette.TextDim)
         Text(lib.licence.name, style = MaterialTheme.typography.bodySmall, color = Palette.Accent)
@@ -99,7 +102,7 @@ private fun LicenceDialog(lib: OpenSourceLibrary, onDismiss: () -> Unit) {
         onDismissRequest = onDismiss,
         title = { Text(lib.name) },
         text = {
-            Column(Modifier.verticalScroll(rememberScrollState())) {
+            Column(Modifier.arrowScroll(rememberScrollState(), start = true)) {
                 Text(lib.copyright, style = MaterialTheme.typography.bodyMedium)
                 lib.note?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = Palette.TextDim, modifier = Modifier.padding(top = 4.dp)) }
                 Spacer(Modifier.height(12.dp))

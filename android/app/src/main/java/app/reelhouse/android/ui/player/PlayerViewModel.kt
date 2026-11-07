@@ -102,7 +102,7 @@ class PlayerViewModel(private val c: AppContainer, context: Context, itemId: Lon
     private var forced = false
     private var retries = 0
     private var endedReported = false
-    private var remoteDefault = "4m-720"
+    private var remoteDefault = "original"
     private var qualities: List<Quality> = DEFAULT_QUALITIES
     private var countdownJob: Job? = null
     private var startJob: Job? = null
@@ -405,12 +405,12 @@ class PlayerViewModel(private val c: AppContainer, context: Context, itemId: Lon
         if (info?.mode == MODE_DOWNLOAD && c.connection.baseUrl == null) {
             player.pause()
             val what = if (noPicture) "show the downloaded file's picture" else "play the downloaded file as it is"
-            _ui.update { it.copy(loading = false, error = "This phone can't $what. Connect to Reelhouse and it's converted while you watch.") }
+            _ui.update { it.copy(loading = false, error = "This device can't $what. Connect to Reelhouse and it's converted while you watch.") }
             return
         }
         forced = true
         val what = if (noPicture) "show this file's picture" else "play the file as it is"
-        _ui.update { it.copy(status = "This phone can't $what; converting…") }
+        _ui.update { it.copy(status = "This device can't $what; converting…") }
         restart(at)
     }
 

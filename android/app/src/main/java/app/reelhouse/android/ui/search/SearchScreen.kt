@@ -46,7 +46,11 @@ import app.reelhouse.android.data.model.Item
 import app.reelhouse.android.data.model.SearchResults
 import app.reelhouse.android.ui.common.CenteredMessage
 import app.reelhouse.android.ui.common.Loading
+import app.reelhouse.android.ui.common.LocalRemoteDevice
+import app.reelhouse.android.ui.common.RemoteTextBox
 import app.reelhouse.android.ui.common.errorText
+import app.reelhouse.android.ui.common.focusRow
+import app.reelhouse.android.ui.common.remoteFocus
 import app.reelhouse.android.ui.components.LandscapeCard
 import app.reelhouse.android.ui.components.PosterCard
 import app.reelhouse.android.ui.components.statusRowBar
@@ -108,14 +112,18 @@ fun SearchScreen(initial: String, onOpenItem: (Item) -> Unit, onBack: () -> Unit
     val query by vm.query.collectAsState()
     val results by vm.results.collectAsState()
     val focus = remember { FocusRequester() }
+    val firstResult = remember { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current
-    LaunchedEffect(Unit) { if (initial.isEmpty()) focus.requestFocus() }
+    val remote = LocalRemoteDevice.current
+    LaunchedEffect(Unit) { if (initial.isEmpty() && !remote) focus.requestFocus() }
 
     val statusRow = statusRowBar()
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
+                    // Opened straight away, on a remote too: typing is what this screen is for.
+                    RemoteTextBox(Modifier.fillMaxWidth(), opened = initial.isEmpty(), down = firstResult.takeIf { (results as? SearchViewModel.Results.Done)?.results?.isEmpty == false }) { box ->
                     TextField(
                         value = query,
                         onValueChange = vm::setQuery,
@@ -132,8 +140,9 @@ fun SearchScreen(initial: String, onOpenItem: (Item) -> Unit, onBack: () -> Unit
                             focusedIndicatorColor = Color.Transparent,
                             unfocusedIndicatorColor = Color.Transparent,
                         ),
-                        modifier = Modifier.fillMaxWidth().focusRequester(focus),
+                        modifier = Modifier.fillMaxWidth().focusRequester(focus).then(box),
                     )
+                    }
                 },
                 navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } },
                 expandedHeight = statusRow.height,
@@ -152,24 +161,26 @@ fun SearchScreen(initial: String, onOpenItem: (Item) -> Unit, onBack: () -> Unit
                     CenteredMessage("Nothing found for “${r.query}”.", modifier)
                 } else {
                     LazyColumn(modifier, contentPadding = PaddingValues(bottom = 24.dp)) {
-                        section("Movies", r.results.movies, onOpenItem)
-                        section("Shows", r.results.shows, onOpenItem)
-                        section("Episodes", r.results.episodes, onOpenItem, landscape = true)
-                        section("With “${r.query}” in the cast or crew", r.results.people, onOpenItem)
+                        val found = r.results
+                        section("Movies", found.movies, onOpenItem, first = firstResult)
+                        section("Shows", found.shows, onOpenItem, first = firstResult.takeIf { found.movies.isEmpty() })
+                        section("Episodes", found.episodes, onOpenItem, landscape = true, first = firstResult.takeIf { found.movies.isEmpty() && found.shows.isEmpty() })
+                        section("With “${r.query}” in the cast or crew", found.people, onOpenItem, first = firstResult.takeIf { found.movies.isEmpty() && found.shows.isEmpty() && found.episodes.isEmpty() })
                     }
                 }
         }
     }
 }
 
-private fun androidx.compose.foundation.lazy.LazyListScope.section(title: String, list: List<Item>, onOpen: (Item) -> Unit, landscape: Boolean = false) {
+private fun androidx.compose.foundation.lazy.LazyListScope.section(title: String, list: List<Item>, onOpen: (Item) -> Unit, landscape: Boolean = false, first: FocusRequester? = null) {
     if (list.isEmpty()) return
     item(key = title) {
         Column {
             Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 18.dp, bottom = 10.dp))
-            LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            LazyRow(Modifier.focusRow(), contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 items(list, key = { it.id }) { item ->
-                    if (landscape) LandscapeCard(item, onClick = { onOpen(item) }) else PosterCard(item, onClick = { onOpen(item) })
+                    val focus = Modifier.remoteFocus("$title/${item.id}").then(if (first != null && item == list.first()) Modifier.focusRequester(first) else Modifier)
+                    if (landscape) LandscapeCard(item, onClick = { onOpen(item) }, modifier = focus) else PosterCard(item, onClick = { onOpen(item) }, modifier = focus)
                 }
             }
         }

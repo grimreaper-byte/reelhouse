@@ -13,7 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
@@ -28,7 +28,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -52,6 +51,10 @@ import app.reelhouse.android.data.model.Hub
 import app.reelhouse.android.data.model.Item
 import app.reelhouse.android.ui.common.CenteredMessage
 import app.reelhouse.android.ui.common.Loading
+import app.reelhouse.android.ui.common.LocalRemoteDevice
+import app.reelhouse.android.ui.common.RefreshBox
+import app.reelhouse.android.ui.common.focusRow
+import app.reelhouse.android.ui.common.remoteFocus
 import app.reelhouse.android.ui.components.AvatarCircle
 import app.reelhouse.android.ui.components.ConnectionChip
 import app.reelhouse.android.ui.components.LandscapeCard
@@ -121,12 +124,12 @@ fun HomeScreen(nav: HomeNav) {
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             when {
-                ui.loaded -> PullToRefreshBox(isRefreshing = ui.refreshing, onRefresh = vm::refresh, modifier = Modifier.fillMaxSize()) {
+                ui.loaded -> RefreshBox(ui.refreshing, vm::refresh, Modifier.fillMaxSize()) {
                     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 24.dp)) {
                         if (ui.hubs.isEmpty()) {
-                            item { CenteredMessage("Nothing to show yet. Add libraries in Reelhouse, or pull down to refresh.") }
+                            item { CenteredMessage(if (LocalRemoteDevice.current) "Nothing to show yet. Add libraries in Reelhouse." else "Nothing to show yet. Add libraries in Reelhouse, or pull down to refresh.") }
                         } else {
-                            items(ui.hubs, key = { it.id }) { hub -> HubRow(hub, nav.openItem, nav.watchChannel) }
+                            itemsIndexed(ui.hubs, key = { _, hub -> hub.id }) { n, hub -> HubRow(hub, first = n == 0, nav.openItem, nav.watchChannel) }
                         }
                     }
                 }
@@ -163,19 +166,20 @@ private fun Brand() {
 }
 
 @Composable
-private fun HubRow(hub: Hub, onOpenItem: (Item) -> Unit, onWatchChannel: (Channel) -> Unit) {
+private fun HubRow(hub: Hub, first: Boolean, onOpenItem: (Item) -> Unit, onWatchChannel: (Channel) -> Unit) {
     Text(
         hub.title,
         style = MaterialTheme.typography.titleMedium,
         modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 18.dp, bottom = 10.dp),
     )
-    LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        items(hub.items, key = { it.channel?.uuid ?: it.id }) { item ->
+    LazyRow(Modifier.focusRow(), contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        itemsIndexed(hub.items, key = { _, item -> item.channel?.uuid ?: item.id }) { n, item ->
             val channel = item.channel
+            val focus = Modifier.remoteFocus("${hub.id}/${channel?.uuid ?: item.id}", first = first && n == 0)
             when {
-                channel != null -> ChannelCard(channel, onClick = { onWatchChannel(channel) })
-                hub.style == "landscape" -> LandscapeCard(item, onClick = { onOpenItem(item) })
-                else -> PosterCard(item, onClick = { onOpenItem(item) })
+                channel != null -> ChannelCard(channel, onClick = { onWatchChannel(channel) }, modifier = focus)
+                hub.style == "landscape" -> LandscapeCard(item, onClick = { onOpenItem(item) }, modifier = focus)
+                else -> PosterCard(item, onClick = { onOpenItem(item) }, modifier = focus)
             }
         }
     }

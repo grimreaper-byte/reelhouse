@@ -1,9 +1,15 @@
 package app.reelhouse.android.ui.theme
 
+import androidx.compose.foundation.LocalIndication
+import androidx.compose.material.ripple.RippleAlpha
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.LocalRippleConfiguration
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RippleConfiguration
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
 
 // The web app's colours (web/css/app.css).
@@ -49,7 +55,14 @@ private val Colors = darkColorScheme(
     onError = Color.White,
 )
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReelhouseTheme(content: @Composable () -> Unit) {
-    MaterialTheme(colorScheme = Colors, typography = Typography(), content = content)
+    MaterialTheme(colorScheme = Colors, typography = Typography()) {
+        CompositionLocalProvider(LocalIndication provides FocusRing, LocalRippleConfiguration provides Ripples, content = content)
+    }
 }
+
+/** Material's own, but what has the focus shows clearly: buttons have this rather than [FocusRing]. */
+@OptIn(ExperimentalMaterial3Api::class)
+private val Ripples = RippleConfiguration(rippleAlpha = RippleAlpha(draggedAlpha = 0.16f, focusedAlpha = 0.4f, hoveredAlpha = 0.08f, pressedAlpha = 0.1f))

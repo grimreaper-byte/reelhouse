@@ -33,7 +33,7 @@ Everything runs on your own computer: no cloud accounts, no subscriptions, no pa
   plus a WireGuard tunnel built into Reelhouse for the Reelhouse app (paired with a QR code, only the app's traffic
   goes through it)
 - A **Reelhouse app for Android** that plays at home or away, downloads for offline viewing, and installs and updates
-  from your own Reelhouse
+  from your own Reelhouse, on phones, tablets and TV boxes such as a Fire TV (driven with its remote)
 - A **Kodi add-on** that puts your movies and shows into Kodi's own library, with watched status and resume points
   kept in sync both ways
 - **Live TV** from [Tvheadend](#live-tv-tvheadend): a TV guide, live channels in the browser and the Android app, and
@@ -257,7 +257,9 @@ searches, updates live, plays (directly or converted, with resume and the next e
 viewing. Phones install it from Reelhouse itself: download the APK from the [latest
 release](https://github.com/grimreaper-byte/reelhouse/releases/latest) (or build it yourself), upload it in **Settings
 → Android app**, then open `http://<server>/android/` on the phone (the pairing dialog has a QR code for it).
-Uploading a newer version lets every phone update itself from Settings in the app.
+Uploading a newer version lets every phone update itself from Settings in the app. It also runs on a Fire TV or
+Android TV box, from Android 7.1, with its remote (since app 0.13.0;
+[how to install it](android/README.md#on-a-fire-tv-or-android-tv-box)).
 
 For a web browser, a laptop, an iPhone or Kodi away from home, use Option 2 as well.
 
@@ -344,8 +346,10 @@ often use "header compression", which Firefox can't read, so Firefox gets those 
 them directly.
 
 In the player, the gear menu has Quality (useful away from home; it lists only the original and the qualities
-below it) and Speed. The **Audio & subtitles** button lists
-every audio track and subtitle. Image-based subtitles (PGS/VobSub) are burned into the picture.
+below it) and Speed. Away from home, playing starts at **Settings → Server → Conversion → Default quality outside
+your home network**: Original unless you change it (since 0.22.0), so nothing is converted that a device can play
+as it is. If your upload can't keep up with your files, pick something lower there. The **Audio & subtitles** button
+lists every audio track and subtitle. Image-based subtitles (PGS/VobSub) are burned into the picture.
 
 **What's being watched:** admins see a TV in the top bar (next to the account button) with the number of streams
 playing right now on its screen, from browsers, the Android app and Kodi alike. It updates by itself, and clicking it

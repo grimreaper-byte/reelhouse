@@ -43,22 +43,23 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.platform.LocalContext
 import app.reelhouse.android.container
 import app.reelhouse.android.data.downloads.Download
 import app.reelhouse.android.data.downloads.DownloadState
 import app.reelhouse.android.ui.common.CenteredMessage
 import app.reelhouse.android.ui.common.formatPosition
 import app.reelhouse.android.ui.common.formatSize
+import app.reelhouse.android.ui.common.remoteFocus
 import app.reelhouse.android.ui.components.RemoteImage
 import app.reelhouse.android.ui.components.statusRowBar
 import app.reelhouse.android.ui.theme.Palette
 import coil3.compose.AsyncImage
+import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.io.File
 
 /** Downloads under one heading: a show's episodes, or the movies. */
 data class DownloadGroup(val title: String, val downloads: List<Download>)
@@ -121,17 +122,19 @@ fun DownloadsScreen(onPlay: (Long) -> Unit, onBack: () -> Unit) {
                 )
                 return@Column
             }
+            val groups = groupDownloads(downloads)
+            val startsAt = groups.firstOrNull()?.downloads?.firstOrNull()?.itemId
             LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 24.dp)) {
-                groupDownloads(downloads).forEach { group ->
+                groups.forEach { group ->
                     item(key = "group-${group.title}") {
                         Text(group.title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 18.dp, bottom = 6.dp))
                     }
-                    items(group.downloads, key = { it.itemId }) { d -> DownloadRow(d, canResume = !turnedOff, onPlay = { onPlay(d.itemId) }) }
+                    items(group.downloads, key = { it.itemId }) { d -> DownloadRow(d, canResume = !turnedOff, first = d.itemId == startsAt, onPlay = { onPlay(d.itemId) }) }
                 }
                 item(key = "footer") {
                     Text(
                         buildString {
-                            append("${formatSize(used)} on this phone")
+                            append("${formatSize(used)} on this device")
                             if (downloads.any { it.active } && c.prefs.wifiOnlyDownloads) append(" · downloading on Wi-Fi only (see Settings)")
                         },
                         style = MaterialTheme.typography.bodySmall,
@@ -145,10 +148,10 @@ fun DownloadsScreen(onPlay: (Long) -> Unit, onBack: () -> Unit) {
 }
 
 @Composable
-private fun DownloadRow(d: Download, canResume: Boolean, onPlay: () -> Unit) {
+private fun DownloadRow(d: Download, canResume: Boolean, first: Boolean, onPlay: () -> Unit) {
     var menu by remember { mutableStateOf(false) }
     Row(
-        Modifier.fillMaxWidth().clickable { if (d.done) onPlay() else menu = true }.padding(start = 16.dp, top = 6.dp, bottom = 6.dp),
+        Modifier.remoteFocus("download-${d.itemId}", first).fillMaxWidth().clickable { if (d.done) onPlay() else menu = true }.padding(start = 16.dp, top = 6.dp, bottom = 6.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

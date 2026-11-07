@@ -4,9 +4,12 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -19,32 +22,31 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.NavigateBefore
 import androidx.compose.material.icons.automirrored.filled.NavigateNext
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.DownloadDone
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -59,11 +61,13 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusEvent
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -83,24 +87,28 @@ import app.reelhouse.android.data.model.MediaInfo
 import app.reelhouse.android.data.model.Related
 import app.reelhouse.android.data.model.Version
 import app.reelhouse.android.ui.common.LoadableContent
+import app.reelhouse.android.ui.common.focusRow
 import app.reelhouse.android.ui.common.formatDuration
 import app.reelhouse.android.ui.common.formatPosition
 import app.reelhouse.android.ui.common.formatSize
-import app.reelhouse.android.ui.player.channelsLabel
-import app.reelhouse.android.ui.player.languageName
-import app.reelhouse.android.ui.player.resumePoint
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material3.Button
+import app.reelhouse.android.ui.common.remoteFocus
+import app.reelhouse.android.ui.components.Button
+import app.reelhouse.android.ui.components.FilledTonalButton
+import app.reelhouse.android.ui.components.FilterChip
 import app.reelhouse.android.ui.components.LandscapeCard
+import app.reelhouse.android.ui.components.OutlinedButton
 import app.reelhouse.android.ui.components.PosterCard
 import app.reelhouse.android.ui.components.RemoteImage
 import app.reelhouse.android.ui.components.statusRowBar
 import app.reelhouse.android.ui.downloads.DownloadButton
 import app.reelhouse.android.ui.downloads.SeasonDownloadButton
-import androidx.compose.material.icons.filled.DownloadDone
+import app.reelhouse.android.ui.player.channelsLabel
+import app.reelhouse.android.ui.player.languageName
+import app.reelhouse.android.ui.player.resumePoint
 import app.reelhouse.android.ui.theme.Palette
+import app.reelhouse.android.ui.theme.TextRing
+import app.reelhouse.android.ui.theme.pictureHighlight
+import kotlinx.coroutines.launch
 
 /** Where the item page can lead. */
 class ItemNav(
@@ -141,6 +149,7 @@ fun ItemScreen(id: Long, nav: ItemNav) {
     // Fully darkened once the page has scrolled 40% of the window's height.
     val dimPx = window.height * 40 / 100
     val list = rememberLazyListState()
+    val scope = rememberCoroutineScope()
     val dim by remember(dimPx) {
         derivedStateOf {
             when {
@@ -193,7 +202,7 @@ fun ItemScreen(id: Long, nav: ItemNav) {
             LoadableContent(details, onRetry = vm::load, modifier = Modifier.padding(padding)) { d ->
                 LazyColumn(Modifier.fillMaxSize().padding(padding), state = list, contentPadding = PaddingValues(bottom = 32.dp)) {
                     item(key = "header") {
-                        Header(d, nav, watchedBusy = d.item.id in busy, onWatched = { vm.setWatched(d.item, it) })
+                        Header(d, nav, watchedBusy = d.item.id in busy, onWatched = { vm.setWatched(d.item, it) }, toTop = { scope.launch { list.animateScrollToItem(0) } })
                     }
                     when (d.item.type) {
                         "show" -> showSections(d, related, nav)
@@ -309,7 +318,7 @@ private fun titleFor(d: ItemDetails) = when (d.item.type) {
 /** The poster, title, buttons and overview, at the top of the page. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun Header(d: ItemDetails, nav: ItemNav, watchedBusy: Boolean, onWatched: (Boolean) -> Unit) {
+private fun Header(d: ItemDetails, nav: ItemNav, watchedBusy: Boolean, onWatched: (Boolean) -> Unit, toTop: () -> Unit) {
     val item = d.item
     Column {
         Row(Modifier.padding(horizontal = 16.dp, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -325,7 +334,7 @@ private fun Header(d: ItemDetails, nav: ItemNav, watchedBusy: Boolean, onWatched
                             show.title,
                             style = MaterialTheme.typography.titleSmall,
                             color = Palette.Accent,
-                            modifier = Modifier.clickable { nav.open(show.id) },
+                            modifier = Modifier.clickable(null, TextRing) { nav.open(show.id) },
                         )
                     }
                 }
@@ -349,7 +358,8 @@ private fun Header(d: ItemDetails, nav: ItemNav, watchedBusy: Boolean, onWatched
             }
         }
         FlowRow(
-            Modifier.padding(horizontal = 16.dp),
+            // With a remote, the poster and title above can't take the focus: coming back up, this shows them again.
+            Modifier.padding(horizontal = 16.dp).onFocusEvent { if (it.hasFocus) toTop() },
             horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
             itemVerticalAlignment = Alignment.CenterVertically,
@@ -379,14 +389,14 @@ private fun PlayButtons(d: ItemDetails, nav: ItemNav) {
     if (item.type == "movie" || item.type == "episode") {
         val resume = resumePoint(item)
         if (resume > 0) {
-            Button(onClick = { nav.play(item.id, resume) }) {
+            Button(onClick = { nav.play(item.id, resume) }, modifier = Modifier.remoteFocus("play", first = true)) {
                 Icon(Icons.Filled.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(6.dp))
                 Text("Resume from ${formatPosition(resume)}")
             }
             OutlinedButton(onClick = { nav.play(item.id, 0.0) }) { Text("From the start") }
         } else {
-            Button(onClick = { nav.play(item.id, 0.0) }) {
+            Button(onClick = { nav.play(item.id, 0.0) }, modifier = Modifier.remoteFocus("play", first = true)) {
                 Icon(Icons.Filled.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(6.dp))
                 Text("Play")
@@ -394,7 +404,7 @@ private fun PlayButtons(d: ItemDetails, nav: ItemNav) {
         }
     } else {
         d.onDeck?.let { next ->
-            Button(onClick = { nav.play(next.id, -1.0) }) {
+            Button(onClick = { nav.play(next.id, -1.0) }, modifier = Modifier.remoteFocus("play", first = true)) {
                 Icon(Icons.Filled.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(6.dp))
                 Text("Play ${next.episodeLabel ?: next.title}")
@@ -445,13 +455,16 @@ private fun remaining(i: Item): String? {
 @Composable
 private fun Overview(text: String) {
     var expanded by rememberSaveable { mutableStateOf(false) }
+    var cut by remember { mutableStateOf(false) }
     Text(
         text,
         style = MaterialTheme.typography.bodyMedium,
         maxLines = if (expanded) Int.MAX_VALUE else 4,
         overflow = TextOverflow.Ellipsis,
-        // A readable line length on tablets.
-        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp).widthIn(max = 720.dp).animateContentSize().clickable { expanded = !expanded },
+        onTextLayout = { if (!expanded) cut = it.hasVisualOverflow },
+        // A readable line length on tablets. Something to press only if there's more to show, so a remote passes over it.
+        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp).widthIn(max = 720.dp).animateContentSize()
+            .then(if (cut || expanded) Modifier.clickable(null, TextRing) { expanded = !expanded } else Modifier),
     )
 }
 
@@ -472,7 +485,7 @@ private fun LazyListScope.showSections(d: ItemDetails, related: Related?, nav: I
 private fun LazyListScope.seasonSections(d: ItemDetails, busy: Set<Long>, downloaded: Set<Long>, nav: ItemNav, onWatched: (Item, Boolean) -> Unit) {
     if (d.seasons.size > 1) {
         item(key = "season-picker") {
-            LazyRow(contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            LazyRow(Modifier.focusRow(), contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(d.seasons, key = { it.id }) { s ->
                     FilterChip(selected = s.id == d.item.id, onClick = { if (s.id != d.item.id) nav.open(s.id) }, label = { Text(s.title) })
                 }
@@ -510,7 +523,7 @@ private fun LazyListScope.episodeSections(d: ItemDetails, nav: ItemNav) {
                 "All episodes of ${season.title}",
                 color = Palette.Accent,
                 style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(horizontal = 16.dp).clickable { nav.open(season.id) },
+                modifier = Modifier.padding(horizontal = 16.dp).clickable(null, TextRing) { nav.open(season.id) },
             )
         }
     }
@@ -536,7 +549,7 @@ private fun LazyListScope.castSection(cast: List<CastMember>, fromItem: Long, na
     if (cast.isEmpty()) return
     item(key = "cast") {
         SectionTitle("Cast")
-        LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        LazyRow(Modifier.focusRow(), contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             items(cast.take(30)) { person -> CastCard(person, onClick = { nav.person(person.name, fromItem) }) }
         }
     }
@@ -626,16 +639,17 @@ private fun Labelled(label: String, value: String) {
 private fun PosterRow(title: String, items: List<Item>, nav: ItemNav) {
     Column {
         SectionTitle(title)
-        LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            items(items, key = { it.id }) { item -> PosterCard(item, onClick = { nav.open(item.id) }) }
+        LazyRow(Modifier.focusRow(), contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            items(items, key = { it.id }) { item -> PosterCard(item, onClick = { nav.open(item.id) }, modifier = Modifier.remoteFocus("$title/${item.id}")) }
         }
     }
 }
 
 @Composable
 private fun CastCard(person: CastMember, onClick: () -> Unit) {
-    Column(Modifier.width(92.dp).clickable(onClick = onClick)) {
-        Box(Modifier.fillMaxWidth().aspectRatio(2f / 3f).clip(RoundedCornerShape(6.dp)).background(Palette.Elevated2), contentAlignment = Alignment.Center) {
+    val press = remember { MutableInteractionSource() }
+    Column(Modifier.remoteFocus("cast-${person.name}").width(92.dp).clickable(press, null, onClick = onClick)) {
+        Box(Modifier.fillMaxWidth().aspectRatio(2f / 3f).pictureHighlight(press, RoundedCornerShape(6.dp)).background(Palette.Elevated2), contentAlignment = Alignment.Center) {
             if (person.profile != null) {
                 RemoteImage(person.profile, 92.dp, null, Modifier.fillMaxSize())
             } else {
@@ -651,11 +665,12 @@ private fun initials(name: String) = name.split(' ').filter { it.isNotEmpty() }.
 
 @Composable
 private fun EpisodeRow(ep: Item, busy: Boolean, downloaded: Boolean, onClick: () -> Unit, onWatched: (Boolean) -> Unit) {
+    val press = remember { MutableInteractionSource() }
     Row(
-        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 8.dp),
+        Modifier.remoteFocus("episode-${ep.id}").fillMaxWidth().clickable(press, null, onClick = onClick).padding(horizontal = 16.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Box(Modifier.width(132.dp).aspectRatio(16f / 9f).clip(RoundedCornerShape(6.dp))) {
+        Box(Modifier.width(132.dp).aspectRatio(16f / 9f).pictureHighlight(press, RoundedCornerShape(6.dp))) {
             RemoteImage(ep.images.thumb ?: ep.images.poster, 132.dp, null, Modifier.fillMaxSize())
             if (ep.progress > 0f) {
                 Box(Modifier.align(Alignment.BottomStart).fillMaxWidth().height(3.dp).background(Palette.Background.copy(alpha = 0.7f))) {

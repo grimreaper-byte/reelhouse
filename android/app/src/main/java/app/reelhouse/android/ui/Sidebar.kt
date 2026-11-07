@@ -6,6 +6,7 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
@@ -41,6 +42,13 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material.icons.filled.Radio
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.focusRestorer
+import androidx.compose.ui.focus.onFocusChanged
+import app.reelhouse.android.ui.common.LocalRemoteDevice
 import app.reelhouse.android.ui.components.WebIcons
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.PushPin
@@ -112,6 +120,12 @@ import kotlinx.coroutines.launch
 
 private val RailWidth = 72.dp
 private val FullWidth = 256.dp
+
+// With a remote: no fingers to make room for, and more of the screen for the page.
+private val RemoteRailWidth = 56.dp
+private val RemoteFullWidth = 232.dp
+private val RemoteInset = 8.dp
+private val TouchInset = 12.dp
 private const val WIDE_DP = 600 // Material's compact width ends here
 private const val HOVER_OPEN_MS = 120L // brushing past the edge with a mouse doesn't open it
 
@@ -182,8 +196,8 @@ fun SidebarFrame(stack: MutableList<NavKey>, hidden: Boolean, content: @Composab
     val strip = wide && !hidden
     val selected = selectedIn(stack)
     val scope = rememberCoroutineScope()
-    val column: @Composable (expanded: Boolean, onMenu: (() -> Unit)?, onPin: (() -> Unit)?, onPicked: () -> Unit) -> Unit =
-        { expanded, onMenu, onPin, onPicked ->
+    val column: @Composable (expanded: Boolean, onMenu: (() -> Unit)?, onPin: (() -> Unit)?, selectedFocus: FocusRequester?, onPicked: (samePage: Boolean) -> Unit) -> Unit =
+        { expanded, onMenu, onPin, selectedFocus, onPicked ->
             SidebarColumn(
                 expanded = expanded,
                 serverName = profile?.serverName ?: "Reelhouse",
@@ -196,7 +210,12 @@ fun SidebarFrame(stack: MutableList<NavKey>, hidden: Boolean, content: @Composab
                 updateWaiting = update != null,
                 onMenu = onMenu,
                 onPin = onPin,
-                onPick = { goTo(stack, stackFor(it)); onPicked() },
+                selectedFocus = selectedFocus,
+                onPick = {
+                    val samePage = same(selected, it)
+                    goTo(stack, stackFor(it))
+                    onPicked(samePage)
+                },
             )
         }
 
@@ -210,9 +229,16 @@ fun SidebarFrame(stack: MutableList<NavKey>, hidden: Boolean, content: @Composab
         if (hovered) delay(HOVER_OPEN_MS)
         hoverOpen = hovered
     }
-    val expanded = pinned || popped || hoverOpen
-    val width by animateDpAsState(if (expanded) FullWidth else RailWidth, label = "sidebar width")
-    val beside by animateDpAsState(if (!strip) 0.dp else if (pinned) FullWidth else RailWidth, label = "page offset")
+    // With a remote it's open while the focus is in it: the icons alone say little from across a room.
+    val remote = LocalRemoteDevice.current
+    var hasFocus by remember { mutableStateOf(false) }
+    val page = remember { FocusRequester() }
+    val selectedEntry = remember { FocusRequester() }
+    val expanded = pinned || popped || hoverOpen || (remote && hasFocus)
+    val rail = if (remote) RemoteRailWidth else RailWidth
+    val full = if (remote) RemoteFullWidth else FullWidth
+    val width by animateDpAsState(if (expanded) full else rail, label = "sidebar width")
+    val beside by animateDpAsState(if (!strip) 0.dp else if (pinned) full else rail, label = "page offset")
     // A camera cutout on the left (phone on its side): the sidebar's colour reaches under it, its icons don't.
     val start = WindowInsets.safeDrawing.only(WindowInsetsSides.Start).asPaddingValues().calculateStartPadding(LocalLayoutDirection.current)
 
@@ -227,14 +253,18 @@ fun SidebarFrame(stack: MutableList<NavKey>, hidden: Boolean, content: @Composab
         // Always there (closed, and not opened, on a wide screen): a drawer with nothing in it works out its closed
         // place as 0 wide, and turning the phone upright then showed it open.
         drawerContent = {
-            ModalDrawerSheet(
-                drawerContainerColor = Palette.Background,
-                windowInsets = WindowInsets(0, 0, 0, 0), // the sidebar keeps clear of the bars itself
-                modifier = Modifier.width(FullWidth + 24.dp),
-            ) {
-                column(true, null, null) { scope.launch { drawer.close() } }
+            // Not on a remote: nothing turns a TV upright, and closed off the side of the screen its entries could still
+            // take the focus.
+            if (!remote) {
+                ModalDrawerSheet(
+                    drawerContainerColor = Palette.Background,
+                    windowInsets = WindowInsets(0, 0, 0, 0), // the sidebar keeps clear of the bars itself
+                    modifier = Modifier.width(FullWidth + 24.dp),
+                ) {
+                    column(true, null, null, null) { scope.launch { drawer.close() } }
+                }
+                BackHandler(enabled = drawer.isOpen) { scope.launch { drawer.close() } }
             }
-            BackHandler(enabled = drawer.isOpen) { scope.launch { drawer.close() } }
         },
     ) {
         Box(Modifier.fillMaxSize()) {
@@ -242,7 +272,8 @@ fun SidebarFrame(stack: MutableList<NavKey>, hidden: Boolean, content: @Composab
                 Spacer(Modifier.width(if (strip) start + beside else 0.dp))
                 Box(
                     Modifier.weight(1f).fillMaxHeight()
-                        .then(if (strip) Modifier.consumeWindowInsets(WindowInsets.safeDrawing.only(WindowInsetsSides.Start)) else Modifier),
+                        .then(if (strip) Modifier.consumeWindowInsets(WindowInsets.safeDrawing.only(WindowInsetsSides.Start)) else Modifier)
+                        .then(if (remote) Modifier.focusRequester(page).focusRestorer().focusGroup() else Modifier),
                 ) {
                     CompositionLocalProvider(LocalSidebarStrip provides strip) {
                         content(if (!wide && !hidden) ({ scope.launch { drawer.open() } }) else null)
@@ -257,7 +288,20 @@ fun SidebarFrame(stack: MutableList<NavKey>, hidden: Boolean, content: @Composab
                 Surface(
                     color = Palette.Background,
                     shadowElevation = if (expanded && !pinned) 16.dp else 0.dp,
-                    modifier = Modifier.fillMaxHeight().width(start + width).hoverable(hover),
+                    modifier = Modifier.fillMaxHeight().width(start + width).hoverable(hover).then(
+                        if (!remote) {
+                            Modifier
+                        } else {
+                            Modifier
+                                .onFocusChanged { hasFocus = it.hasFocus }
+                                .focusProperties {
+                                    // Into it at the page's own entry, and out to where the page had the focus.
+                                    onEnter = { runCatching { selectedEntry.requestFocus() } }
+                                    onExit = { if (requestedFocusDirection == FocusDirection.Right) runCatching { page.requestFocus() } }
+                                }
+                                .focusGroup()
+                        },
+                    ),
                 ) {
                     Box(Modifier.padding(start = start)) {
                         column(
@@ -274,10 +318,17 @@ fun SidebarFrame(stack: MutableList<NavKey>, hidden: Boolean, content: @Composab
                                 popped = false
                                 c.prefs.sidebarPinned = true
                             }),
-                        ) { popped = false }
+                            selectedEntry,
+                        ) { samePage ->
+                            popped = false
+                            // Nothing new opens, so with a remote the focus would stay in here.
+                            if (remote && samePage) runCatching { page.requestFocus() }
+                        }
                     }
                 }
                 BackHandler(enabled = popped && !pinned) { popped = false }
+                // Back from the sidebar: to the page, as in the Reelhouse screens in Kodi.
+                BackHandler(enabled = remote && hasFocus) { runCatching { page.requestFocus() } }
             }
         }
     }
@@ -295,12 +346,15 @@ private fun SidebarColumn(
     updateWaiting: Boolean,
     onMenu: (() -> Unit)?,
     onPin: (() -> Unit)?,
+    selectedFocus: FocusRequester?,
     onPick: (NavKey) -> Unit,
 ) {
+    // The entry for the page showing: where a remote comes in.
+    val entry: (Boolean) -> Modifier = { lit -> if (lit && selectedFocus != null) Modifier.focusRequester(selectedFocus) else Modifier }
     // One column that scrolls when the screen is short (a phone on its side), with Live TV, Downloads and Settings at
     // its bottom whenever there's room: at least the screen's height, the space between them taken up by a spacer.
     BoxWithConstraints(Modifier.fillMaxHeight().windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Vertical))) {
-        Column(Modifier.verticalScroll(rememberScrollState()).heightIn(min = maxHeight).padding(12.dp)) {
+        Column(Modifier.verticalScroll(rememberScrollState()).heightIn(min = maxHeight).padding(horizontal = if (LocalRemoteDevice.current) RemoteInset else TouchInset, vertical = 12.dp)) {
             Row(Modifier.fillMaxWidth().height(48.dp), verticalAlignment = Alignment.CenterVertically) {
                 if (onMenu != null) {
                     IconButton(onClick = onMenu) {
@@ -323,7 +377,7 @@ private fun SidebarColumn(
                 }
             }
             Column(Modifier.padding(top = 8.dp)) {
-                NavRow(Icons.Filled.Home, "Home", same(selected, HomeKey), expanded) { onPick(HomeKey) }
+                NavRow(Icons.Filled.Home, "Home", same(selected, HomeKey), expanded, entry = entry(same(selected, HomeKey))) { onPick(HomeKey) }
                 if (libraries.isNotEmpty()) {
                     // Kept in place when narrow, so the icons don't move as it slides out.
                     Text(
@@ -339,23 +393,23 @@ private fun SidebarColumn(
                 libraries.forEach { lib ->
                     val key = LibraryKey(lib.id, lib.name)
                     val libIcon = WebIcons.library(lib)
-                    NavRow(libIcon.vector, lib.name, same(selected, key), expanded, lib.count, spot = libIcon.spot) { onPick(key) }
+                    NavRow(libIcon.vector, lib.name, same(selected, key), expanded, lib.count, spot = libIcon.spot, entry = entry(same(selected, key))) { onPick(key) }
                 }
                 // Films people asked for (when TMDB is set up to find them, or some are still listed).
                 if (requests.available || requests.count > 0) {
-                    NavRow(WebIcons.Request, "Requests", same(selected, RequestsKey), expanded, requests.count.takeIf { it > 0 }) { onPick(RequestsKey) }
+                    NavRow(WebIcons.Request, "Requests", same(selected, RequestsKey), expanded, requests.count.takeIf { it > 0 }, entry = entry(same(selected, RequestsKey))) { onPick(RequestsKey) }
                 }
             }
             Spacer(Modifier.height(16.dp))
             Spacer(Modifier.weight(1f))
             if (liveTv.available) {
-                NavRow(Icons.Filled.LiveTv, "Live TV", same(selected, GuideKey(radio = false)), expanded) { onPick(GuideKey(radio = false)) }
-                if (liveTv.radio) NavRow(Icons.Filled.Radio, "Radio", same(selected, GuideKey(radio = true)), expanded) { onPick(GuideKey(radio = true)) }
+                NavRow(Icons.Filled.LiveTv, "Live TV", same(selected, GuideKey(radio = false)), expanded, entry = entry(same(selected, GuideKey(radio = false)))) { onPick(GuideKey(radio = false)) }
+                if (liveTv.radio) NavRow(Icons.Filled.Radio, "Radio", same(selected, GuideKey(radio = true)), expanded, entry = entry(same(selected, GuideKey(radio = true)))) { onPick(GuideKey(radio = true)) }
                 // The recordings you set from the guide (accounts allowed to record).
-                if (liveTv.canRecord) NavRow(Icons.Filled.FiberManualRecord, "Manage Recordings", same(selected, RecordingsKey), expanded) { onPick(RecordingsKey) }
+                if (liveTv.canRecord) NavRow(Icons.Filled.FiberManualRecord, "Manage Recordings", same(selected, RecordingsKey), expanded, entry = entry(same(selected, RecordingsKey))) { onPick(RecordingsKey) }
             }
-            if (showDownloads) NavRow(Icons.Filled.DownloadForOffline, "Downloads", same(selected, DownloadsKey), expanded) { onPick(DownloadsKey) }
-            NavRow(Icons.Filled.Settings, if (updateWaiting) "Settings, update available" else "Settings", same(selected, SettingsKey), expanded, dot = updateWaiting) {
+            if (showDownloads) NavRow(Icons.Filled.DownloadForOffline, "Downloads", same(selected, DownloadsKey), expanded, entry = entry(same(selected, DownloadsKey))) { onPick(DownloadsKey) }
+            NavRow(Icons.Filled.Settings, if (updateWaiting) "Settings, update available" else "Settings", same(selected, SettingsKey), expanded, dot = updateWaiting, entry = entry(same(selected, SettingsKey))) {
                 onPick(SettingsKey)
             }
         }
@@ -371,12 +425,13 @@ private fun NavRow(
     count: Int? = null,
     dot: Boolean = false,
     spot: Spot? = null,
+    entry: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
     Row(
-        Modifier
+        entry
             .fillMaxWidth()
-            .height(44.dp)
+            .height(if (LocalRemoteDevice.current) 36.dp else 44.dp) // a remote needs less room than a finger
             .clip(RoundedCornerShape(8.dp))
             .background(if (selected) Palette.Elevated2 else Palette.Background)
             .clickable(onClick = onClick)
@@ -385,7 +440,7 @@ private fun NavRow(
                 this.selected = selected
                 role = Role.Tab
             }
-            .padding(start = 12.dp, end = 12.dp),
+            .padding(horizontal = if (LocalRemoteDevice.current) RemoteInset else TouchInset),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box {

@@ -1,5 +1,6 @@
 package app.reelhouse.android.ui.settings
 
+import android.content.ActivityNotFoundException
 import android.text.format.Formatter
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -14,7 +15,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -36,7 +36,9 @@ import androidx.compose.ui.unit.dp
 import app.reelhouse.android.container
 import app.reelhouse.android.data.model.User
 import app.reelhouse.android.ui.common.errorText
+import app.reelhouse.android.ui.common.remoteFocus
 import app.reelhouse.android.ui.components.AvatarCircle
+import app.reelhouse.android.ui.components.OutlinedButton
 import app.reelhouse.android.ui.theme.Palette
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
@@ -71,12 +73,18 @@ fun AvatarSection(user: User) {
             }
         }
     }
-    val choose = { pick.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }
+    val choose = {
+        try {
+            pick.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+        } catch (_: ActivityNotFoundException) {
+            problem = "This device has nothing to choose a picture with. Choose it in Reelhouse's web app."
+        }
+    }
 
     Row(Modifier.fillMaxWidth().padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         AvatarCircle(user, 64)
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            OutlinedButton(onClick = choose, enabled = !busy) { Text(if (user.avatar == null) "Choose a picture" else "Change picture") }
+            OutlinedButton(onClick = choose, enabled = !busy, modifier = Modifier.remoteFocus("picture", first = true)) { Text(if (user.avatar == null) "Choose a picture" else "Change picture") }
             if (user.avatar != null) {
                 TextButton(onClick = {
                     problem = null

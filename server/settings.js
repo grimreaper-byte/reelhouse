@@ -30,7 +30,7 @@ const DEFAULTS = {
   maxTranscodes: 3,
   transcodeDir: '',
   tonemapHdr: true,
-  remoteQuality: '4m-720',
+  remoteQuality: 'original', // nothing converted that needn't be; a slow upload can pick lower
   allowDownloads: false, // servers set up before this default keep theirs (migration v18)
 
   // Requests (server/requests.js): anyone can ask for a film that isn't on the server; finding films needs tmdbApiKey.

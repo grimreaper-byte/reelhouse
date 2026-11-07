@@ -280,12 +280,12 @@ router.get('/android', async (req, res) => {
   res.setHeader('Cache-Control', 'no-cache');
   const body = info
     ? `<p><a class="button" href="${escapeHtml(info.fileName)}">Download Reelhouse ${escapeHtml(info.versionName)}</a></p>
-<p class="small">${megabytes(info.size)} · for Android 8.0 and newer</p>
+<p class="small">${megabytes(info.size)} · for Android 7.1 and newer: phones, tablets and TV boxes</p>
 <ol>
-<li>Open this page on the phone and download the app.</li>
-<li>Open the download. If the phone asks, allow your browser to install apps, then install.</li>
-<li>Open Reelhouse on the phone and choose <b>Scan the QR code</b>. On a computer, sign in to Reelhouse and open
-<b>Your account → Apps and devices → Pair the Reelhouse app</b> for the code.</li>
+<li>Open this page on the device and download the app.</li>
+<li>Open the download. If the device asks, allow your browser to install apps, then install.</li>
+<li>Open Reelhouse and choose <b>Scan the QR code</b> (<b>Type the code</b> on a TV box). On a computer, sign in to
+Reelhouse and open <b>Your account → Apps and devices → Pair the Reelhouse app</b> for the code.</li>
 </ol>
 <p class="small">To update, install a newer version over the old one; the app stays paired.</p>`
     : `<p>The app hasn’t been added to this Reelhouse yet. An admin can add it in <b>Settings → Android

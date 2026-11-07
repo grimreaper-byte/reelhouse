@@ -17,7 +17,7 @@ MEDIA = os.path.join(ADDON_PATH, 'resources', 'skins', 'Default', 'media', 'reel
 SIDEBAR, SIDEBAR_END = 9000, 9002  # the sidebar's entries from its top, and those kept at its bottom
 SIDEBARS = (SIDEBAR, SIDEBAR_END)
 SIDEBAR_SHUT = '!Control.HasFocus({}) + !Control.HasFocus({})'.format(SIDEBAR, SIDEBAR_END)
-SIDEBAR_TOP, SIDEBAR_FOOT, SIDEBAR_GAP, SIDEBAR_ROW = 132, 24, 16, 78  # where the lists go (sidebar.xml)
+SIDEBAR_TOP, SIDEBAR_FOOT, SIDEBAR_GAP, SIDEBAR_ROW = 132, 24, 16, 64  # where the lists go (sidebar.xml)
 RETRY = 90
 
 ACTION_MOVE_LEFT, ACTION_MOVE_RIGHT, ACTION_MOVE_UP, ACTION_MOVE_DOWN = 1, 2, 3, 4

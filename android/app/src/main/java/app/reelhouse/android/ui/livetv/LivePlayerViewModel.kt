@@ -196,7 +196,7 @@ class LivePlayerViewModel(private val c: AppContainer, context: Context, channel
 
     private fun atHome() = c.connection.state.value.route is Route.Home
 
-    private fun quality() = chooseQuality(atHome(), c.prefs.quality(atHome()), c.connection.serverDefaults.value?.remoteQuality ?: "4m-720")
+    private fun quality() = chooseQuality(atHome(), c.prefs.quality(atHome()), c.connection.serverDefaults.value?.remoteQuality ?: "original")
 
     /** Starts the channel (again): a fresh stream on the server, the one before stopped first. */
     fun start() {

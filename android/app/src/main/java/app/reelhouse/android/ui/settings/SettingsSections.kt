@@ -12,10 +12,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -37,11 +35,15 @@ import app.reelhouse.android.data.playback.AvSync
 import app.reelhouse.android.data.playback.Quality
 import app.reelhouse.android.data.update.AppUpdater
 import app.reelhouse.android.ui.common.formatSize
+import app.reelhouse.android.ui.common.startFocus
+import app.reelhouse.android.ui.components.Button
+import app.reelhouse.android.ui.components.OutlinedButton
 import app.reelhouse.android.ui.player.PlayerViewModel
 import app.reelhouse.android.ui.player.SYNC_HINT
 import app.reelhouse.android.ui.player.SyncAdjuster
 import app.reelhouse.android.ui.player.pictureTimingText
 import app.reelhouse.android.ui.theme.Palette
+import app.reelhouse.android.ui.theme.TextRing
 import kotlinx.coroutines.launch
 
 /** The quality to start at, at home and away (choosing one in the player changes these too). */
@@ -56,7 +58,7 @@ internal fun PlaybackSection() {
     var picking by remember { mutableStateOf<Boolean?>(null) } // true: at home, false: away
     val label = { id: String? -> qualities.firstOrNull { it.id == id }?.label ?: id }
     val automatic = { atHome: Boolean ->
-        if (atHome) "Automatic (original)"
+        if (atHome || defaults?.remoteQuality == "original") "Automatic (original)"
         else "Automatic (" + (label(defaults?.remoteQuality) ?: "Reelhouse's choice") + ")"
     }
 
@@ -115,7 +117,7 @@ internal fun PlaybackSection() {
 
 @Composable
 private fun ChoiceRow(label: String, value: String, onClick: () -> Unit) {
-    Column(Modifier.fillMaxWidth().clickable(onClickLabel = "Change", onClick = onClick).padding(vertical = 8.dp)) {
+    Column(Modifier.fillMaxWidth().clickable(null, TextRing, onClickLabel = "Change", onClick = onClick).padding(vertical = 8.dp)) {
         Text(label, style = MaterialTheme.typography.bodySmall, color = Palette.TextDim)
         Text(value, style = MaterialTheme.typography.bodyMedium)
     }
@@ -146,7 +148,7 @@ private fun QualityDialog(
 @Composable
 private fun RadioRow(text: String, selected: Boolean, onClick: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().selectable(selected = selected, onClick = onClick, role = Role.RadioButton).padding(vertical = 4.dp),
+        (if (selected) Modifier.startFocus() else Modifier).fillMaxWidth().selectable(selected, null, TextRing, role = Role.RadioButton, onClick = onClick).padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         RadioButton(selected = selected, onClick = null)

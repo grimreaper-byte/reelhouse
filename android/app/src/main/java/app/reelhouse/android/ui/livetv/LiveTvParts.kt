@@ -2,6 +2,7 @@ package app.reelhouse.android.ui.livetv
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
@@ -33,6 +34,7 @@ import app.reelhouse.android.data.model.Channel
 import app.reelhouse.android.ui.components.POSTER_WIDTH
 import app.reelhouse.android.ui.components.RemoteImage
 import app.reelhouse.android.ui.theme.Palette
+import app.reelhouse.android.ui.theme.pictureHighlight
 import kotlinx.coroutines.delay
 import java.util.Date
 
@@ -93,10 +95,11 @@ fun ChannelLogo(channel: Channel, size: Dp, modifier: Modifier = Modifier) {
 
 /** A channel in Continue Watching: its logo and name on a poster's shape, nothing about what's on. It plays straight away. */
 @Composable
-fun ChannelCard(channel: Channel, onClick: () -> Unit) {
-    Column(Modifier.width(POSTER_WIDTH).clickable(onClick = onClick)) {
+fun ChannelCard(channel: Channel, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val press = remember { MutableInteractionSource() }
+    Column(modifier.width(POSTER_WIDTH).clickable(press, null, onClick = onClick)) {
         Box(
-            Modifier.fillMaxWidth().aspectRatio(2f / 3f).clip(RoundedCornerShape(6.dp)).background(Palette.Elevated2),
+            Modifier.fillMaxWidth().aspectRatio(2f / 3f).pictureHighlight(press, RoundedCornerShape(6.dp)).background(Palette.Elevated2),
             contentAlignment = Alignment.Center,
         ) {
             ChannelLogo(channel, POSTER_WIDTH * 2 / 3)

@@ -1,8 +1,8 @@
 # Reelhouse for Android
 
-The Reelhouse app for Android phones and tablets. It reaches Reelhouse at home directly and, away from home,
-through the **app tunnel**: WireGuard built into the app, so there's no WireGuard app, no VPN slot, and nothing else
-on the phone goes through it.
+The Reelhouse app for Android phones, tablets and TV boxes such as a Fire TV, from Android 7.1. It reaches Reelhouse
+at home directly and, away from home, through the **app tunnel**: WireGuard built into the app, so there's no
+WireGuard app, no VPN slot, and nothing else on the device goes through it.
 
 Status: milestones 1–5 are done. You can:
 - pair the app (QR code, link, typed code or password);
@@ -48,7 +48,8 @@ Status: milestones 1–5 are done. You can:
 - ask for movies that aren't on the server in **Requests** (since 0.3.0), see everyone's requests with who asked and
   when, and remove your own (an admin can remove any, or all);
 - read Reelhouse's licence and those of the open-source projects it's built with in **Settings → About →
-  Open-source licences**.
+  Open-source licences**;
+- use all of it with a remote on a TV box, since 0.13.0 ([below](#on-a-fire-tv-or-android-tv-box)).
 
 The app picks a route (at home, tunnel or web), and pages update live when something changes on the server.
 
@@ -101,6 +102,31 @@ time, Android asks to allow Reelhouse to install apps.
 - **Removing:** from each download's menu, **Delete all downloads** in Settings, or by signing out.
 - A download is the original file. If the phone can't play it as it is (some phones can't play 10-bit HEVC, for
   example), Reelhouse converts it while you're connected; offline, the player says so.
+
+## On a Fire TV or Android TV box
+
+The app runs on a box with Android 7.1 or newer (a Fire TV Stick 4K on Fire OS 6 is the one it's been tried on). It knows
+it's on one by the device being a TV or having no touch screen, and then:
+
+- **Getting around:** the arrows move an accent ring, OK presses, Back goes back. Left from a page opens the sidebar,
+  Right or Back returns to the page. Each screen starts on its main thing (a film's Play, a guide's programme on now),
+  and coming back to a screen returns to what you left.
+- **Text boxes** don't bring up the keyboard as you pass over them: press OK on one to type, and Back to finish.
+- **The player:** Left and Right skip 10 seconds, OK pauses, Up or Down brings up the controls, Back hides them first.
+- **Live TV:** Up and Down change channel, with a banner saying what's on; OK, Left or Right bring up the buttons; the
+  Play/Pause key pauses.
+- **Not there, as there's no use for them:** Scan the QR code without a camera, pull to refresh.
+
+**On the home screen:** Android TV and Google TV show the app's wide banner. Fire OS doesn't, for an app that isn't from
+Amazon's Appstore: it puts the app's square icon between grey bars, so on a TV that icon has the logo and the name. Fire
+OS also keeps its own copy of the picture, even through uninstalling: restart the Fire TV if an old one stays. An app
+isn't always in the row at the top: find it under **Your Apps & Channels**, and press the menu key on it to move it.
+
+**To install it:** on a Fire TV, turn on **Settings → My Fire TV → Developer options → Apps from Unknown Sources**
+(wording varies by Fire OS version), then open the APK with an app such as Downloader, from the [latest
+release](https://github.com/grimreaper-byte/reelhouse/releases/latest) or `http://<your Reelhouse>/android/`. With
+ADB debugging on, `adb connect <its address>` and `adb install` work too. **To pair it**, choose **Type the code (at
+home)** and enter Reelhouse's address and the code, with the box on the same network as Reelhouse.
 
 ## Building
 
@@ -169,6 +195,7 @@ adb shell "am start -a android.intent.action.VIEW -d 'reelhouse://pair?d=…'"
 
 | Part | Where |
 |---|---|
+| A remote | `ui/common/Remote.kt`: where the focus starts and returns to on each screen (`RemoteScreen`, `remoteFocus`, `startFocus`), rows and grids that keep it at their ends (`focusRow`, `endOfRow`), text boxes that don't trap it (`RemoteTextBox`), how pages scroll for it (`RemoteScroll`). `ui/theme/FocusRing.kt` and `ui/components/Buttons.kt` draw the ring. Nothing here does anything on a phone |
 | Tunnel (Go, gomobile) | `../tunnel/mobile`: wireguard-go and gVisor netstack in the app's process, plus a local HTTP proxy at `http://127.0.0.1:<port>/<secret>` that forwards to Reelhouse inside the tunnel |
 | Connection | `data/connection`: picks the route (home addresses, then the tunnel, then the web address) at start, on network changes and when a request fails; stops the tunnel a minute after the app leaves the screen |
 | Pairing | `data/pairing`: reads `reelhouse://pair` links. At home it pairs with a key made on the phone, only where the code's server id answers; away, through the tunnel with the QR code's key |

@@ -30,14 +30,12 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -75,9 +73,13 @@ import app.reelhouse.android.data.model.FilmResult
 import app.reelhouse.android.data.model.RequestsResponse
 import app.reelhouse.android.ui.common.Loadable
 import app.reelhouse.android.ui.common.LoadableContent
+import app.reelhouse.android.ui.common.RemoteTextBox
 import app.reelhouse.android.ui.common.errorText
 import app.reelhouse.android.ui.common.refreshOnServerEvents
+import app.reelhouse.android.ui.common.remoteFocus
 import app.reelhouse.android.ui.components.AvatarCircle
+import app.reelhouse.android.ui.components.Button
+import app.reelhouse.android.ui.components.OutlinedButton
 import app.reelhouse.android.ui.components.RemoteImage
 import app.reelhouse.android.ui.components.WebIcons
 import app.reelhouse.android.ui.components.statusRowBar
@@ -352,6 +354,7 @@ private fun SearchField(query: String, onChange: (String) -> Unit) {
     Column {
         Text("Ask for a movie that isn’t on the server. When it turns up in a library you can open, its request goes by itself.", color = Palette.TextDim)
         Spacer(Modifier.height(12.dp))
+        RemoteTextBox(Modifier.remoteFocus("find", first = true).fillMaxWidth()) { box ->
         OutlinedTextField(
             value = query,
             onValueChange = onChange,
@@ -361,8 +364,9 @@ private fun SearchField(query: String, onChange: (String) -> Unit) {
             singleLine = true,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
             keyboardActions = KeyboardActions(onSearch = { keyboard?.hide() }),
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().then(box),
         )
+        }
     }
 }
 

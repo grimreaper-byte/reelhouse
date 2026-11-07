@@ -24,11 +24,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -55,6 +53,10 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.reelhouse.android.container
 import app.reelhouse.android.data.pairing.PendingPairLink
+import app.reelhouse.android.ui.common.RemoteTextBox
+import app.reelhouse.android.ui.common.startFocus
+import app.reelhouse.android.ui.components.Button
+import app.reelhouse.android.ui.components.OutlinedButton
 import app.reelhouse.android.ui.theme.Palette
 
 @Composable
@@ -130,7 +132,7 @@ fun PairScreen() {
         Column(Modifier.widthIn(max = 420.dp).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
             Text("Reelhouse", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.SemiBold, color = Palette.Accent)
             Spacer(Modifier.height(8.dp))
-            Text("Pair this phone with your Reelhouse", style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
+            Text("Pair this device with your Reelhouse", style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
             Spacer(Modifier.height(24.dp))
 
             notice?.let {
@@ -161,6 +163,7 @@ fun PairScreen() {
 
 @Composable
 private fun ChooseWay(onScan: () -> Unit, onCode: () -> Unit, onPassword: () -> Unit) {
+    val hasCamera = LocalContext.current.packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY)
     Text(
         "In Reelhouse on a computer, open Your account → Apps and devices → Pair the Reelhouse app.",
         style = MaterialTheme.typography.bodyMedium,
@@ -168,13 +171,15 @@ private fun ChooseWay(onScan: () -> Unit, onCode: () -> Unit, onPassword: () -> 
         textAlign = TextAlign.Center,
     )
     Spacer(Modifier.height(24.dp))
-    Button(onClick = onScan, modifier = Modifier.fillMaxWidth().height(52.dp)) {
-        Icon(Icons.Filled.QrCodeScanner, contentDescription = null, modifier = Modifier.size(20.dp))
-        Spacer(Modifier.size(10.dp))
-        Text("Scan the QR code")
+    if (hasCamera) {
+        Button(onClick = onScan, modifier = Modifier.startFocus().fillMaxWidth().height(52.dp)) {
+            Icon(Icons.Filled.QrCodeScanner, contentDescription = null, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.size(10.dp))
+            Text("Scan the QR code")
+        }
+        Spacer(Modifier.height(12.dp))
     }
-    Spacer(Modifier.height(12.dp))
-    OutlinedButton(onClick = onCode, modifier = Modifier.fillMaxWidth().height(52.dp)) {
+    OutlinedButton(onClick = onCode, modifier = (if (hasCamera) Modifier else Modifier.startFocus()).fillMaxWidth().height(52.dp)) {
         Icon(Icons.Filled.Keyboard, contentDescription = null, modifier = Modifier.size(20.dp))
         Spacer(Modifier.size(10.dp))
         Text("Type the code (at home)")
@@ -188,7 +193,7 @@ private fun CodeForm(onPair: (String, String) -> Unit, onBack: () -> Unit) {
     var address by rememberSaveable { mutableStateOf("") }
     var code by rememberSaveable { mutableStateOf("") }
     Text(
-        "On the same Wi-Fi as Reelhouse, enter its address and the code shown under the QR code.",
+        "On the same network as Reelhouse, enter its address and the code shown under the QR code.",
         style = MaterialTheme.typography.bodyMedium,
         color = Palette.TextDim,
         textAlign = TextAlign.Center,
@@ -196,6 +201,7 @@ private fun CodeForm(onPair: (String, String) -> Unit, onBack: () -> Unit) {
     Spacer(Modifier.height(16.dp))
     AddressField(address) { address = it }
     Spacer(Modifier.height(8.dp))
+    RemoteTextBox(Modifier.fillMaxWidth()) { box ->
     OutlinedTextField(
         value = code,
         onValueChange = { code = it.uppercase().filter { ch -> ch.isLetterOrDigit() || ch == '-' || ch == ' ' }.take(12) },
@@ -203,8 +209,9 @@ private fun CodeForm(onPair: (String, String) -> Unit, onBack: () -> Unit) {
         placeholder = { Text("XXXX-XXXX") },
         singleLine = true,
         keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters, keyboardType = KeyboardType.Ascii, imeAction = ImeAction.Done),
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().then(box),
     )
+    }
     Spacer(Modifier.height(16.dp))
     Button(onClick = { onPair(address, code) }, enabled = address.isNotBlank() && code.count { it.isLetterOrDigit() } >= 8, modifier = Modifier.fillMaxWidth().height(48.dp)) {
         Text("Pair")
@@ -226,14 +233,18 @@ private fun PasswordForm(onSignIn: (String, String, String) -> Unit, onBack: () 
     Spacer(Modifier.height(16.dp))
     AddressField(address) { address = it }
     Spacer(Modifier.height(8.dp))
-    OutlinedTextField(username, { username = it }, label = { Text("Username") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+    RemoteTextBox(Modifier.fillMaxWidth()) { box ->
+        OutlinedTextField(username, { username = it }, label = { Text("Username") }, singleLine = true, modifier = Modifier.fillMaxWidth().then(box))
+    }
     Spacer(Modifier.height(8.dp))
+    RemoteTextBox(Modifier.fillMaxWidth()) { box ->
     OutlinedTextField(
         password, { password = it }, label = { Text("Password") }, singleLine = true,
         visualTransformation = PasswordVisualTransformation(),
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().then(box),
     )
+    }
     Spacer(Modifier.height(16.dp))
     Button(onClick = { onSignIn(address, username, password) }, enabled = address.isNotBlank() && username.isNotBlank() && password.isNotEmpty(), modifier = Modifier.fillMaxWidth().height(48.dp)) {
         Text("Sign in")
@@ -243,6 +254,7 @@ private fun PasswordForm(onSignIn: (String, String, String) -> Unit, onBack: () 
 
 @Composable
 private fun AddressField(value: String, onChange: (String) -> Unit) {
+    RemoteTextBox(Modifier.startFocus().fillMaxWidth()) { box ->
     OutlinedTextField(
         value = value,
         onValueChange = onChange,
@@ -250,6 +262,7 @@ private fun AddressField(value: String, onChange: (String) -> Unit) {
         placeholder = { Text("192.168.1.20:8484") },
         singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Next),
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().then(box),
     )
+    }
 }

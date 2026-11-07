@@ -31,6 +31,6 @@
   <!-- Now playing (while something plays), Home, the libraries and Search from the top; Live TV, Radio, Recordings,
        Settings and Exit at the bottom (base.py puts the bottom list on the foot for how many entries it holds, and gives
        the top one the room above it). -->
-  <!-- include sidebar-list list=9000 top=132 height=596 -->
-  <!-- include sidebar-list list=9002 top=744 height=312 -->
+  <!-- include sidebar-list list=9000 top=132 height=652 -->
+  <!-- include sidebar-list list=9002 top=800 height=256 -->
 </control>

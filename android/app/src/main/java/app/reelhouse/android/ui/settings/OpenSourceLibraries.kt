@@ -20,6 +20,7 @@ data class OpenSourceLibrary(
 
 private val Apache = Licence("Apache License 2.0", "apache-2.0.txt")
 private val Mit = Licence("MIT License", "mit.txt")
+private val GplClasspath = Licence("GNU General Public License 2.0, with the Classpath Exception", "gpl-2.0-classpath-exception.txt")
 
 /** Reelhouse's own licence (the repository's LICENSE). */
 val ReelhouseLicence = OpenSourceLibrary(
@@ -37,6 +38,11 @@ val OpenSourceLibraries: List<OpenSourceLibrary> = listOf(
         "Android Jetpack (AndroidX)", "Copyright The Android Open Source Project", Apache,
         "https://developer.android.com/jetpack/androidx", listOf("androidx"),
         note = "Activity, AppCompat, Compose, Core, Lifecycle, Navigation 3, Room, WorkManager and the other AndroidX libraries.",
+    ),
+    OpenSourceLibrary(
+        "Android desugared Java libraries", "Copyright Oracle and/or its affiliates, and The Android Open Source Project", GplClasspath,
+        "https://github.com/google/desugar_jdk_libs", listOf("com.android.tools:desugar_jdk_libs"),
+        note = "OpenJDK's java.time and java.util.Base64, for Android 7.1.",
     ),
     OpenSourceLibrary(
         "AndroidX Media3 (ExoPlayer)", "Copyright The Android Open Source Project", Apache,

@@ -32,7 +32,7 @@ export function preferredQuality() {
   const local = state.me?.network?.local;
   const prefs = getPrefs();
   const saved = local ? prefs.qualityLocal : prefs.qualityRemote;
-  return saved || (local ? 'original' : state.me?.defaults?.remoteQuality || '4m-720');
+  return saved || (local ? 'original' : state.me?.defaults?.remoteQuality || 'original');
 }
 
 export function savePreferredQuality(id) {

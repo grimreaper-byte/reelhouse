@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -20,7 +21,6 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -29,7 +29,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -45,6 +44,11 @@ import app.reelhouse.android.container
 import app.reelhouse.android.data.model.Item
 import app.reelhouse.android.ui.common.CenteredMessage
 import app.reelhouse.android.ui.common.LoadableContent
+import app.reelhouse.android.ui.common.RefreshBox
+import app.reelhouse.android.ui.common.endOfRow
+import app.reelhouse.android.ui.common.focusRow
+import app.reelhouse.android.ui.common.remoteFocus
+import app.reelhouse.android.ui.components.FilterChip
 import app.reelhouse.android.ui.components.PosterCard
 import app.reelhouse.android.ui.components.statusRowBar
 import app.reelhouse.android.ui.theme.Palette
@@ -105,7 +109,7 @@ fun LibraryScreen(libraryId: Long, name: String, onOpenItem: (Item) -> Unit, onB
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
             Row(
-                Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 4.dp),
+                Modifier.focusRow().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 4.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 for (f in Filter.entries) {
@@ -139,7 +143,7 @@ fun LibraryScreen(libraryId: Long, name: String, onOpenItem: (Item) -> Unit, onB
                 }
             }
             LoadableContent(items, onRetry = vm::load) { list ->
-                PullToRefreshBox(isRefreshing = refreshing, onRefresh = vm::refresh, modifier = Modifier.fillMaxSize()) {
+                RefreshBox(refreshing, vm::refresh, modifier = Modifier.fillMaxSize()) {
                     if (list.isEmpty()) {
                         CenteredMessage(if (options.filter == Filter.All && options.genre == null) "This library is empty." else "Nothing matches.")
                     } else {
@@ -150,7 +154,9 @@ fun LibraryScreen(libraryId: Long, name: String, onOpenItem: (Item) -> Unit, onB
                             verticalArrangement = Arrangement.spacedBy(16.dp),
                             modifier = Modifier.fillMaxSize(),
                         ) {
-                            items(list, key = { it.id }) { item -> PosterCard(item, onClick = { onOpenItem(item) }, fill = true) }
+                            itemsIndexed(list, key = { _, item -> item.id }) { n, item ->
+                                PosterCard(item, onClick = { onOpenItem(item) }, fill = true, modifier = Modifier.remoteFocus(item.id, first = n == 0).endOfRow(n == list.lastIndex))
+                            }
                         }
                     }
                 }

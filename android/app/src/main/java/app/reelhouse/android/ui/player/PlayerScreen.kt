@@ -1,6 +1,8 @@
 package app.reelhouse.android.ui.player
 
+import android.content.Context
 import android.content.pm.ActivityInfo
+import android.view.KeyEvent
 import android.view.View
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalActivity
@@ -34,19 +36,16 @@ import androidx.compose.material.icons.filled.HighQuality
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Subtitles
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import app.reelhouse.android.ui.common.formatPosition
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -59,6 +58,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -76,6 +76,11 @@ import androidx.media3.ui.PlayerView
 import app.reelhouse.android.container
 import app.reelhouse.android.data.model.Item
 import app.reelhouse.android.data.playback.AvSync
+import app.reelhouse.android.ui.common.LocalRemoteDevice
+import app.reelhouse.android.ui.common.formatPosition
+import app.reelhouse.android.ui.common.startFocus
+import app.reelhouse.android.ui.components.Button
+import app.reelhouse.android.ui.components.OutlinedButton
 import app.reelhouse.android.ui.theme.Palette
 
 private enum class Menu(val title: String) { Subtitles("Subtitles"), Audio("Audio"), Quality("Quality") }
@@ -91,22 +96,41 @@ fun PlayerScreen(itemId: Long, startAt: Double, onBack: () -> Unit) {
     var controls by remember { mutableStateOf(true) }
     var menu by remember { mutableStateOf<Menu?>(null) }
     var syncing by remember { mutableStateOf(false) }
+    // With a remote the keys go to the player's view, which brings up its controls and moves around them.
+    val remote = LocalRemoteDevice.current
+    var view by remember { mutableStateOf<PlayerView?>(null) }
 
     ImmersiveLandscape()
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { vm.onBackground() }
     LaunchedEffect(ui.finished) { if (ui.finished) onBack() }
-    BackHandler(onBack = onBack)
+    BackHandler { if (remote && controls && ui.error == null) view?.hideController() else onBack() }
+    if (remote) {
+        LaunchedEffect(view, menu, syncing, ui.askResume, ui.upNext) {
+            if (menu == null && !syncing && ui.askResume == null && ui.upNext == null) view?.requestFocus()
+        }
+    }
 
-    Box(Modifier.fillMaxSize().background(Color.Black)) {
+    // A key in the top bar (Compose's, so the player's view doesn't hear it) keeps the controls up too.
+    Box(Modifier.fillMaxSize().background(Color.Black).onPreviewKeyEvent { if (remote && controls) view?.showController(); false }) {
         AndroidView(
             factory = { ctx ->
-                PlayerView(ctx).apply {
+                (if (remote) RemotePlayerView(ctx) else PlayerView(ctx)).apply {
                     player = controlsPlayer(vm)
                     setShowSubtitleButton(false) // the top bar has the app's own menus
                     setShowBuffering(PlayerView.SHOW_BUFFERING_WHEN_PLAYING)
                     keepScreenOn = true
-                    controllerShowTimeoutMs = 4000
-                    setControllerVisibilityListener(PlayerView.ControllerVisibilityListener { v -> controls = v == View.VISIBLE })
+                    controllerShowTimeoutMs = if (remote) REMOTE_CONTROLS_MS else 4000
+                    setControllerVisibilityListener(
+                        PlayerView.ControllerVisibilityListener { v ->
+                            controls = v == View.VISIBLE
+                            if (remote) {
+                                // Onto its play button; once they've gone, back here for the next key to bring them again.
+                                if (v == View.VISIBLE) findViewById<View>(androidx.media3.ui.R.id.exo_play_pause)?.requestFocus() else requestFocus()
+                            }
+                        },
+                    )
+                    if (remote) isFocusable = true
+                    view = this
                 }
             },
             // ⏮ and ⏭ are there for a film with chapters (they go between them, see controlsPlayer); the next episode
@@ -148,7 +172,7 @@ fun PlayerScreen(itemId: Long, startAt: Double, onBack: () -> Unit) {
                 Text(error, color = Color.White, style = MaterialTheme.typography.bodyLarge)
                 Spacer(Modifier.height(16.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Button(onClick = vm::retry) { Text("Try again") }
+                    Button(onClick = vm::retry, modifier = Modifier.startFocus()) { Text("Try again") }
                     OutlinedButton(onClick = onBack) { Text("Back") }
                 }
             }
@@ -170,7 +194,7 @@ fun PlayerScreen(itemId: Long, startAt: Double, onBack: () -> Unit) {
             onDismissRequest = onBack,
             title = { Text(ui.item?.let { if (it.type == "episode") listOfNotNull(it.episodeLabel, it.title).joinToString(" · ") else it.title } ?: "Resume?") },
             text = { Text("You stopped at ${formatPosition(at)}.") },
-            confirmButton = { TextButton(onClick = { vm.resumeFrom(fromStart = false) }) { Text("Resume from ${formatPosition(at)}") } },
+            confirmButton = { TextButton(onClick = { vm.resumeFrom(fromStart = false) }, modifier = Modifier.startFocus()) { Text("Resume from ${formatPosition(at)}") } },
             dismissButton = { TextButton(onClick = { vm.resumeFrom(fromStart = true) }) { Text("Start from the beginning") } },
         )
     }
@@ -195,9 +219,9 @@ fun PlayerScreen(itemId: Long, startAt: Double, onBack: () -> Unit) {
                 if (choices.isEmpty()) {
                     Text("Nothing to choose from.", color = Palette.TextDim, modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp))
                 }
-                choices.forEach { choice ->
+                choices.forEachIndexed { n, choice ->
                     Row(
-                        Modifier.fillMaxWidth().clickable {
+                        (if (n == 0) Modifier.startFocus() else Modifier).fillMaxWidth().clickable {
                             menu = null
                             choice.onPick()
                         }.padding(horizontal = 24.dp, vertical = 14.dp),
@@ -257,7 +281,7 @@ private fun UpNext(next: Item, seconds: Int, onPlay: () -> Unit, onCancel: () ->
             Text(listOfNotNull(next.episodeLabel, next.title).joinToString(" · "), style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
             Spacer(Modifier.height(12.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Button(onClick = onPlay) {
+                Button(onClick = onPlay, modifier = Modifier.startFocus()) {
                     Icon(Icons.Filled.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(6.dp))
                     Text("Play now ($seconds)")
@@ -265,6 +289,36 @@ private fun UpNext(next: Item, seconds: Int, onPlay: () -> Unit, onCancel: () ->
                 TextButton(onClick = onCancel) { Text("Cancel") }
             }
         }
+    }
+}
+
+private const val REMOTE_CONTROLS_MS = 6000
+private const val REMOTE_SKIP_MS = 10_000L
+
+/**
+ * The player with a remote, while its controls are hidden: left and right skip, OK pauses or plays, and up and down bring
+ * the controls up. Showing, the arrows move between their buttons as usual.
+ */
+@OptIn(UnstableApi::class)
+private class RemotePlayerView(context: Context) : PlayerView(context) {
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        val player = player
+        val handled = when (event.keyCode) {
+            KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN -> true
+            else -> false
+        }
+        if (player == null || !handled || isControllerFullyVisible) return super.dispatchKeyEvent(event)
+        if (event.action == KeyEvent.ACTION_DOWN) {
+            when (event.keyCode) {
+                KeyEvent.KEYCODE_DPAD_LEFT -> player.seekTo((player.currentPosition - REMOTE_SKIP_MS).coerceAtLeast(0))
+                KeyEvent.KEYCODE_DPAD_RIGHT -> player.seekTo(player.currentPosition + REMOTE_SKIP_MS)
+                KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> if (event.repeatCount == 0) {
+                    if (player.isPlaying) player.pause() else player.play()
+                }
+            }
+            showController()
+        }
+        return true
     }
 }
 

@@ -8,10 +8,10 @@ import androidx.compose.foundation.gestures.rememberScrollableState
 import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -35,7 +35,6 @@ import androidx.compose.material.icons.filled.FiberManualRecord
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -54,6 +53,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -65,6 +65,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
@@ -87,11 +88,17 @@ import app.reelhouse.android.data.model.Channel
 import app.reelhouse.android.data.model.Programme
 import app.reelhouse.android.ui.common.CenteredMessage
 import app.reelhouse.android.ui.common.Loading
+import app.reelhouse.android.ui.common.arrowScroll
+import app.reelhouse.android.ui.common.focusRow
+import app.reelhouse.android.ui.common.remoteFocus
+import app.reelhouse.android.ui.common.startFocus
+import app.reelhouse.android.ui.components.FilterChip
 import app.reelhouse.android.ui.components.statusRowBar
 import app.reelhouse.android.ui.theme.Palette
-import kotlinx.coroutines.delay
 import kotlin.math.max
+import kotlin.math.min
 import kotlin.math.roundToInt
+import kotlinx.coroutines.delay
 
 // Live TV's guide (Tvheadend's EPG), as the web app's: on a phone held upright a list of channels with what's on now
 // and next; on a wide screen (a phone on its side, a tablet) a grid of channels against time with a line at "now",
@@ -169,7 +176,7 @@ fun GuideScreen(radio: Boolean, onPlay: (Channel) -> Unit, onBack: () -> Unit) {
                     val pick: (Programme) -> Unit = { highlighted = it.id; open = it }
                     if (wide) {
                         val shown = ui.events.firstOrNull { it.id == highlighted && it.stop > ui.from } ?: firstHighlight(rows, ui.now, ui.from)
-                        GuideGrid(ui, rows, shown?.id, verb, timeOf, onPlay, pick, vm::loadMore, Modifier.weight(1f))
+                        GuideGrid(ui, rows, shown?.id, verb, timeOf, onPlay, pick, { highlighted = it.id }, vm::loadMore, Modifier.weight(1f))
                         if (config.screenHeightDp >= SUMMARY_DP && shown != null) {
                             HorizontalDivider(color = Palette.Border)
                             Summary(shown, ui.channels.firstOrNull { it.uuid == shown.channel }, ui.now, timeOf)
@@ -212,7 +219,7 @@ fun GuideScreen(radio: Boolean, onPlay: (Channel) -> Unit, onBack: () -> Unit) {
 
 @Composable
 private fun DayChips(day: Int, now: Long, onPick: (Int) -> Unit) {
-    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    Row(Modifier.focusRow().fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         for (i in 0 until 7) {
             FilterChip(
                 selected = i == day,
@@ -309,6 +316,7 @@ private fun GuideGrid(
     timeOf: (Long) -> String,
     onPlay: (Channel) -> Unit,
     onOpen: (Programme) -> Unit,
+    onFocused: (Programme) -> Unit,
     onNearEnd: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -373,7 +381,19 @@ private fun GuideGrid(
                                     val start = spans[i].startMin * pxPerMin
                                     val room = max(0f, spans[i].lengthMin * pxPerMin - titleRoom)
                                     // Partly scrolled off: its title stays in sight.
-                                    ProgrammeBlock(p, ui.now, p.id == highlighted, timeOf, shift = { (scrollX - start).coerceIn(0f, room).roundToInt() }) { onOpen(p) }
+                                    // With a remote: the one with the focus is the one described, and is brought into sight.
+                                    val end = start + spans[i].lengthMin * pxPerMin
+                                    val focus = Modifier.remoteFocus("programme-${p.id}", first = p.id == highlighted).onFocusChanged {
+                                        if (it.isFocused) {
+                                            onFocused(p)
+                                            if (start < scrollX) {
+                                                scrollX = start
+                                            } else if (end > scrollX + viewport) {
+                                                scrollX = min(start, end - viewport).coerceIn(0f, maxScroll)
+                                            }
+                                        }
+                                    }
+                                    key(p.id) { ProgrammeBlock(p, ui.now, p.id == highlighted, timeOf, focus, shift = { (scrollX - start).coerceIn(0f, room).roundToInt() }) { onOpen(p) } }
                                 }
                             }
                         }
@@ -418,7 +438,7 @@ private fun Timeline(spans: List<Span>, scrollX: () -> Float, pxPerMin: Float, g
 @Composable
 private fun ChannelCell(channel: Channel, verb: String, onPlay: () -> Unit) {
     Row(
-        Modifier.width(ChannelWidth).fillMaxHeight().padding(horizontal = 6.dp).clip(RoundedCornerShape(6.dp)).background(Palette.Elevated)
+        Modifier.remoteFocus("channel-${channel.uuid}").width(ChannelWidth).fillMaxHeight().padding(horizontal = 6.dp).clip(RoundedCornerShape(6.dp)).background(Palette.Elevated)
             .clickable(onClickLabel = verb, onClick = onPlay).padding(horizontal = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -431,7 +451,7 @@ private fun ChannelCell(channel: Channel, verb: String, onPlay: () -> Unit) {
 }
 
 @Composable
-private fun ProgrammeBlock(p: Programme, now: Long, selected: Boolean, timeOf: (Long) -> String, shift: () -> Int, onClick: () -> Unit) {
+private fun ProgrammeBlock(p: Programme, now: Long, selected: Boolean, timeOf: (Long) -> String, focus: Modifier, shift: () -> Int, onClick: () -> Unit) {
     val base = if (p.airing(now)) Palette.Elevated3 else Palette.Elevated2
     val fill = genreColour(p.genreGroup())?.let { lerp(base, it, 0.3f) } ?: base
     val border = when {
@@ -440,7 +460,7 @@ private fun ProgrammeBlock(p: Programme, now: Long, selected: Boolean, timeOf: (
         else -> Color.Transparent
     }
     Box(
-        Modifier.fillMaxSize().alpha(if (p.past(now)) 0.55f else 1f).clip(RoundedCornerShape(6.dp)).background(fill)
+        focus.fillMaxSize().alpha(if (p.past(now)) 0.55f else 1f).clip(RoundedCornerShape(6.dp)).background(fill)
             .border(if (selected) 2.dp else 1.dp, border, RoundedCornerShape(6.dp)).clickable(onClick = onClick),
     ) {
         if (p.dvr?.state == "recording") Box(Modifier.width(3.dp).fillMaxHeight().background(Palette.Danger))
@@ -507,7 +527,7 @@ private fun ProgrammeDialog(
         onDismissRequest = onDismiss,
         title = { Text(p.title) },
         text = {
-            Column(Modifier.verticalScroll(rememberScrollState())) {
+            Column(Modifier.arrowScroll(rememberScrollState())) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     channel?.let { ChannelLogo(it, 44.dp) }
                     Column(Modifier.padding(start = if (channel != null) 12.dp else 0.dp)) {
@@ -541,9 +561,11 @@ private fun ProgrammeDialog(
         confirmButton = {
             // Up to three, with Close: on a narrow phone they go on to more lines rather than off the side.
             FlowRow(horizontalArrangement = Arrangement.End) {
+                val airing = p.airing(now) && channel != null
                 action?.let { a ->
                     TextButton(
                         onClick = { onRecord(a) },
+                        modifier = if (airing) Modifier else Modifier.startFocus(),
                         colors = if (a == RecordAction.Record || a == RecordAction.Restore) ButtonDefaults.textButtonColors() else ButtonDefaults.textButtonColors(contentColor = Palette.Danger),
                     ) { Text(a.label) }
                 }
@@ -553,9 +575,9 @@ private fun ProgrammeDialog(
                         colors = if (s == SeriesAction.Record) ButtonDefaults.textButtonColors() else ButtonDefaults.textButtonColors(contentColor = Palette.Danger),
                     ) { Text(s.label) }
                 }
-                if (p.airing(now) && channel != null) TextButton(onClick = onPlay) { Text(if (radio) "Listen" else "Watch") }
+                if (airing) TextButton(onClick = onPlay, modifier = Modifier.startFocus()) { Text(if (radio) "Listen" else "Watch") }
             }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Close") } },
+        dismissButton = { TextButton(onClick = onDismiss, modifier = if (p.airing(now) && channel != null || action != null) Modifier else Modifier.startFocus()) { Text("Close") } },
     )
 }

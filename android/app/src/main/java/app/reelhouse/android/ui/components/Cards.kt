@@ -2,6 +2,7 @@ package app.reelhouse.android.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
@@ -18,6 +19,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -28,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import app.reelhouse.android.data.model.Item
 import app.reelhouse.android.ui.common.timeAgo
 import app.reelhouse.android.ui.theme.Palette
+import app.reelhouse.android.ui.theme.pictureHighlight
 
 private val CardShape = RoundedCornerShape(6.dp)
 
@@ -38,8 +41,10 @@ private val CardShape = RoundedCornerShape(6.dp)
  */
 @Composable
 fun PosterCard(item: Item, onClick: () -> Unit, modifier: Modifier = Modifier, fill: Boolean = false, subtitle: String? = null) {
-    Column((if (fill) modifier.fillMaxWidth() else modifier.width(POSTER_WIDTH)).clickable(onClick = onClick)) {
-        Box(Modifier.fillMaxWidth().aspectRatio(2f / 3f).clip(CardShape)) {
+    // The whole card is the button; its highlight goes around the picture, clear of the words under it.
+    val press = remember { MutableInteractionSource() }
+    Column((if (fill) modifier.fillMaxWidth() else modifier.width(POSTER_WIDTH)).clickable(press, null, onClick = onClick)) {
+        Box(Modifier.fillMaxWidth().aspectRatio(2f / 3f).pictureHighlight(press, CardShape)) {
             RemoteImage(item.images.poster, if (fill) GRID_IMAGE_WIDTH else POSTER_WIDTH, null, Modifier.fillMaxWidth().aspectRatio(2f / 3f))
             Badge(item, Modifier.align(Alignment.TopEnd).padding(6.dp))
             ProgressBar(item.progress, Modifier.align(Alignment.BottomStart))
@@ -64,8 +69,9 @@ fun PosterCard(item: Item, onClick: () -> Unit, modifier: Modifier = Modifier, f
 /** A wide (16:9) card: episodes in search results, and a Home row the server marks "landscape". */
 @Composable
 fun LandscapeCard(item: Item, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Column(modifier.width(LANDSCAPE_WIDTH).clickable(onClick = onClick)) {
-        Box(Modifier.fillMaxWidth().aspectRatio(16f / 9f).clip(CardShape)) {
+    val press = remember { MutableInteractionSource() }
+    Column(modifier.width(LANDSCAPE_WIDTH).clickable(press, null, onClick = onClick)) {
+        Box(Modifier.fillMaxWidth().aspectRatio(16f / 9f).pictureHighlight(press, CardShape)) {
             RemoteImage(item.images.thumb ?: item.images.backdrop ?: item.images.poster, LANDSCAPE_WIDTH, null, Modifier.fillMaxWidth().aspectRatio(16f / 9f))
             ProgressBar(item.progress, Modifier.align(Alignment.BottomStart))
         }

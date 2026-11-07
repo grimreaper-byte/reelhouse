@@ -1,6 +1,7 @@
 package app.reelhouse.android.ui.recordings
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,6 +19,7 @@ import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -30,7 +32,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -66,15 +67,20 @@ import app.reelhouse.android.data.model.RecordingShow
 import app.reelhouse.android.data.model.RecordingsResponse
 import app.reelhouse.android.ui.common.Loadable
 import app.reelhouse.android.ui.common.LoadableContent
+import app.reelhouse.android.ui.common.arrowScroll
+import app.reelhouse.android.ui.common.endOfRow
 import app.reelhouse.android.ui.common.errorText
 import app.reelhouse.android.ui.common.refreshOnServerEvents
+import app.reelhouse.android.ui.common.remoteFocus
 import app.reelhouse.android.ui.components.AvatarCircle
+import app.reelhouse.android.ui.components.OutlinedButton
 import app.reelhouse.android.ui.components.statusRowBar
 import app.reelhouse.android.ui.livetv.ChannelLogo
 import app.reelhouse.android.ui.livetv.epochNow
 import app.reelhouse.android.ui.livetv.rememberTimeOf
 import app.reelhouse.android.ui.livetv.title
 import app.reelhouse.android.ui.theme.Palette
+import app.reelhouse.android.ui.theme.pictureHighlight
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -178,6 +184,8 @@ fun RecordingShowScreen(key: String, title: String, everyone: Boolean, onOpenSer
                         ask(Confirm.All(seriesWhat(season, show), season.recordings))
                     } else null,
                     owners = if (everyone) season.recordings else null,
+                    first = season == show.seasons.first(),
+                    last = season == show.seasons.last(),
                 ) { onOpenSeries(season.season) }
             }
         } else {
@@ -330,15 +338,16 @@ private fun LazyGridScope.head(poster: String?, show: RecordingShow, over: Strin
 
 /** Episodes as pictures. */
 private fun LazyGridScope.episodes(recs: List<Recording>, everyone: Boolean, page: PageActions) {
-    items(recs, key = { it.uuid }) { r -> EpisodeCard(r, everyone, onCorner = { action -> page.corner(r, action) }) { page.open(r) } }
+    items(recs, key = { it.uuid }) { r -> EpisodeCard(r, everyone, first = r == recs.first(), last = r == recs.last(), onCorner = { action -> page.corner(r, action) }) { page.open(r) } }
 }
 
 @Composable
-private fun EpisodeCard(r: Recording, everyone: Boolean, onCorner: (RecordingAction) -> Unit, onClick: () -> Unit) {
+private fun EpisodeCard(r: Recording, everyone: Boolean, first: Boolean, last: Boolean, onCorner: (RecordingAction) -> Unit, onClick: () -> Unit) {
     val timeOf = rememberTimeOf()
     val now = epochNow()
-    Column(Modifier.fillMaxWidth().clickable(onClick = onClick)) {
-        Box {
+    val press = remember { MutableInteractionSource() }
+    Column(Modifier.remoteFocus("episode-${r.uuid}", first).endOfRow(last).fillMaxWidth().clickable(press, null, onClick = onClick)) {
+        Box(Modifier.pictureHighlight(press, RoundedCornerShape(6.dp))) {
             CoverPicture(r.still, 320.dp, episodeLine(r), r.channel, Modifier.fillMaxWidth().aspectRatio(16f / 9f))
             when {
                 recordingTrouble(r) != null -> StateTag(recordingTrouble(r)!!, Palette.Danger)
@@ -363,7 +372,7 @@ private fun EpisodeDialog(r: Recording, timeOf: (Long) -> String, onDismiss: () 
         onDismissRequest = onDismiss,
         title = { Text("${r.title}: ${episodeLine(r)}") },
         text = {
-            Column(Modifier.verticalScroll(rememberScrollState())) {
+            Column(Modifier.arrowScroll(rememberScrollState())) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     r.channel?.let { ChannelLogo(it, 44.dp) }
                     Column(Modifier.padding(start = if (r.channel != null) 12.dp else 0.dp)) {

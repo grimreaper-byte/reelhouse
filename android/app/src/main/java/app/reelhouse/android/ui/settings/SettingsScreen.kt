@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -23,9 +24,10 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchColors
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -42,6 +44,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import app.reelhouse.android.BuildConfig
 import app.reelhouse.android.container
@@ -50,12 +53,14 @@ import app.reelhouse.android.data.connection.RouteMode
 import app.reelhouse.android.data.tunnel.TunnelStatus
 import app.reelhouse.android.ui.common.formatSize
 import app.reelhouse.android.ui.components.ConnectionChip
+import app.reelhouse.android.ui.components.OutlinedButton
 import app.reelhouse.android.ui.components.statusRowBar
 import app.reelhouse.android.ui.theme.Palette
+import app.reelhouse.android.ui.theme.TextRing
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -133,35 +138,41 @@ fun SettingsScreen(onBack: () -> Unit, onLicences: () -> Unit) {
             Spacer(Modifier.height(8.dp))
             OutlinedButton(onClick = c.connection::reconnect) { Text("Check the connection again") }
             if (BuildConfig.DEBUG && p.tunnel != null) {
-                Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    Modifier.fillMaxWidth().toggleable(tunnelOnly, null, TextRing, role = Role.Switch) {
+                        tunnelOnly = it
+                        c.connection.mode = if (it) RouteMode.TunnelOnly else RouteMode.Auto
+                    }.padding(vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     Column(Modifier.weight(1f)) {
                         Text("Always use the tunnel")
                         Text("For testing the tunnel at home (debug builds only)", style = MaterialTheme.typography.bodySmall, color = Palette.TextDim)
                     }
-                    Switch(checked = tunnelOnly, onCheckedChange = {
-                        tunnelOnly = it
-                        c.connection.mode = if (it) RouteMode.TunnelOnly else RouteMode.Auto
-                    })
+                    Switch(checked = tunnelOnly, onCheckedChange = null, colors = SettingSwitch())
                 }
             }
 
             PlaybackSection()
 
             Section("Downloads")
-            Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                Modifier.fillMaxWidth().toggleable(wifiOnly, null, TextRing, role = Role.Switch) {
+                    wifiOnly = it
+                    c.prefs.wifiOnlyDownloads = it
+                    c.downloads.schedule(replace = true)
+                }.padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 Column(Modifier.weight(1f)) {
                     Text("Download on Wi-Fi only")
                     Text("Downloads wait for Wi-Fi instead of using mobile data", style = MaterialTheme.typography.bodySmall, color = Palette.TextDim)
                 }
-                Switch(checked = wifiOnly, onCheckedChange = {
-                    wifiOnly = it
-                    c.prefs.wifiOnlyDownloads = it
-                    c.downloads.schedule(replace = true)
-                })
+                Switch(checked = wifiOnly, onCheckedChange = null, colors = SettingSwitch())
             }
             if (downloadsOff) Row2("Reelhouse", "Downloads are turned off in Reelhouse. What's already downloaded still plays.")
             Row2(
-                "On this phone",
+                "On this device",
                 if (downloads.isEmpty()) "Nothing downloaded"
                 else "${downloads.size} " + (if (downloads.size == 1) "download" else "downloads") + " · " + formatSize(downloadBytes),
             )
@@ -173,7 +184,7 @@ fun SettingsScreen(onBack: () -> Unit, onLicences: () -> Unit) {
             Row2("App version", BuildConfig.VERSION_NAME)
             UpdateRow()
             Row(
-                Modifier.fillMaxWidth().clickable(onClick = onLicences).padding(vertical = 8.dp),
+                Modifier.fillMaxWidth().clickable(null, TextRing, onClick = onLicences).padding(vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(Modifier.weight(1f)) {
@@ -198,7 +209,7 @@ fun SettingsScreen(onBack: () -> Unit, onLicences: () -> Unit) {
         AlertDialog(
             onDismissRequest = { confirmDeleteDownloads = false },
             title = { Text("Delete all downloads?") },
-            text = { Text("Everything downloaded to this phone is deleted, and downloads in progress are cancelled.") },
+            text = { Text("Everything downloaded to this device is deleted, and downloads in progress are cancelled.") },
             confirmButton = {
                 TextButton(onClick = {
                     confirmDeleteDownloads = false
@@ -215,7 +226,7 @@ fun SettingsScreen(onBack: () -> Unit, onLicences: () -> Unit) {
             title = { Text("Sign out?") },
             text = {
                 Text(
-                    "This phone is signed out of ${profile?.serverName ?: "Reelhouse"} and its tunnel key is removed. You can pair it again any time." +
+                    "This device is signed out of ${profile?.serverName ?: "Reelhouse"} and its tunnel key is removed. You can pair it again any time." +
                         if (downloads.isNotEmpty()) " Its downloads are deleted too." else "",
                 )
             },
@@ -246,3 +257,7 @@ internal fun Row2(label: String, value: String) {
         Text(value, style = MaterialTheme.typography.bodyMedium)
     }
 }
+
+/** Material's, but off shows too: its thumb and border are the outline colour, here nearly the background. */
+@Composable
+private fun SettingSwitch(): SwitchColors = SwitchDefaults.colors(uncheckedThumbColor = Palette.TextDim, uncheckedBorderColor = Palette.TextFaint)

@@ -3,6 +3,7 @@ package app.reelhouse.android.data.update
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.provider.Settings
 import androidx.core.content.FileProvider
 import app.reelhouse.android.BuildConfig
@@ -74,7 +75,7 @@ class AppUpdater(
     }
 
     /** Whether Android lets this app hand APKs to the installer ("Install unknown apps" for Reelhouse). */
-    fun canInstall() = context.packageManager.canRequestPackageInstalls()
+    fun canInstall() = Build.VERSION.SDK_INT < Build.VERSION_CODES.O || context.packageManager.canRequestPackageInstalls()
 
     /** Opens Android's installer with a downloaded update, or its "Install unknown apps" switch first. */
     fun install(file: File) {

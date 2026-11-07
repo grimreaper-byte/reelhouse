@@ -32,6 +32,11 @@ test('a brand-new server has downloads off', () => {
   assert.equal(isSettingStored('allowDownloads'), false);
 });
 
+test('a brand-new server plays the original away from home too, converting only what it must', () => {
+  assert.equal(getSetting('remoteQuality'), 'original');
+  assert.equal(isSettingStored('remoteQuality'), false);
+});
+
 test('one installed but never set up is as good as new', () => {
   upgrade();
   assert.equal(stored(), null);

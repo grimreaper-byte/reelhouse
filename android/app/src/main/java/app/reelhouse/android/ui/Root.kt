@@ -1,20 +1,35 @@
 package app.reelhouse.android.ui
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.gestures.LocalBringIntoViewSpec
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
+import androidx.navigation3.runtime.NavEntryDecorator
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import app.reelhouse.android.container
+import app.reelhouse.android.ui.common.LocalRemoteDevice
+import app.reelhouse.android.ui.common.RemoteScreen
+import app.reelhouse.android.ui.common.RemoteScroll
+import app.reelhouse.android.ui.common.isRemoteDevice
+import app.reelhouse.android.ui.common.keepFocus
 import app.reelhouse.android.ui.downloads.DownloadsScreen
 import app.reelhouse.android.ui.home.HomeNav
 import app.reelhouse.android.ui.home.HomeScreen
@@ -67,7 +82,17 @@ import kotlinx.serialization.Serializable
 fun ReelhouseRoot() {
     val c = LocalContext.current.container
     val profile by c.store.profile.collectAsState()
-    if (profile == null) PairScreen() else SignedIn()
+    val context = LocalContext.current
+    val remote = remember { isRemoteDevice(context) }
+    val focus = LocalFocusManager.current
+    @OptIn(ExperimentalFoundationApi::class)
+    val scrolling = if (remote) RemoteScroll else LocalBringIntoViewSpec.current
+    @OptIn(ExperimentalFoundationApi::class)
+    CompositionLocalProvider(LocalRemoteDevice provides remote, LocalBringIntoViewSpec provides scrolling) {
+        Box(if (remote) Modifier.fillMaxSize().onKeyEvent { keepFocus(it, focus) } else Modifier.fillMaxSize()) {
+            if (profile == null) RemoteScreen { PairScreen() } else SignedIn()
+        }
+    }
 }
 
 @Composable
@@ -89,6 +114,7 @@ private fun SignedIn() {
             entryDecorators = listOf(
                 rememberSaveableStateHolderNavEntryDecorator(),
                 rememberViewModelStoreNavEntryDecorator(),
+                remember { NavEntryDecorator<NavKey>(decorate = { entry -> RemoteScreen { entry.Content() } }) },
             ),
             entryProvider = entryProvider {
                 entry<HomeKey> {
@@ -133,7 +159,7 @@ private fun SignedIn() {
             title = { Text("Pair with another Reelhouse?") },
             text = {
                 Text(
-                    "This phone is paired with ${profile?.serverName ?: "a Reelhouse"}. Pairing with " +
+                    "This device is paired with ${profile?.serverName ?: "a Reelhouse"}. Pairing with " +
                         (link.serverName?.let { "“$it”" } ?: "the new code") + " signs it out of that one first.",
                 )
             },

@@ -3,6 +3,7 @@ package app.reelhouse.android.ui.recordings
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -33,7 +34,6 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FiberManualRecord
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -83,9 +83,12 @@ import app.reelhouse.android.data.model.SeriesRecording
 import app.reelhouse.android.data.model.User
 import app.reelhouse.android.ui.common.Loadable
 import app.reelhouse.android.ui.common.LoadableContent
+import app.reelhouse.android.ui.common.endOfRow
 import app.reelhouse.android.ui.common.errorText
 import app.reelhouse.android.ui.common.refreshOnServerEvents
+import app.reelhouse.android.ui.common.remoteFocus
 import app.reelhouse.android.ui.components.AvatarCircle
+import app.reelhouse.android.ui.components.FilterChip
 import app.reelhouse.android.ui.components.RemoteImage
 import app.reelhouse.android.ui.components.statusRowBar
 import app.reelhouse.android.ui.livetv.ChannelLogo
@@ -94,6 +97,7 @@ import app.reelhouse.android.ui.livetv.epochNow
 import app.reelhouse.android.ui.livetv.rememberTimeOf
 import app.reelhouse.android.ui.livetv.title
 import app.reelhouse.android.ui.theme.Palette
+import app.reelhouse.android.ui.theme.pictureHighlight
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -239,6 +243,10 @@ fun RecordingsScreen(onOpenShow: (key: String, title: String, everyone: Boolean)
     ) { padding ->
         LoadableContent(list, onRetry = vm::load, modifier = Modifier.fillMaxSize().padding(padding)) { data ->
             val now = epochNow()
+            val sections = showSections(data.shows)
+            // With a remote, the first cover; with nothing to show, the switch between Mine and Everyone's.
+            val startsAt = sections.firstOrNull()?.let { (section, shows) -> "${section.name}-${shows.first().key}" }
+                ?: data.series.firstOrNull()?.let { "series-${it.uuid}" }
             LazyVerticalGrid(
                 columns = GridCells.Adaptive(minSize = 104.dp),
                 contentPadding = PaddingValues(16.dp),
@@ -250,7 +258,7 @@ fun RecordingsScreen(onOpenShow: (key: String, title: String, everyone: Boolean)
                     wide {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             if (isAdmin) {
-                                WhoseChip("Mine", !everyone) { vm.showEveryone(false) }
+                                WhoseChip("Mine", !everyone, Modifier.remoteFocus("mine", first = startsAt == null)) { vm.showEveryone(false) }
                                 WhoseChip("Everyone’s", everyone) { vm.showEveryone(true) }
                             }
                             Spacer(Modifier.weight(1f))
@@ -276,7 +284,7 @@ fun RecordingsScreen(onOpenShow: (key: String, title: String, everyone: Boolean)
                     }
                 }
                 // Under their headings, each a grid like a library's: Recording now, Recorded (newest first), Scheduled (soonest first).
-                showSections(data.shows).forEach { (section, shows) ->
+                sections.forEach { (section, shows) ->
                     wide { Text(section.title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 8.dp)) }
                     items(shows, key = { "${section.name}-${it.key}" }) { show ->
                         val all = show.seasons.flatMap { it.recordings }
@@ -296,6 +304,8 @@ fun RecordingsScreen(onOpenShow: (key: String, title: String, everyone: Boolean)
                                 CornerAction(Icons.Filled.Delete, "Delete ${show.title} ($gone)", true) { confirm = "“${show.title}”" to all }
                             } else null,
                             owners = if (everyone) sectionRecordings(section, show) else null,
+                            first = startsAt == "${section.name}-${show.key}",
+                            last = show == shows.last(),
                         ) { onOpenShow(show.key, show.title, everyone) }
                     }
                 }
@@ -311,6 +321,8 @@ fun RecordingsScreen(onOpenShow: (key: String, title: String, everyone: Boolean)
                             counts = RecordingCounts(recording = s.counts.recording),
                             corner = if (s.canChange) CornerAction(Icons.Filled.Close, "Cancel series recording: ${s.title}", false) { cancellingSeries = s } else null,
                             people = if (everyone) listOfNotNull(s.owner) else null,
+                            first = startsAt == "series-${s.uuid}",
+                            last = s == data.series.last(),
                         ) { seriesDetails = s }
                     }
                 }
@@ -396,10 +408,11 @@ internal fun LazyGridScope.wide(content: @Composable () -> Unit) {
 }
 
 @Composable
-internal fun WhoseChip(label: String, selected: Boolean, onClick: () -> Unit) {
+internal fun WhoseChip(label: String, selected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
     FilterChip(
         selected = selected,
         onClick = onClick,
+        modifier = modifier,
         label = { Text(label) },
         colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Palette.Accent, selectedLabelColor = Palette.AccentText),
     )
@@ -505,10 +518,13 @@ internal fun CoverCard(
     owners: List<Recording>? = null,
     people: List<User>? = null,
     line2: String? = null,
+    first: Boolean = false,
+    last: Boolean = false,
     onClick: () -> Unit,
 ) {
-    Column(Modifier.fillMaxWidth().clickable(onClick = onClick)) {
-        Box {
+    val press = remember { MutableInteractionSource() }
+    Column(Modifier.remoteFocus("show-$title", first).endOfRow(last).fillMaxWidth().clickable(press, null, onClick = onClick)) {
+        Box(Modifier.pictureHighlight(press, RoundedCornerShape(6.dp))) {
             ShowPoster(poster, title, channel)
             if (counts.recording > 0) StateTag("REC", Palette.Danger, dot = true)
             if (counts.recorded > 0) {

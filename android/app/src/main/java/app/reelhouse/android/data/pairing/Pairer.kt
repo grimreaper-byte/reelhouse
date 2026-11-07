@@ -81,7 +81,7 @@ class Pairer(
         } catch (e: IllegalArgumentException) {
             throw PairingException(e.message ?: "That doesn't look like an address")
         }
-        if (!prober.reaches(base, DIRECT_TIMEOUT_MS * 2)) throw PairingException("Reelhouse didn't answer at $base. Check the address and that this phone is on the same network.")
+        if (!prober.reaches(base, DIRECT_TIMEOUT_MS * 2)) throw PairingException("Reelhouse didn't answer at $base. Check the address and that this device is on the same network.")
         return base
     }
 

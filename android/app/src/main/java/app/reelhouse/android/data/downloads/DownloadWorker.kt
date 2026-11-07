@@ -156,7 +156,7 @@ class DownloadWorker(context: Context, params: WorkerParameters) : CoroutineWork
 
     private fun foregroundInfo(text: String, percent: Int?): ForegroundInfo {
         val nm = applicationContext.getSystemService(NotificationManager::class.java)
-        if (nm.getNotificationChannel(CHANNEL) == null) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && nm.getNotificationChannel(CHANNEL) == null) {
             nm.createNotificationChannel(NotificationChannel(CHANNEL, "Downloads", NotificationManager.IMPORTANCE_LOW))
         }
         val notification = NotificationCompat.Builder(applicationContext, CHANNEL)

@@ -20,6 +20,8 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -37,11 +39,13 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusEvent
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.LineHeightStyle
@@ -59,22 +63,25 @@ import app.reelhouse.android.data.model.PersonInfo
 import app.reelhouse.android.data.model.PersonPage
 import app.reelhouse.android.ui.common.Loadable
 import app.reelhouse.android.ui.common.LoadableContent
+import app.reelhouse.android.ui.common.endOfRow
 import app.reelhouse.android.ui.common.errorText
 import app.reelhouse.android.ui.common.refreshOnServerEvents
+import app.reelhouse.android.ui.common.remoteFocus
 import app.reelhouse.android.ui.components.PosterCard
 import app.reelhouse.android.ui.components.RemoteImage
 import app.reelhouse.android.ui.components.statusRowBar
 import app.reelhouse.android.ui.theme.Palette
+import app.reelhouse.android.ui.theme.TextRing
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
+import java.util.Locale
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import java.time.format.FormatStyle
-import java.util.Locale
 
 class PersonViewModel(private val c: AppContainer, private val name: String, private val fromItem: Long?) : ViewModel() {
     private val _page = MutableStateFlow(Loadable<PersonPage>())
@@ -109,13 +116,20 @@ fun PersonScreen(name: String, fromItem: Long?, onOpenItem: (Item) -> Unit, onBa
     val c = LocalContext.current.container
     val vm = viewModel(key = "person-$name-$fromItem") { PersonViewModel(c, name, fromItem) }
     val page by vm.page.collectAsState()
+    val grid = rememberLazyGridState()
+    val scope = rememberCoroutineScope()
 
     val statusRow = statusRowBar()
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text(name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } },
+                // With a remote, the picture and facts at the top can't take the focus: this is how to get back to them.
+                navigationIcon = {
+                    IconButton(onClick = onBack, modifier = Modifier.onFocusEvent { if (it.isFocused) scope.launch { grid.animateScrollToItem(0) } }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
                 expandedHeight = statusRow.height,
                 windowInsets = statusRow.insets,
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Palette.Background),
@@ -125,6 +139,7 @@ fun PersonScreen(name: String, fromItem: Long?, onOpenItem: (Item) -> Unit, onBa
         LoadableContent(page, onRetry = vm::load, modifier = Modifier.padding(padding)) { p ->
             LazyVerticalGrid(
                 columns = GridCells.Adaptive(minSize = 104.dp),
+                state = grid,
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 32.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -135,8 +150,8 @@ fun PersonScreen(name: String, fromItem: Long?, onOpenItem: (Item) -> Unit, onBa
                 if (p.items.isEmpty()) {
                     wide("here-none") { Note("Nothing with ${p.name} is on this server.") }
                 } else {
-                    items(p.items, key = { it.id }) { item ->
-                        PosterCard(item, onClick = { onOpenItem(item) }, fill = true, subtitle = partLine(item.year, item.role, item.directed))
+                    itemsIndexed(p.items, key = { _, item -> item.id }) { n, item ->
+                        PosterCard(item, modifier = Modifier.remoteFocus(item.id, first = n == 0).endOfRow(n == p.items.lastIndex), onClick = { onOpenItem(item) }, fill = true, subtitle = partLine(item.year, item.role, item.directed))
                     }
                 }
                 otherMovies(p)
@@ -233,13 +248,16 @@ private fun day(iso: String, locale: Locale): String =
 @Composable
 private fun Biography(text: String) {
     var expanded by rememberSaveable { mutableStateOf(false) }
+    var cut by remember { mutableStateOf(false) }
     Text(
         text,
         style = MaterialTheme.typography.bodyMedium,
         maxLines = if (expanded) Int.MAX_VALUE else 5,
         overflow = TextOverflow.Ellipsis,
-        // A readable line length on tablets; a tap shows the rest.
-        modifier = Modifier.padding(top = 16.dp).widthIn(max = 720.dp).animateContentSize().clickable { expanded = !expanded },
+        onTextLayout = { if (!expanded) cut = it.hasVisualOverflow },
+        // A readable line length on tablets; a tap shows the rest, if there's any.
+        modifier = Modifier.padding(top = 16.dp).widthIn(max = 720.dp).animateContentSize()
+            .then(if (cut || expanded) Modifier.clickable(null, TextRing) { expanded = !expanded } else Modifier),
     )
 }
 

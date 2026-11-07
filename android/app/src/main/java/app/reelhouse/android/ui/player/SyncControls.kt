@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -17,15 +16,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import app.reelhouse.android.data.playback.AvSync
+import app.reelhouse.android.ui.components.OutlinedButton
 import app.reelhouse.android.ui.theme.Palette
 
 /** What the manual fine-tune does, in the viewer's terms. */
-const val SYNC_HINT = "Only if it still looks off. Sound before the mouths move? Make it later (+). After them? Earlier (−). It's kept for every video on this phone."
+const val SYNC_HINT = "Only if it still looks off. Sound before the mouths move? Make it later (+). After them? Earlier (−). It's kept for every video on this device."
 
 /** What the automatic picture timing is doing, from the delay it makes up for (ms). */
 fun pictureTimingText(delayMs: Int): String =
-    if (delayMs > 0) "Automatic: this phone shows the picture $delayMs ms late, and the app makes up for it."
-    else "Automatic: measured while you watch. This phone shows the picture on time so far."
+    if (delayMs > 0) "Automatic: this device shows the picture $delayMs ms late, and the app makes up for it."
+    else "Automatic: measured while you watch. This device shows the picture on time so far."
 
 /** The current setting and buttons to move it in 10 and 50 ms steps. */
 @Composable

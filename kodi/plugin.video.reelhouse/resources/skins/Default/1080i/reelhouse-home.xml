@@ -3197,71 +3197,71 @@
        the top one the room above it). -->
     <!-- One of the sidebar's two lists (9000); the names and counts show while either has the focus. -->
   <control type="list" id="9000">
-    <left>0</left><top>132</top><width>392</width><height>596</height>
+    <left>0</left><top>132</top><width>392</width><height>652</height>
     <onup>9000</onup><ondown>9002</ondown>
     <orientation>vertical</orientation>
     <scrolltime tween="cubic" easing="out">150</scrolltime>
-    <itemlayout width="392" height="78">
+    <itemlayout width="392" height="64">
       <control type="image">
-        <left>36</left><top>19</top><width>40</width><height>40</height>
+        <left>36</left><top>12</top><width>40</width><height>40</height>
         <texture colordiffuse="FFA2ABB5">$INFO[ListItem.Property(icon)]</texture>
         <visible>!String.IsEqual(ListItem.Property(active),true)</visible>
       </control>
       <control type="image">
-        <left>36</left><top>19</top><width>40</width><height>40</height>
+        <left>36</left><top>12</top><width>40</width><height>40</height>
         <texture colordiffuse="FFE5A00D">$INFO[ListItem.Property(icon)]</texture>
         <visible>String.IsEqual(ListItem.Property(active),true)</visible>
       </control>
       <control type="image">
-        <left>36</left><top>19</top><width>40</width><height>40</height>
+        <left>36</left><top>12</top><width>40</width><height>40</height>
         <texture colordiffuse="FFE5534B">$INFO[ListItem.Property(spot)]</texture>
       </control>
       <control type="label">
-        <left>104</left><top>0</top><width>210</width><height>78</height>
+        <left>104</left><top>0</top><width>210</width><height>64</height>
         <font>font13</font><textcolor>FFA2ABB5</textcolor><aligny>center</aligny>
         <label>$INFO[ListItem.Label]</label>
         <visible>Control.HasFocus(9000) | Control.HasFocus(9002)</visible>
       </control>
       <control type="label">
-        <left>300</left><top>0</top><width>70</width><height>78</height>
+        <left>300</left><top>0</top><width>70</width><height>64</height>
         <font>font12</font><textcolor>FF6F7882</textcolor><align>right</align><aligny>center</aligny>
         <label>$INFO[ListItem.Label2]</label>
         <visible>Control.HasFocus(9000) | Control.HasFocus(9002)</visible>
       </control>
     </itemlayout>
-    <focusedlayout width="392" height="78">
+    <focusedlayout width="392" height="64">
       <control type="image">
-        <left>14</left><top>4</top><width>364</width><height>70</height>
+        <left>14</left><top>2</top><width>364</width><height>60</height>
         <texture border="16" colordiffuse="FF22262B">reelhouse/ui/box.png</texture>
         <visible>Control.HasFocus(9000)</visible>
       </control>
       <control type="image">
-        <left>36</left><top>19</top><width>40</width><height>40</height>
+        <left>36</left><top>12</top><width>40</width><height>40</height>
         <texture colordiffuse="FFA2ABB5">$INFO[ListItem.Property(icon)]</texture>
         <visible>!String.IsEqual(ListItem.Property(active),true) + !Control.HasFocus(9000)</visible>
       </control>
       <control type="image">
-        <left>36</left><top>19</top><width>40</width><height>40</height>
+        <left>36</left><top>12</top><width>40</width><height>40</height>
         <texture colordiffuse="FFECEFF3">$INFO[ListItem.Property(icon)]</texture>
         <visible>!String.IsEqual(ListItem.Property(active),true) + Control.HasFocus(9000)</visible>
       </control>
       <control type="image">
-        <left>36</left><top>19</top><width>40</width><height>40</height>
+        <left>36</left><top>12</top><width>40</width><height>40</height>
         <texture colordiffuse="FFE5A00D">$INFO[ListItem.Property(icon)]</texture>
         <visible>String.IsEqual(ListItem.Property(active),true)</visible>
       </control>
       <control type="image">
-        <left>36</left><top>19</top><width>40</width><height>40</height>
+        <left>36</left><top>12</top><width>40</width><height>40</height>
         <texture colordiffuse="FFE5534B">$INFO[ListItem.Property(spot)]</texture>
       </control>
       <control type="label">
-        <left>104</left><top>0</top><width>210</width><height>78</height>
+        <left>104</left><top>0</top><width>210</width><height>64</height>
         <font>font13</font><textcolor>FFECEFF3</textcolor><aligny>center</aligny>
         <label>$INFO[ListItem.Label]</label>
         <visible>Control.HasFocus(9000) | Control.HasFocus(9002)</visible>
       </control>
       <control type="label">
-        <left>300</left><top>0</top><width>70</width><height>78</height>
+        <left>300</left><top>0</top><width>70</width><height>64</height>
         <font>font12</font><textcolor>FFA2ABB5</textcolor><align>right</align><aligny>center</aligny>
         <label>$INFO[ListItem.Label2]</label>
         <visible>Control.HasFocus(9000) | Control.HasFocus(9002)</visible>
@@ -3271,71 +3271,71 @@
 
     <!-- One of the sidebar's two lists (9002); the names and counts show while either has the focus. -->
   <control type="list" id="9002">
-    <left>0</left><top>744</top><width>392</width><height>312</height>
+    <left>0</left><top>800</top><width>392</width><height>256</height>
     <onup>9000</onup><ondown>9002</ondown>
     <orientation>vertical</orientation>
     <scrolltime tween="cubic" easing="out">150</scrolltime>
-    <itemlayout width="392" height="78">
+    <itemlayout width="392" height="64">
       <control type="image">
-        <left>36</left><top>19</top><width>40</width><height>40</height>
+        <left>36</left><top>12</top><width>40</width><height>40</height>
         <texture colordiffuse="FFA2ABB5">$INFO[ListItem.Property(icon)]</texture>
         <visible>!String.IsEqual(ListItem.Property(active),true)</visible>
       </control>
       <control type="image">
-        <left>36</left><top>19</top><width>40</width><height>40</height>
+        <left>36</left><top>12</top><width>40</width><height>40</height>
         <texture colordiffuse="FFE5A00D">$INFO[ListItem.Property(icon)]</texture>
         <visible>String.IsEqual(ListItem.Property(active),true)</visible>
       </control>
       <control type="image">
-        <left>36</left><top>19</top><width>40</width><height>40</height>
+        <left>36</left><top>12</top><width>40</width><height>40</height>
         <texture colordiffuse="FFE5534B">$INFO[ListItem.Property(spot)]</texture>
       </control>
       <control type="label">
-        <left>104</left><top>0</top><width>210</width><height>78</height>
+        <left>104</left><top>0</top><width>210</width><height>64</height>
         <font>font13</font><textcolor>FFA2ABB5</textcolor><aligny>center</aligny>
         <label>$INFO[ListItem.Label]</label>
         <visible>Control.HasFocus(9000) | Control.HasFocus(9002)</visible>
       </control>
       <control type="label">
-        <left>300</left><top>0</top><width>70</width><height>78</height>
+        <left>300</left><top>0</top><width>70</width><height>64</height>
         <font>font12</font><textcolor>FF6F7882</textcolor><align>right</align><aligny>center</aligny>
         <label>$INFO[ListItem.Label2]</label>
         <visible>Control.HasFocus(9000) | Control.HasFocus(9002)</visible>
       </control>
     </itemlayout>
-    <focusedlayout width="392" height="78">
+    <focusedlayout width="392" height="64">
       <control type="image">
-        <left>14</left><top>4</top><width>364</width><height>70</height>
+        <left>14</left><top>2</top><width>364</width><height>60</height>
         <texture border="16" colordiffuse="FF22262B">reelhouse/ui/box.png</texture>
         <visible>Control.HasFocus(9002)</visible>
       </control>
       <control type="image">
-        <left>36</left><top>19</top><width>40</width><height>40</height>
+        <left>36</left><top>12</top><width>40</width><height>40</height>
         <texture colordiffuse="FFA2ABB5">$INFO[ListItem.Property(icon)]</texture>
         <visible>!String.IsEqual(ListItem.Property(active),true) + !Control.HasFocus(9002)</visible>
       </control>
       <control type="image">
-        <left>36</left><top>19</top><width>40</width><height>40</height>
+        <left>36</left><top>12</top><width>40</width><height>40</height>
         <texture colordiffuse="FFECEFF3">$INFO[ListItem.Property(icon)]</texture>
         <visible>!String.IsEqual(ListItem.Property(active),true) + Control.HasFocus(9002)</visible>
       </control>
       <control type="image">
-        <left>36</left><top>19</top><width>40</width><height>40</height>
+        <left>36</left><top>12</top><width>40</width><height>40</height>
         <texture colordiffuse="FFE5A00D">$INFO[ListItem.Property(icon)]</texture>
         <visible>String.IsEqual(ListItem.Property(active),true)</visible>
       </control>
       <control type="image">
-        <left>36</left><top>19</top><width>40</width><height>40</height>
+        <left>36</left><top>12</top><width>40</width><height>40</height>
         <texture colordiffuse="FFE5534B">$INFO[ListItem.Property(spot)]</texture>
       </control>
       <control type="label">
-        <left>104</left><top>0</top><width>210</width><height>78</height>
+        <left>104</left><top>0</top><width>210</width><height>64</height>
         <font>font13</font><textcolor>FFECEFF3</textcolor><aligny>center</aligny>
         <label>$INFO[ListItem.Label]</label>
         <visible>Control.HasFocus(9000) | Control.HasFocus(9002)</visible>
       </control>
       <control type="label">
-        <left>300</left><top>0</top><width>70</width><height>78</height>
+        <left>300</left><top>0</top><width>70</width><height>64</height>
         <font>font12</font><textcolor>FFA2ABB5</textcolor><align>right</align><aligny>center</aligny>
         <label>$INFO[ListItem.Label2]</label>
         <visible>Control.HasFocus(9000) | Control.HasFocus(9002)</visible>

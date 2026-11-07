@@ -60,7 +60,7 @@ data class SignInResponse(
 )
 
 @Serializable
-data class Defaults(val remoteQuality: String = "4m-720", val allowDownloads: Boolean = true)
+data class Defaults(val remoteQuality: String = "original", val allowDownloads: Boolean = true)
 
 /** GET /api/me */
 /** The Android app Reelhouse offers at /android/<fileName>. */
