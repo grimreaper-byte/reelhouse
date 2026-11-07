@@ -333,10 +333,32 @@ export async function fill(container, loader) {
 }
 
 export async function copyText(text) {
-  try {
-    await navigator.clipboard.writeText(text);
-    toast('Copied to clipboard');
-  } catch {
-    toast('Copy failed — select the text and copy it manually', { error: true });
+  if (navigator.clipboard && window.isSecureContext) {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast('Copied to clipboard');
+      return;
+    } catch {
+      // Refused (permissions): the older way below.
+    }
   }
+  // Browsers only offer the clipboard to https:// pages and localhost, and Reelhouse at home is usually plain
+  // http://192.168.x.x: the older way still copies there.
+  const area = h('textarea', { readonly: true, style: { position: 'fixed', top: '0', left: '0', opacity: '0' } });
+  area.value = text;
+  document.body.append(area);
+  area.select();
+  let copied = false;
+  try {
+    copied = document.execCommand('copy');
+  } catch {
+    copied = false;
+  }
+  area.remove();
+  if (copied) {
+    toast('Copied to clipboard');
+    return;
+  }
+  // Nothing worked: show it, selected, to copy by hand.
+  window.prompt('Your browser won’t copy it for Reelhouse. Copy it from here:', text);
 }

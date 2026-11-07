@@ -1,6 +1,6 @@
 {
   "name": "reelhouse",
-  "version": "0.22.0",
+  "version": "0.22.1",
   "private": true,
   "description": "Self-hosted movie & TV media server with a web player. No accounts, no subscriptions.",
   "type": "module",
