@@ -121,6 +121,8 @@
               <width>72</width><height>72</height>
               <control type="button" id="415">
                 <width>72</width><height>72</height>
+                <!-- In a group (for its icon), so the row's grouplist doesn't move the focus off it: its own way out. -->
+                <onleft>413</onleft><ondown>450</ondown>
                 <texturefocus border="31" colordiffuse="{{ACCENT}}">reelhouse/ui/pill.png</texturefocus>
                 <texturenofocus border="31" colordiffuse="{{ELEV2}}">reelhouse/ui/pill.png</texturenofocus>
                 <label></label>

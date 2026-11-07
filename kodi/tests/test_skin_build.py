@@ -53,6 +53,25 @@ class SkinTests(unittest.TestCase):
             self.assertEqual(controls[0].get('type'), 'videowindow', name)
             self.assertEqual(controls[1].find('width').text, '1920', '{}: the background covers it'.format(name))
 
+    def test_no_button_in_a_row_traps_the_focus(self):
+        # A grouplist moves the focus between its own children only: a button inside a group in it (the film page's ⋯,
+        # in a group for its icon) needs its own way out, or the arrows do nothing on it.
+        trapped = []
+        for name in sorted(os.listdir(LAYOUTS)):
+            root = layout(name)
+            parent = {child: node for node in root.iter() for child in node}
+            for button in root.iter('control'):
+                if button.get('type') != 'button' or button.find('onleft') is not None:
+                    continue
+                up = parent.get(button)
+                if up is None or up.get('type') == 'grouplist':
+                    continue  # the row itself moves the focus on
+                while up is not None and up.get('type') != 'grouplist':
+                    up = parent.get(up)
+                if up is not None:
+                    trapped.append(f'{name}: {button.get("id")}')
+        self.assertEqual(trapped, [])
+
     def test_the_python_side_finds_its_controls(self):
         # Each window module's control ids (by constant name, or as numbers) and the layout it opens.
         checks = {
