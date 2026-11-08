@@ -231,3 +231,15 @@ msgstr ""
 msgctxt "#30137"
 msgid "Reelhouse did not start the channel in time"
 msgstr ""
+
+msgctxt "#30138"
+msgid "Install InputStream FFmpeg Direct (to pause live TV)"
+msgstr ""
+
+msgctxt "#30139"
+msgid "Kodi can pause and rewind Reelhouse's live TV with InputStream FFmpeg Direct, Kodi's own add-on, which keeps what's played on this device. Installs it from Kodi's add-on repository."
+msgstr ""
+
+msgctxt "#30140"
+msgid "InputStream FFmpeg Direct offered"
+msgstr ""

@@ -90,9 +90,17 @@ when Kodi starts** in the add-on's settings for a Kodi that's mostly for Reelhou
   colour, the highlighted one's details underneath, the days along the top. The arrow keys move as on a remote: left
   and right along a channel, up and down to the same time on the channels above and below. Select a programme that's
   on to watch (or listen to) it, or a later one to record it (Cancel recording on one that's scheduled) when your
-  account may record. While a channel plays, Kodi's next and previous buttons change channel, and Kodi's controls show
-  the channel's logo before its name at the top left and how long the programme has left beside the time (since
-  0.13.2; they come and go with the controls, and radio has neither). A recording someone else
+  account may record. While a channel plays, **Reelhouse's own player controls** take the place of Kodi's (since
+  0.14.0, with Reelhouse 0.23.0), laid out as Kodi's are for its own TV channels: the channel's logo, the programme
+  and when it ends at the top; the programme's start and end at the ends of its progress bar, and how far into it and
+  how long it is in the middle; previous and next channel, stop and record (white, red while the programme records;
+  pressed then, it offers Stop recording), and on the right the channels, the programme's details (also the Info
+  button), Kodi's subtitle settings and its video and audio settings. OK shows them; they go after a few seconds. Up
+  and down (and the remote's channel and next/previous buttons) change channel, and a channel that can't play says
+  why and leaves the one playing. **Pause** (with left and right going back and on 10 seconds) needs Kodi's own
+  InputStream FFmpeg Direct add-on, which keeps what's played on the Kodi device: the screens offer to install it the
+  first time they open (Kodi asks), and the add-on's settings have an entry for it while it's missing; without it
+  there's no pause button. Radio plays in Kodi's own player. A recording someone else
   set can only be cancelled by them or an admin (since 0.6.0, with Reelhouse 0.14.0 or later). Accounts allowed to
   also have **Record series** (since 0.11.0, with Reelhouse 0.20.0): every episode of the show on that channel, an
   episode then offering **Skip this episode** rather than Cancel recording, and **Cancel series recording**.
@@ -119,7 +127,8 @@ menus work as usual; an episode carries on into the rest of its season. Live TV 
 web app (broadcast video is interlaced), and stopping it frees Tvheadend's tuner straight away.
 
 The screens use your Kodi skin's fonts (an add-on can't bring its own); they're laid out for Estuary, Kodi's standard
-skin. Reelhouse's own player controls, the library's A–Z jump and choosing a live TV quality aren't there yet.
+skin. Reelhouse's own player controls for films, the library's A–Z jump and choosing a live TV quality aren't there
+yet.
 
 ## Settings
 
@@ -172,7 +181,7 @@ from Reelhouse's event stream (`/api/events`), and every reconnect runs a quick 
 | `resources/lib/syncdb.py` | The add-on's own record of synced items (Reelhouse ID → Kodi ID, checksum) |
 | `resources/lib/service.py` | Background service: syncing, live updates, progress and watched reporting |
 | `resources/lib/plugin.py` | The add-on menu, sign-in/out and playback (films, episodes and live TV channels) |
-| `resources/lib/live_overlay.py` | While a live channel plays: its logo and the programme's time left, added to Kodi's own controls (laid out for Estuary) |
+| `resources/lib/live_osd.py` | Reelhouse's own player controls while a live channel plays (`reelhouse-live-osd.xml`): the programme's times and progress, channel changes, record, pausing through InputStream FFmpeg Direct |
 | `tests/` | Tests against a real Kodi 21 database schema, a fake server and stand-ins for Kodi's Python modules (`kodistubs.py`) |
 
 The server side lives in `server/routes/sync.js` (sync API), `server/routes/auth.js` (`POST /api/auth/device`, the

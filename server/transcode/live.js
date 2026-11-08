@@ -22,7 +22,8 @@ const log = logger('livetv');
 export const LIVE_SEGMENT_SECONDS = 2;
 const WINDOW_SEGMENTS = 150; // five minutes to pause in, or go back in
 // A player asks every few seconds, even paused; an object so tests can shorten it.
-export const liveLimits = { idleEndMs: 30 * 1000 };
+// tunerFreeMs: the wait for Tvheadend to let a tuner go before a channel change's next channel is tried again on it.
+export const liveLimits = { idleEndMs: 30 * 1000, tunerFreeMs: 1000 };
 const FIRST_SEGMENT_MS = 30 * 1000; // tuning, then the first two seconds of picture
 const RESTART_AFTER_MS = 60 * 1000; // a stream that ran this long gets restarted when it drops
 

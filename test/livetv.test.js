@@ -41,6 +41,7 @@ const tvh = {
   calls: [], // [path, form]
   lastFilter: null,
   openStreams: 0,
+  tuners: Infinity, // a Tvheadend with one tuner for all its channels: 1
   iconFetches: 0,
   iconsDown: false,
   channelsDown: false,
@@ -121,6 +122,8 @@ function fakeTvheadend(req, res) {
     if (url.pathname.startsWith('/stream/channelid/')) {
       if (url.searchParams.get('ticket') !== 'T1') return res.writeHead(401).end();
       if (url.pathname.endsWith('/2') && !tvh.twoHasATuner) return res.writeHead(503).end('No free adapter');
+      if (url.pathname.endsWith('/2') && tvh.twoIsGone) return res.writeHead(404).end();
+      if (tvh.openStreams >= tvh.tuners) return res.writeHead(503).end('No free adapter');
       if (url.pathname.endsWith('/3') || url.pathname.endsWith('/4')) return streamTs(req, res, radioFile);
       return streamTs(req, res);
     }
@@ -1008,6 +1011,66 @@ test('watching: deinterlaced H.264 + AAC from the broadcast stream, logged, and 
   assert.ok(await waitFor(() => tvh.openStreams === 0), 'stream closed');
   assert.equal(listLiveSessions().length, 0);
   assert.equal((await fetch(`${base}${r.data.url}`)).status, 404);
+});
+
+test('a channel change lets the channel left go once the next has started', async () => {
+  clearStreams();
+  tvh.twoHasATuner = true;
+  try {
+    const one = await call('kid', 'POST', `/api/livetv/play/${ONE}`, {});
+    assert.equal(one.status, 200, JSON.stringify(one.data));
+    const two = await call('kid', 'POST', `/api/livetv/play/${TWO}`, { previousSession: one.data.playId });
+    assert.equal(two.status, 200, JSON.stringify(two.data));
+    assert.ok(await waitFor(() => tvh.openStreams === 1), "the first channel's stream closed");
+    assert.deepEqual(listLiveSessions().map((s) => s.id), [two.data.playId]);
+    assert.equal((await fetch(`${base}${one.data.url}`)).status, 404);
+    await call('kid', 'POST', '/api/livetv/progress', { playId: two.data.playId, state: 'stopped' });
+    assert.ok(await waitFor(() => tvh.openStreams === 0), 'stream closed');
+  } finally {
+    tvh.twoHasATuner = false;
+  }
+});
+
+test('a channel change to a channel that can\'t play leaves the one playing', async () => {
+  clearStreams();
+  tvh.twoHasATuner = true;
+  tvh.twoIsGone = true;
+  try {
+    const one = await call('kid', 'POST', `/api/livetv/play/${ONE}`, {});
+    assert.equal(one.status, 200, JSON.stringify(one.data));
+    const two = await call('kid', 'POST', `/api/livetv/play/${TWO}`, { previousSession: one.data.playId });
+    assert.ok(two.status >= 400, JSON.stringify(two.data));
+    assert.deepEqual(listLiveSessions().map((s) => s.id), [one.data.playId]);
+    assert.equal(tvh.openStreams, 1);
+    assert.equal((await fetch(`${base}${one.data.url}`)).status, 200);
+    await call('kid', 'POST', '/api/livetv/progress', { playId: one.data.playId, state: 'stopped' });
+    assert.ok(await waitFor(() => tvh.openStreams === 0), 'stream closed');
+  } finally {
+    tvh.twoHasATuner = false;
+    tvh.twoIsGone = false;
+  }
+});
+
+test('a channel change with no tuner to spare: the channel left goes first, then the next one starts', async () => {
+  clearStreams();
+  tvh.twoHasATuner = true;
+  tvh.tuners = 1;
+  const kept = liveLimits.tunerFreeMs;
+  liveLimits.tunerFreeMs = 300;
+  try {
+    const one = await call('kid', 'POST', `/api/livetv/play/${ONE}`, {});
+    assert.equal(one.status, 200, JSON.stringify(one.data));
+    const two = await call('kid', 'POST', `/api/livetv/play/${TWO}`, { previousSession: one.data.playId });
+    assert.equal(two.status, 200, JSON.stringify(two.data));
+    assert.deepEqual(listLiveSessions().map((s) => s.id), [two.data.playId]);
+    assert.ok(await waitFor(() => tvh.openStreams === 1), 'one stream: the next channel\'s');
+    await call('kid', 'POST', '/api/livetv/progress', { playId: two.data.playId, state: 'stopped' });
+    assert.ok(await waitFor(() => tvh.openStreams === 0), 'stream closed');
+  } finally {
+    tvh.twoHasATuner = false;
+    tvh.tuners = Infinity;
+    liveLimits.tunerFreeMs = kept;
+  }
 });
 
 test('a channel the player gave up on while it started (a quick channel change) is let go once it is ready', async () => {

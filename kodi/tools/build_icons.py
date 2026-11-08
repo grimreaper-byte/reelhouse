@@ -30,7 +30,8 @@ ICONS = ['home', 'film', 'tv', 'radio', 'search', 'settings', 'user', 'play', 'c
          'star', 'chevronLeft', 'chevronRight', 'chevronDown', 'x', 'refresh', 'skipNext', 'skipPrev', 'list', 'grid',
          # the icons a library can be given (ui/model.py LIBRARY_ICONS), film and tv above
          'tvRecord', 'tvOld', 'tvFlat', 'tvPlay', 'clapperboard', 'movieCamera', 'trophy', 'heart',
-         'signOut', 'fullscreen']  # the sidebar's Exit and Now playing
+         'signOut', 'fullscreen',  # the sidebar's Exit and Now playing
+         'pause', 'stop', 'subtitles']  # the live player controls (live_osd.py)
 FILLED = {'play', 'pause', 'stop', 'star', 'record'}
 
 

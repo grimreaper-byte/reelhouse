@@ -55,6 +55,20 @@
           <default>false</default>
           <control type="toggle"/>
         </setting>
+        <setting id="action_timeshift" type="action" label="30138" help="30139">
+          <level>0</level>
+          <data>InstallAddon(inputstream.ffmpegdirect)</data>
+          <constraints><allowempty>true</allowempty></constraints>
+          <dependencies>
+            <dependency type="visible" on="property" name="InfoBool">!System.HasAddon(inputstream.ffmpegdirect)</dependency>
+          </dependencies>
+          <control type="button" format="action"><close>true</close></control>
+        </setting>
+        <setting id="asked_timeshift" type="boolean" label="30140" help="">
+          <level>4</level>
+          <default>false</default>
+          <control type="toggle"/>
+        </setting>
       </group>
     </category>
     <category id="sync" label="30010" help="">

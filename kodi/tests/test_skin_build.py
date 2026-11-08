@@ -47,8 +47,8 @@ class SkinTests(unittest.TestCase):
     def test_every_screen_keeps_a_video_behind_it_playing(self):
         # Kodi's player stalls with nothing to draw its pictures: each screen has a video control, under its background.
         for name in os.listdir(LAYOUTS):
-            if name == 'reelhouse-options.xml':
-                continue  # a dialog: the screen under it goes on drawing
+            if name in ('reelhouse-options.xml', 'reelhouse-live-osd.xml'):
+                continue  # dialogs: the screen (or the picture) under them goes on drawing
             controls = list(layout(name).find('controls'))
             self.assertEqual(controls[0].get('type'), 'videowindow', name)
             self.assertEqual(controls[1].find('width').text, '1920', '{}: the background covers it'.format(name))
@@ -102,6 +102,18 @@ class SkinTests(unittest.TestCase):
                 control = names.get(want) if isinstance(want, str) else want
                 self.assertIsNotNone(control, '{}: no {}'.format(module, want))
                 self.assertIn(control, ids, '{}: control {} ({}) not in {}'.format(module, control, want, xml))
+
+    def test_the_live_player_controls_find_their_controls(self):
+        from resources.lib import live_osd
+        ids = set(int(c.get('id')) for c in layout(live_osd.LAYOUT).iter('control') if c.get('id', '').isdigit())
+        names = ('CATCH', 'LOGO', 'TITLE', 'SUBTITLE', 'CLOCK', 'ENDS', 'REC', 'START', 'END', 'BAR', 'TIME', 'BIG_LOGO',
+                 'INFO_TITLE', 'INFO_LINE', 'INFO_SUMMARY', 'INFO_NEXT', 'PREVIOUS', 'PAUSE', 'STOP', 'NEXT', 'RECORD',
+                 'CHANNELS', 'DETAILS', 'SUBTITLES', 'SETTINGS')
+        self.assertEqual([n for n in names if getattr(live_osd, n) not in ids], [])
+        with open(os.path.join(LAYOUTS, live_osd.LAYOUT), encoding='utf-8') as f:
+            text = f.read()
+        for prop in (live_osd.SHOWING, live_osd.SHOWING_INFO, live_osd.CAN_RECORD, live_osd.RECORDING):
+            self.assertIn('Window(Home).Property({})'.format(prop), text)
 
     def test_the_menu_holds_enough_choices(self):
         items = list(layout('reelhouse-options.xml').iter('item'))

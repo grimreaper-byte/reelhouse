@@ -6,7 +6,7 @@ import { all, get, placeholders, run } from '../db.js';
 import { getSetting } from '../settings.js';
 import { qualityById } from '../transcode/profile.js';
 import { activeTranscodeCount } from '../transcode/hls.js';
-import { getLiveSession, startLiveSession } from '../transcode/live.js';
+import { getLiveSession, liveLimits, startLiveSession } from '../transcode/live.js';
 import {
   account, channelByUuid, channels, forgetGuide, genreNames, guideWindow, learnRadio, liveTvOn, publicChannel, tvheadend, upcomingRecordings,
 } from '../livetv/guide.js';
@@ -166,14 +166,16 @@ router.post('/livetv/play/:uuid', requireUser, requireLiveTv, async (req, res) =
     return fail(res, err);
   }
   if (!channel) return res.status(404).json({ error: 'No such channel' });
-  // A channel change: the previous channel stops first (freeing its tuner) and counts as the same device.
-  if (body.previousSession) {
-    const prev = getLiveSession(body.previousSession);
-    if (prev && prev.userId === req.user.id) {
-      prev.destroy();
-      endStream(prev.id, 'stopped');
-    }
-  }
+  // A channel change: the channel being left (the same device, so not counted against the limit) goes once the next
+  // one has started, freeing its tuner then; a channel that can't play leaves it playing. With no free tuner for the
+  // next one meanwhile, it goes first and the next is tried again.
+  const prev = body.previousSession ? getLiveSession(body.previousSession) : null;
+  const leaving = prev && prev.userId === req.user.id ? prev : null;
+  const letGo = () => {
+    if (!leaving || leaving.destroyed) return;
+    leaving.destroy();
+    endStream(leaving.id, 'stopped');
+  };
   const details = streamDetails(req, channel);
   const limited = streamLimitReached(req.user.id, req.user.streamLimit, details);
   if (limited) {
@@ -181,7 +183,7 @@ router.post('/livetv/play/:uuid', requireUser, requireLiveTv, async (req, res) =
     return res.status(429).json({ error: streamLimitMessage(limited), code: 'stream_limit', limit: limited.limit });
   }
   const max = Number(getSetting('maxTranscodes')) || 0;
-  if (max > 0 && activeTranscodeCount() >= max) {
+  if (max > 0 && activeTranscodeCount() - (leaving ? 1 : 0) >= max) {
     return res.status(503).json({ error: `The server is already converting ${max} video(s). Try again later.` });
   }
   const quality = qualityById(body.quality);
@@ -191,12 +193,20 @@ router.post('/livetv/play/:uuid', requireUser, requireLiveTv, async (req, res) =
   res.on('close', () => {
     if (!res.writableFinished) gone = true;
   });
+  const start = () => startLiveSession({
+    channel, quality, userId: req.user.id, streamUrl: () => tvheadend().streamUrl(channel.uuid),
+    onRadio: () => learnRadio(channel.uuid),
+  });
   let session;
   try {
-    session = await startLiveSession({
-      channel, quality, userId: req.user.id, streamUrl: () => tvheadend().streamUrl(channel.uuid),
-      onRadio: () => learnRadio(channel.uuid),
-    });
+    try {
+      session = await start();
+    } catch (err) {
+      if (!leaving || !/no free tuner/i.test(err.message)) throw err;
+      letGo();
+      await new Promise((r) => setTimeout(r, liveLimits.tunerFreeMs)); // Tvheadend lets the tuner go
+      session = await start();
+    }
   } catch (err) {
     log.warn(`User "${req.user.username}" couldn't start live TV "${channel.name}": ${err.message}`);
     return fail(res, err);
@@ -207,6 +217,7 @@ router.post('/livetv/play/:uuid', requireUser, requireLiveTv, async (req, res) =
     session.destroy();
     return;
   }
+  letGo();
   startStream(session.id, {
     ...details, radio: session.radio, duration: null, quality: session.quality.id, qualityLabel: session.quality.label, reasons: [],
     programme: now?.title || null,

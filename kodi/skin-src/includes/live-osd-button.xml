@@ -1,0 +1,19 @@
+<!-- A button in the live player controls' bottom row (reelhouse-live-osd.xml), as Kodi's: an icon, with a round
+     highlight behind it when it has the focus. Params: id, x, ix (x + 16: the icon's left), icon
+     (reelhouse/icons/<icon>.png), colour, left, right (the buttons either side, noop at the ends), shown (when the
+     button's there; true for always), iconshown (when its icon is: pause swaps to play while paused), shift (how far
+     left it moves when Kodi can't pause the stream and pause isn't there: 0, or -86 for the buttons after it). -->
+      <control type="button" id="{{id}}">
+        <left>{{x}}</left><top>990</top><width>76</width><height>76</height>
+        <texturefocus colordiffuse="{{ACCENT}}">reelhouse/ui/circle.png</texturefocus>
+        <texturenofocus>reelhouse/ui/clear.png</texturenofocus>
+        <onleft>{{left}}</onleft><onright>{{right}}</onright><onup>noop</onup><ondown>noop</ondown><oninfo>noop</oninfo>
+        <visible>{{shown}}</visible>
+        <animation effect="slide" end="{{shift}},0" time="0" condition="!Player.PauseEnabled">Conditional</animation>
+      </control>
+      <control type="image">
+        <left>{{ix}}</left><top>1006</top><width>44</width><height>44</height>
+        <texture colordiffuse="{{colour}}">reelhouse/icons/{{icon}}.png</texture>
+        <visible>{{iconshown}}</visible>
+        <animation effect="slide" end="{{shift}},0" time="0" condition="!Player.PauseEnabled">Conditional</animation>
+      </control>

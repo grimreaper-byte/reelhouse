@@ -11,6 +11,9 @@ ADDON_ID = 'plugin.video.reelhouse'
 HOME = 10000
 PLAYING_PROPERTY = 'reelhouse.playing'
 LIVE_PROPERTY = 'reelhouse.live'        # the live TV session playing (its id), for heartbeats and channel changes
+CHANNELS_PROPERTY = 'reelhouse.channels'  # the guide's channels in order, for the live player controls' changes
+# Kodi's official add-on that can pause a live stream (plugin.start_channel uses it when it's installed).
+TIMESHIFT_PLAYER = 'inputstream.ffmpegdirect'
 CHANGED_PROPERTY = 'reelhouse.changed'  # bumped when Reelhouse announces changes; the Reelhouse screens re-read
 
 

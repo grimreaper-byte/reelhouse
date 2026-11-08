@@ -167,24 +167,18 @@ class CompactTests(unittest.TestCase):
         self.assertEqual(service.compact(jobs), jobs[10:])
 
 
-class FakeOverlay(object):
+class FakeControls(object):
     def __init__(self):
-        self.shown, self.closed, self.updates = [], 0, 0
+        self.started, self.stopped, self.ticks = [], 0, 0
 
-    def show(self, logo, stop, now=None):
-        self.shown.append((logo, stop))
+    def start(self, info, player):
+        self.started.append(info)
 
-    def update(self, now=None):
-        self.updates += 1
+    def stop(self):
+        self.stopped += 1
 
-    def programme(self, stop, now=None):
-        self.shown.append(('programme', stop))
-
-    def ended(self, now=None):
-        return False
-
-    def close(self):
-        self.closed += 1
+    def tick(self):
+        self.ticks += 1
 
 
 class PlayerTests(unittest.TestCase):
@@ -192,8 +186,8 @@ class PlayerTests(unittest.TestCase):
         kodistubs.PROPERTIES.clear()
         self.sent = []
         owner = type('Owner', (), {'send': lambda _self, *args: self.sent.append(args)})()
-        self.overlay = FakeOverlay()
-        self.player = service.Player(owner, self.overlay)
+        self.controls = FakeControls()
+        self.player = service.Player(owner, self.controls)
 
     def start(self, item_id, playing_file):
         kodistubs.PROPERTIES[utils.PLAYING_PROPERTY] = json.dumps({'id': item_id, 'playId': 'p', 'duration': 100})
@@ -223,138 +217,24 @@ class PlayerTests(unittest.TestCase):
         self.assertNotIn(utils.LIVE_PROPERTY, kodistubs.PROPERTIES)
         self.assertIsNone(self.player.live)
 
-    def test_a_live_channel_shows_its_logo_and_time_left_over_kodis_controls(self):
-        kodistubs.PROPERTIES[utils.LIVE_PROPERTY] = json.dumps({'playId': 'abc', 'channel': 'Test One', 'logo': 'http://rh/logo', 'stop': 1800})
+    def test_a_live_channel_brings_reelhouses_player_controls(self):
+        now = {'id': 7, 'start': 0, 'stop': 1800, 'title': 'Test Quiz'}
+        kodistubs.PROPERTIES[utils.LIVE_PROPERTY] = json.dumps({'playId': 'abc', 'channel': 'Test One', 'logo': 'http://rh/logo', 'now': now})
         self.player.playing_file = 'http://rh:8484/api/live/abc/index.m3u8'
         self.player.onAVStarted()
-        self.assertEqual(self.overlay.shown, [('http://rh/logo', 1800)])
+        self.assertEqual([i['now'] for i in self.controls.started], [now])
         self.player.tick()
-        self.assertEqual(self.overlay.updates, 1)
+        self.assertEqual(self.controls.ticks, 1)
         self.player.onPlayBackStopped()
-        self.assertEqual(self.overlay.closed, 1)
+        self.assertEqual(self.controls.stopped, 1)
+        self.player.tick()  # they go on being told the time (to close over a picture that's gone)
+        self.assertEqual(self.controls.ticks, 2)
 
-    def test_radio_has_no_overlay(self):
-        kodistubs.PROPERTIES[utils.LIVE_PROPERTY] = json.dumps({'playId': 'abc', 'radio': True, 'logo': 'x', 'stop': 1800})
+    def test_radio_has_no_player_controls(self):
+        kodistubs.PROPERTIES[utils.LIVE_PROPERTY] = json.dumps({'playId': 'abc', 'radio': True, 'logo': 'x'})
         self.player.playing_file = 'http://rh:8484/api/live/abc/index.m3u8'
         self.player.onAVStarted()
-        self.assertEqual(self.overlay.shown, [])
-
-    def test_the_time_left_reads_as_the_guide_says_it(self):
-        from resources.lib import live_overlay
-        self.assertEqual(live_overlay.time_left(1800, 60), '29 min left')
-        self.assertEqual(live_overlay.time_left(1800, 1790), '1 min left')
-        self.assertEqual(live_overlay.time_left(1800, 1800), '')
-        self.assertEqual(live_overlay.time_left(None, 60), '')
-
-    def overlay_world(self, osd_open=False):
-        """A stand-in for Kodi's windows: what goes in and out of its controls window, and the home window's properties."""
-        from resources.lib import live_overlay
-        world = type('World', (), {})()
-        world.osd_open, world.inside, world.windows, world.homes, world.removals = osd_open, [], [], {}, 0
-
-        class Control(object):
-            def __init__(self, *args, **kwargs):
-                self.args, self.kwargs, self.when, self.animations = args, kwargs, None, []
-
-            def setVisibleCondition(self, condition, allow_hidden_focus=False):
-                self.when = condition
-
-            def setAnimations(self, animations):
-                self.animations = animations
-
-            def setLabel(self, *args, **kwargs):
-                raise AssertionError('a label in a window not its own goes to every window')
-
-            setImage = setLabel
-
-        class Window(object):
-            def __init__(self, window_id):
-                self.window_id = window_id
-                if window_id == live_overlay.OSD:
-                    world.windows.append(self)
-
-            def addControl(self, control):
-                world.inside.append(control)
-
-            def removeControls(self, controls):
-                world.removals += 1
-                if any(c not in world.inside for c in controls):
-                    raise RuntimeError('Control does not exist in window')
-                world.inside[:] = [c for c in world.inside if c not in controls]
-
-            def setProperty(self, key, value):
-                world.homes[key] = value
-
-            def clearProperty(self, key):
-                world.homes.pop(key, None)
-
-        gui = type('Gui', (), {'ControlImage': Control, 'ControlLabel': Control, 'Window': Window})
-        world.overlay = live_overlay.Overlay(gui, lambda condition: world.osd_open and condition == 'Window.IsVisible(videoosd)')
-        return world
-
-    def test_the_overlay_waits_for_kodis_controls_then_goes_in_them_and_is_held(self):
-        # Not a dialog of its own (Kodi would give that the remote), nor Kodi's seek bar (which throws added controls
-        # away): two controls in Kodi's controls window, once it has loaded (it loads when it first opens).
-        from resources.lib import live_overlay
-        world = self.overlay_world()
-        o = world.overlay
-        o.show('http://rh/logo', 1800, now=60)
-        self.assertEqual(world.inside, [])
-        self.assertEqual(world.homes, {live_overlay.SHOWING: o.token, live_overlay.LEFT: '29 min left'})
-        world.osd_open = True
-        o.update(now=120)
-        logo, left = world.inside
-        self.assertEqual(logo.args[4], 'http://rh/logo')
-        # The label reads the time left from the home window: nothing is changed in a control once it's in.
-        self.assertEqual(left.args[4], '$INFO[Window(Home).Property({})]'.format(live_overlay.LEFT))
-        self.assertEqual(world.homes[live_overlay.LEFT], '28 min left')
-        self.assertIn('String.IsEqual(Window(Home).Property({}),{})'.format(live_overlay.SHOWING, o.token), logo.when)
-        self.assertIn('Window.IsVisible(osdvideosettings)', left.when)
-        # They go with Kodi's controls rather than staying until the window has gone: the logo up with the top bar,
-        # the time left down with the bottom bar, in Kodi's time font.
-        self.assertIn(('WindowClose', 'effect=fade start=100 end=0 time=300'), logo.animations)
-        self.assertTrue(any(e == 'WindowClose' and 'end=0,-200' in a for e, a in logo.animations))
-        self.assertTrue(any(e == 'WindowClose' and 'end=0,200' in a for e, a in left.animations))
-        self.assertEqual(left.kwargs['font'], 'font45')
-        # Held: letting go of the window it added them through would cut its hold on them.
-        self.assertEqual([w.window_id for w in world.windows], [live_overlay.OSD])
-        self.assertIs(o.window, world.windows[0])
-
-    def test_a_channel_change_swaps_the_controls_and_a_stop_hides_them(self):
-        from resources.lib import live_overlay
-        world = self.overlay_world(osd_open=True)
-        o = world.overlay
-        o.show('http://rh/logo', 1800, now=60)
-        first = list(world.inside)
-        world.osd_open = False  # loaded once opened: the next channel's go straight in
-        o.show('http://rh/logo2', 3600, now=60)
-        self.assertEqual(len(world.inside), 2)
-        self.assertFalse(set(first) & set(world.inside))
-        self.assertEqual(world.inside[0].args[4], 'http://rh/logo2')
-        o.programme(7200, now=3600)  # the next programme: the same controls
-        self.assertEqual((world.removals, world.homes[live_overlay.LEFT]), (1, '60 min left'))
-        self.assertTrue(o.ended(now=7200))
-        o.close()
-        self.assertEqual(world.homes, {})
-        self.assertEqual(len(world.inside), 2)  # left in, hidden, for the next channel to swap
-        self.assertFalse(o.ended(now=9999))
-
-    def test_controls_a_skin_reload_took_come_back_when_kodis_controls_next_show(self):
-        world = self.overlay_world(osd_open=True)
-        o = world.overlay
-        o.show('http://rh/logo', 1800, now=60)
-        del world.inside[:]  # the skin reloaded, deleting them
-        world.osd_open = False
-        o.show('http://rh/logo', 1800, now=60)
-        self.assertEqual(world.inside, [])
-        world.osd_open = True
-        o.update(now=61)
-        self.assertEqual(len(world.inside), 2)
-
-    def test_a_channel_without_a_logo_has_only_the_time_left(self):
-        world = self.overlay_world(osd_open=True)
-        world.overlay.show('', 1800, now=60)
-        self.assertEqual(len(world.inside), 1)
+        self.assertEqual(self.controls.started, [])
 
     def test_a_channel_change_leaves_the_new_sessions_property(self):
         kodistubs.PROPERTIES[utils.LIVE_PROPERTY] = json.dumps({'playId': 'old'})

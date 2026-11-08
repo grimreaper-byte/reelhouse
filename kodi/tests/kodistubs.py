@@ -8,6 +8,10 @@ SETTINGS = {}
 LOG = []
 NOTIFICATIONS = []
 PROPERTIES = {}
+PLAYED = []          # what Player was asked to do: 'pause', 'stop'
+BUILTINS = []        # Kodi's built-in commands run (xbmc.executebuiltin)
+PLAYLIST = []        # the labels in Kodi's video playlist
+PLAYLIST_AT = [0]    # the one playing
 ABORT = threading.Event()
 
 
@@ -19,7 +23,7 @@ def install():
     xbmc.log = lambda message, level=1: LOG.append((level, message))
     xbmc.getCondVisibility = lambda condition: condition.startswith('Control.IsVisible')
     xbmc.getInfoLabel = lambda label: '1' if label == 'System.CurrentControlId' else ''  # something has the focus
-    xbmc.executebuiltin = lambda command: None
+    xbmc.executebuiltin = lambda command, wait=False: BUILTINS.append(command)
     xbmc.sleep = lambda ms: None
 
     class Monitor(object):
@@ -46,8 +50,59 @@ def install():
 
         def seekTime(self, seconds):
             self.seeked = seconds
+            PLAYED.append(('seek', seconds))
 
-    xbmc.Monitor, xbmc.Player = Monitor, Player
+        def playselected(self, index):
+            PLAYED.append(index)
+
+        def pause(self):
+            PLAYED.append('pause')
+
+        def stop(self):
+            PLAYED.append('stop')
+
+        def play(self, item=None, listitem=None, windowed=False, startpos=-1):
+            PLAYED.append(('play', item if isinstance(item, str) else startpos))
+
+    class Entry(object):
+        """A playlist entry as Kodi gives it back: its label, and the add-on's address it plays."""
+        def __init__(self, n):
+            self.n = n
+
+        def getLabel(self):
+            return PLAYLIST[self.n]
+
+        def getPath(self):
+            return 'plugin://plugin.video.reelhouse/?mode=live&channel=c{}'.format(self.n)
+
+        def getArt(self, kind):
+            return ''
+
+    class PlayList(object):
+        """Kodi's video playlist: PLAYLIST (labels) and PLAYLIST_AT (the item playing); put in again, the labels go in
+        PLAYLIST once more and PLAYED says 'cleared'."""
+        def __init__(self, kind):
+            pass
+
+        def size(self):
+            return len(PLAYLIST)
+
+        def getposition(self):
+            return PLAYLIST_AT[0]
+
+        def __getitem__(self, n):
+            return Entry(n)
+
+        def clear(self):
+            PLAYED.append('cleared')
+            del PLAYLIST[:]
+
+        def add(self, url, listitem=None, index=-1):
+            PLAYLIST.append(listitem.getLabel() if listitem else url)
+
+    xbmc.Monitor, xbmc.Player, xbmc.PlayList = Monitor, Player, PlayList
+    xbmc.PLAYLIST_MUSIC, xbmc.PLAYLIST_VIDEO = 0, 1
+    xbmc.getRegion = lambda key: '%H:%M:%S' if key == 'time' else ''
 
     xbmcgui = types.ModuleType('xbmcgui')
     xbmcgui.NOTIFICATION_ERROR = 'error'
@@ -69,7 +124,23 @@ def install():
         def notification(self, heading, message, icon=None, time=5000):
             NOTIFICATIONS.append(message)
 
-    xbmcgui.Window, xbmcgui.Dialog = Window, Dialog
+    class ListItem(object):
+        def __init__(self, label='', label2='', path=''):
+            self.label, self.path, self.properties, self.art = label, path, {}, {}
+
+        def getLabel(self):
+            return self.label
+
+        def getPath(self):
+            return self.path
+
+        def setProperty(self, key, value):
+            self.properties[key] = value
+
+        def setArt(self, art):
+            self.art.update(art)
+
+    xbmcgui.Window, xbmcgui.Dialog, xbmcgui.ListItem = Window, Dialog, ListItem
 
     class WindowXML(object):
         """As Kodi's: the focus only lands on a control while it's showing (`hidden` ids can't take it)."""

@@ -490,7 +490,8 @@ first: **Configuration → Channel / EPG → EPG Grabber**, *Re-run Internal EPG
 
 Broadcast TV is interlaced and its sound often MP2 or AC3, so Reelhouse converts every channel (with your GPU if you
 have one). Each channel being watched holds one of Tvheadend's tuners until its player closes, and counts towards the
-account's devices playing at once. To watch recordings, add Tvheadend's recordings folder as a library (**Settings →
+account's devices playing at once. On a channel change the channel being left plays on until the next one has started
+(since 0.23.0), so one that can't play leaves it playing; with no tuner to spare, the one left goes first. To watch recordings, add Tvheadend's recordings folder as a library (**Settings →
 Libraries**); its `.ts` files play like any other. A "New_ " or "New: " in front of a show's folder or file names (how
 Tvheadend writes the UK guide's "New: " for a new episode) is left off there too (since 0.18.1), so new episodes and
 repeats are one show with its TMDB poster, with a folder per show or the recordings all in one folder; a library
@@ -527,9 +528,11 @@ with the web app both ways, and new media appears in Kodi within seconds of Reel
 Reelhouse** (since add-on 0.2.0) shows Reelhouse as the web app looks — sidebar, Home, libraries, film and show pages,
 search, the live TV guide and Manage Recordings — driven with the remote, and it can open by itself when Kodi starts.
 Back never leaves it (since add-on 0.4.0): the sidebar's **Exit** returns to Kodi, and while something plays **Now
-playing** at the top of the sidebar returns to the player (since add-on 0.11.0). While a live channel plays, Kodi's
-controls show the channel's logo and how long the programme has left (since add-on 0.13.2). When Kodi starts, a
-notification says who it's signed in as (since add-on 0.5.0).
+playing** at the top of the sidebar returns to the player (since add-on 0.11.0). While a live channel plays,
+Reelhouse's own player controls show it as Kodi shows its own TV channels (the programme's times and progress, when it
+ends, the channel's logo), with channel changes, record, and pausing when Kodi has its InputStream FFmpeg Direct
+add-on, which the screens offer to install (since add-on 0.14.0). When Kodi starts, a notification says who it's
+signed in as (since add-on 0.5.0).
 
 Reelhouse serves the add-on at `http://<your server>:8484/kodi/`. In Kodi, turn on **Settings → System → Add-ons →
 Unknown sources**, add that address under **Settings → File manager → Add source**, then use **Add-ons → Install

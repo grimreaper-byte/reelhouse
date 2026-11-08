@@ -3,6 +3,8 @@
 # Back on Home doesn't leave: the sidebar's Exit does.
 # Playing goes through the add-on's plugin (mode=play / mode=live), so streams, subtitles and progress reports are
 # the same as for Kodi's own library.
+import json
+import threading
 from urllib.parse import urlencode
 
 import xbmc
@@ -16,6 +18,8 @@ RUNNING_PROPERTY = 'reelhouse.ui'
 PLUGIN = 'plugin://{}/'.format(utils.ADDON_ID)
 HAS_MEDIA = 'Player.HasMedia'  # as Kodi's own Now playing button (a film or channel may carry on behind the screens)
 
+
+TIMESHIFT_ASKED = 'asked_timeshift'  # the add-on's hidden setting: InputStream FFmpeg Direct was offered
 
 def plugin_url(**params):
     return PLUGIN + '?' + urlencode(dict((k, v) for k, v in params.items() if v not in (None, '')))
@@ -41,6 +45,11 @@ class App(object):
 
     def live_tv(self):
         return (self.me or {}).get('liveTv') or {}
+
+    def timeshift_wanted(self):
+        """Live TV here, InputStream FFmpeg Direct (pausing it) not, and not offered before."""
+        return bool(self.live_tv().get('available')) and not utils.setting_bool(TIMESHIFT_ASKED) and \
+            not xbmc.getCondVisibility('System.HasAddon({})'.format(utils.TIMESHIFT_PLAYER))
 
     @staticmethod
     def showing(window_id):
@@ -162,8 +171,22 @@ class App(object):
         self.play(item['id'], start, self.episode_queue(item), title=item.get('title'))
 
     def play_live(self, channels, index, radio):
-        """Plays a channel; the others follow it in Kodi's playlist, so next/previous change channel."""
-        playlist = xbmc.PlayList(xbmc.PLAYLIST_MUSIC if radio else xbmc.PLAYLIST_VIDEO)
+        """Plays a channel. A TV channel plays on its own: Reelhouse's player controls (live_osd.py) change channel
+        themselves, from the guide's channels left on the home window, as Kodi's playlist made Kodi quit (opening
+        the next channel's item at once when one couldn't play, skipping on through the rest). Radio stations follow
+        each other in Kodi's music playlist, so its next/previous change station."""
+        if not radio:
+            c = channels[index]
+            xbmcgui.Window(utils.HOME).setProperty(utils.CHANNELS_PROPERTY, json.dumps(
+                [{'uuid': ch['uuid'], 'name': ch.get('name') or ''} for ch in channels]))
+            li = xbmcgui.ListItem(c.get('name') or '')
+            li.setProperty('IsPlayable', 'true')
+            if c.get('icon'):
+                logo = self.image(c['icon'], 240)
+                li.setArt({'thumb': logo, 'icon': logo})
+            xbmc.Player().play(plugin_url(mode='live', channel=c['uuid']), li)
+            return
+        playlist = xbmc.PlayList(xbmc.PLAYLIST_MUSIC)
         playlist.clear()
         for c in channels:
             li = xbmcgui.ListItem(c.get('name') or '')
@@ -196,6 +219,14 @@ def run():
         except ApiError as err:
             xbmcgui.Dialog().ok('Reelhouse', utils.string(30119) if err.status == 401 else str(err))
             return
+        if app.timeshift_wanted():
+            # Once, a moment after Home shows: Kodi asks whether to install it, from its own add-on repository (the
+            # add-on's settings install it later). Not a dependency: Kodi would then refuse to install Reelhouse where
+            # it can't get it (Kodi on desktop Linux, from the distribution's packages).
+            utils.set_setting(TIMESHIFT_ASKED, 'true')
+            offer = threading.Timer(2.0, xbmc.executebuiltin, ['InstallAddon({})'.format(utils.TIMESHIFT_PLAYER)])
+            offer.daemon = True
+            offer.start()
         app.show(('home',))
     finally:
         home.clearProperty(RUNNING_PROPERTY)

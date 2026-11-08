@@ -1,0 +1,328 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Made by kodi/tools/build_skin.py from kodi/skin-src/windows/reelhouse-live-osd.xml: edit that, not this. -->
+<!-- Reelhouse's own player controls while a live channel plays (live_osd.py), laid out as Kodi's are for a channel from
+     its own TV add-ons (Estuary's DialogSeekBar, VideoOSD and top bar): the programme's start and end above the ends of
+     its progress bar, how far into it and how long it is in the middle, the clock with when it ends, and the channel's
+     logo at the top left. A dialog over the picture that takes the remote: control 100 holds the focus (drawing
+     nothing) while the controls are hidden. What it says is set on its controls from Python (changes to a dialog's own
+     properties aren't drawn once it's open); what shows goes by home window properties, so the bars slide as Kodi's. -->
+<window type="dialog">
+  <defaultcontrol always="true">100</defaultcontrol>
+  <controls>
+    <control type="button" id="100">
+      <left>0</left><top>0</top><width>1</width><height>1</height>
+      <texturefocus>reelhouse/ui/clear.png</texturefocus><texturenofocus>reelhouse/ui/clear.png</texturenofocus>
+      <onup>noop</onup><ondown>noop</ondown><onleft>noop</onleft><onright>noop</onright><oninfo>noop</oninfo>
+    </control>
+
+    <!-- The top bar: the logo, the programme and the channel, the clock and when the programme ends. -->
+    <control type="group" id="210">
+      <visible>String.IsEqual(Window(Home).Property(reelhouse.liveosd),1)</visible>
+      <animation type="Visible" reversible="false">
+        <effect type="fade" start="0" end="100" time="300"/>
+        <effect type="slide" start="0,-200" end="0,0" time="300" tween="cubic" easing="out"/>
+      </animation>
+      <animation type="Hidden" reversible="false">
+        <effect type="fade" start="100" end="0" time="300"/>
+        <effect type="slide" start="0,0" end="0,-200" time="300" tween="cubic" easing="out"/>
+      </animation>
+      <!-- Dark enough to hide Kodi's own bar, which it shows while the picture is paused (its time and "Paused"
+           showed through a lighter one), then fading out (the bottom shading upside down: it starts as dark). -->
+      <control type="image">
+        <left>0</left><top>0</top><width>1920</width><height>80</height>
+        <texture colordiffuse="FA000000">reelhouse/ui/white.png</texture>
+      </control>
+      <control type="image">
+        <left>0</left><top>80</top><width>1920</width><height>160</height>
+        <texture colordiffuse="FA000000" flipy="true">reelhouse/ui/shade-bottom.png</texture>
+      </control>
+      <control type="image" id="201">
+        <left>20</left><top>10</top><width>64</width><height>64</height>
+        <aspectratio>keep</aspectratio>
+      </control>
+      <control type="label" id="202">
+        <left>100</left><top>7</top><width>1180</width><height>50</height>
+        <font>font45</font><textcolor>FFECEFF3</textcolor>
+      </control>
+      <control type="label" id="203">
+        <left>100</left><top>62</top><width>1180</width><height>40</height>
+        <font>font13</font><textcolor>FFA2ABB5</textcolor><aligny>center</aligny>
+      </control>
+      <control type="label" id="206">
+        <left>100</left><top>102</top><width>600</width><height>40</height>
+        <font>font13</font><textcolor>FFE5534B</textcolor><aligny>center</aligny>
+      </control>
+      <control type="label" id="204">
+        <left>1300</left><top>0</top><width>600</width><height>100</height>
+        <font>font_clock</font><textcolor>FFECEFF3</textcolor><align>right</align>
+      </control>
+      <control type="label" id="205">
+        <left>1096</left><top>74</top><width>800</width><height>50</height>
+        <font>font13</font><textcolor>FFECEFF3</textcolor><align>right</align>
+      </control>
+    </control>
+
+    <!-- The bottom bar: the programme's start and end, its progress, the time into it, and the buttons. -->
+    <control type="group" id="220">
+      <visible>String.IsEqual(Window(Home).Property(reelhouse.liveosd),1)</visible>
+      <animation type="Visible" reversible="false">
+        <effect type="fade" start="0" end="100" time="300"/>
+        <effect type="slide" start="0,200" end="0,0" time="300" tween="cubic" easing="out"/>
+      </animation>
+      <animation type="Hidden" reversible="false">
+        <effect type="fade" start="100" end="0" time="300"/>
+        <effect type="slide" start="0,0" end="0,200" time="300" tween="cubic" easing="out"/>
+      </animation>
+      <control type="image">
+        <left>0</left><top>740</top><width>1920</width><height>160</height>
+        <texture colordiffuse="E6000000">reelhouse/ui/shade-bottom.png</texture>
+      </control>
+      <control type="image">
+        <left>0</left><top>900</top><width>1920</width><height>180</height>
+        <texture colordiffuse="E6000000">reelhouse/ui/white.png</texture>
+      </control>
+      <control type="label" id="211">
+        <left>20</left><top>912</top><width>400</width><height>50</height>
+        <font>font13</font><textcolor>FFECEFF3</textcolor><aligny>center</aligny>
+      </control>
+      <control type="label" id="212">
+        <left>1500</left><top>912</top><width>400</width><height>50</height>
+        <font>font13</font><textcolor>FFECEFF3</textcolor><align>right</align><aligny>center</aligny>
+      </control>
+      <control type="progress" id="213">
+        <left>0</left><top>960</top><width>1920</width><height>16</height>
+        <texturebg colordiffuse="FF3A3D41">reelhouse/ui/white.png</texturebg>
+        <midtexture colordiffuse="FFE5A00D">reelhouse/ui/white.png</midtexture>
+      </control>
+      <control type="label" id="214">
+        <left>480</left><top>985</top><width>960</width><height>60</height>
+        <font>font45</font><textcolor>FFECEFF3</textcolor><align>center</align>
+      </control>
+      <!-- Left: previous channel, pause (play while paused; not there when Kodi can't pause the stream, as for most live
+           ones, and the rest close up, as Estuary's), stop, next channel, record (when the account may: white, red
+           while the programme records); right: the channels, the programme's details, Kodi's subtitles and its
+           settings. -->
+      <!-- A button in the live player controls' bottom row (reelhouse-live-osd.xml), as Kodi's: an icon, with a round
+     highlight behind it when it has the focus. Params: id, x, ix (x + 16: the icon's left), icon
+     (reelhouse/icons/<icon>.png), colour, left, right (the buttons either side, noop at the ends), shown (when the
+     button's there; true for always), iconshown (when its icon is: pause swaps to play while paused), shift (how far
+     left it moves when Kodi can't pause the stream and pause isn't there: 0, or -86 for the buttons after it). -->
+      <control type="button" id="301">
+        <left>20</left><top>990</top><width>76</width><height>76</height>
+        <texturefocus colordiffuse="FFE5A00D">reelhouse/ui/circle.png</texturefocus>
+        <texturenofocus>reelhouse/ui/clear.png</texturenofocus>
+        <onleft>noop</onleft><onright>302</onright><onup>noop</onup><ondown>noop</ondown><oninfo>noop</oninfo>
+        <visible>true</visible>
+        <animation effect="slide" end="0,0" time="0" condition="!Player.PauseEnabled">Conditional</animation>
+      </control>
+      <control type="image">
+        <left>36</left><top>1006</top><width>44</width><height>44</height>
+        <texture colordiffuse="FFECEFF3">reelhouse/icons/skipPrev.png</texture>
+        <visible>true</visible>
+        <animation effect="slide" end="0,0" time="0" condition="!Player.PauseEnabled">Conditional</animation>
+      </control>
+
+      <!-- A button in the live player controls' bottom row (reelhouse-live-osd.xml), as Kodi's: an icon, with a round
+     highlight behind it when it has the focus. Params: id, x, ix (x + 16: the icon's left), icon
+     (reelhouse/icons/<icon>.png), colour, left, right (the buttons either side, noop at the ends), shown (when the
+     button's there; true for always), iconshown (when its icon is: pause swaps to play while paused), shift (how far
+     left it moves when Kodi can't pause the stream and pause isn't there: 0, or -86 for the buttons after it). -->
+      <control type="button" id="302">
+        <left>106</left><top>990</top><width>76</width><height>76</height>
+        <texturefocus colordiffuse="FFE5A00D">reelhouse/ui/circle.png</texturefocus>
+        <texturenofocus>reelhouse/ui/clear.png</texturenofocus>
+        <onleft>301</onleft><onright>303</onright><onup>noop</onup><ondown>noop</ondown><oninfo>noop</oninfo>
+        <visible>Player.PauseEnabled</visible>
+        <animation effect="slide" end="0,0" time="0" condition="!Player.PauseEnabled">Conditional</animation>
+      </control>
+      <control type="image">
+        <left>122</left><top>1006</top><width>44</width><height>44</height>
+        <texture colordiffuse="FFECEFF3">reelhouse/icons/pause.png</texture>
+        <visible>Player.PauseEnabled + !Player.Paused</visible>
+        <animation effect="slide" end="0,0" time="0" condition="!Player.PauseEnabled">Conditional</animation>
+      </control>
+
+      <control type="image">
+        <left>122</left><top>1006</top><width>44</width><height>44</height>
+        <texture colordiffuse="FFECEFF3">reelhouse/icons/play.png</texture>
+        <visible>Player.PauseEnabled + Player.Paused</visible>
+      </control>
+      <!-- A button in the live player controls' bottom row (reelhouse-live-osd.xml), as Kodi's: an icon, with a round
+     highlight behind it when it has the focus. Params: id, x, ix (x + 16: the icon's left), icon
+     (reelhouse/icons/<icon>.png), colour, left, right (the buttons either side, noop at the ends), shown (when the
+     button's there; true for always), iconshown (when its icon is: pause swaps to play while paused), shift (how far
+     left it moves when Kodi can't pause the stream and pause isn't there: 0, or -86 for the buttons after it). -->
+      <control type="button" id="303">
+        <left>192</left><top>990</top><width>76</width><height>76</height>
+        <texturefocus colordiffuse="FFE5A00D">reelhouse/ui/circle.png</texturefocus>
+        <texturenofocus>reelhouse/ui/clear.png</texturenofocus>
+        <onleft>302</onleft><onright>304</onright><onup>noop</onup><ondown>noop</ondown><oninfo>noop</oninfo>
+        <visible>true</visible>
+        <animation effect="slide" end="-86,0" time="0" condition="!Player.PauseEnabled">Conditional</animation>
+      </control>
+      <control type="image">
+        <left>208</left><top>1006</top><width>44</width><height>44</height>
+        <texture colordiffuse="FFECEFF3">reelhouse/icons/stop.png</texture>
+        <visible>true</visible>
+        <animation effect="slide" end="-86,0" time="0" condition="!Player.PauseEnabled">Conditional</animation>
+      </control>
+
+      <!-- A button in the live player controls' bottom row (reelhouse-live-osd.xml), as Kodi's: an icon, with a round
+     highlight behind it when it has the focus. Params: id, x, ix (x + 16: the icon's left), icon
+     (reelhouse/icons/<icon>.png), colour, left, right (the buttons either side, noop at the ends), shown (when the
+     button's there; true for always), iconshown (when its icon is: pause swaps to play while paused), shift (how far
+     left it moves when Kodi can't pause the stream and pause isn't there: 0, or -86 for the buttons after it). -->
+      <control type="button" id="304">
+        <left>278</left><top>990</top><width>76</width><height>76</height>
+        <texturefocus colordiffuse="FFE5A00D">reelhouse/ui/circle.png</texturefocus>
+        <texturenofocus>reelhouse/ui/clear.png</texturenofocus>
+        <onleft>303</onleft><onright>305</onright><onup>noop</onup><ondown>noop</ondown><oninfo>noop</oninfo>
+        <visible>true</visible>
+        <animation effect="slide" end="-86,0" time="0" condition="!Player.PauseEnabled">Conditional</animation>
+      </control>
+      <control type="image">
+        <left>294</left><top>1006</top><width>44</width><height>44</height>
+        <texture colordiffuse="FFECEFF3">reelhouse/icons/skipNext.png</texture>
+        <visible>true</visible>
+        <animation effect="slide" end="-86,0" time="0" condition="!Player.PauseEnabled">Conditional</animation>
+      </control>
+
+      <!-- A button in the live player controls' bottom row (reelhouse-live-osd.xml), as Kodi's: an icon, with a round
+     highlight behind it when it has the focus. Params: id, x, ix (x + 16: the icon's left), icon
+     (reelhouse/icons/<icon>.png), colour, left, right (the buttons either side, noop at the ends), shown (when the
+     button's there; true for always), iconshown (when its icon is: pause swaps to play while paused), shift (how far
+     left it moves when Kodi can't pause the stream and pause isn't there: 0, or -86 for the buttons after it). -->
+      <control type="button" id="305">
+        <left>364</left><top>990</top><width>76</width><height>76</height>
+        <texturefocus colordiffuse="FFE5A00D">reelhouse/ui/circle.png</texturefocus>
+        <texturenofocus>reelhouse/ui/clear.png</texturenofocus>
+        <onleft>304</onleft><onright>311</onright><onup>noop</onup><ondown>noop</ondown><oninfo>noop</oninfo>
+        <visible>String.IsEqual(Window(Home).Property(reelhouse.liveosdrecord),1)</visible>
+        <animation effect="slide" end="-86,0" time="0" condition="!Player.PauseEnabled">Conditional</animation>
+      </control>
+      <control type="image">
+        <left>380</left><top>1006</top><width>44</width><height>44</height>
+        <texture colordiffuse="FFECEFF3">reelhouse/icons/record.png</texture>
+        <visible>String.IsEqual(Window(Home).Property(reelhouse.liveosdrecord),1) + !String.IsEqual(Window(Home).Property(reelhouse.liveosdrecording),1)</visible>
+        <animation effect="slide" end="-86,0" time="0" condition="!Player.PauseEnabled">Conditional</animation>
+      </control>
+
+      <control type="image">
+        <left>380</left><top>1006</top><width>44</width><height>44</height>
+        <texture colordiffuse="FFE5534B">reelhouse/icons/record.png</texture>
+        <visible>String.IsEqual(Window(Home).Property(reelhouse.liveosdrecord),1) + String.IsEqual(Window(Home).Property(reelhouse.liveosdrecording),1)</visible>
+        <animation effect="slide" end="-86,0" time="0" condition="!Player.PauseEnabled">Conditional</animation>
+      </control>
+      <!-- A button in the live player controls' bottom row (reelhouse-live-osd.xml), as Kodi's: an icon, with a round
+     highlight behind it when it has the focus. Params: id, x, ix (x + 16: the icon's left), icon
+     (reelhouse/icons/<icon>.png), colour, left, right (the buttons either side, noop at the ends), shown (when the
+     button's there; true for always), iconshown (when its icon is: pause swaps to play while paused), shift (how far
+     left it moves when Kodi can't pause the stream and pause isn't there: 0, or -86 for the buttons after it). -->
+      <control type="button" id="311">
+        <left>1566</left><top>990</top><width>76</width><height>76</height>
+        <texturefocus colordiffuse="FFE5A00D">reelhouse/ui/circle.png</texturefocus>
+        <texturenofocus>reelhouse/ui/clear.png</texturenofocus>
+        <onleft>305</onleft><onright>312</onright><onup>noop</onup><ondown>noop</ondown><oninfo>noop</oninfo>
+        <visible>true</visible>
+        <animation effect="slide" end="0,0" time="0" condition="!Player.PauseEnabled">Conditional</animation>
+      </control>
+      <control type="image">
+        <left>1582</left><top>1006</top><width>44</width><height>44</height>
+        <texture colordiffuse="FFECEFF3">reelhouse/icons/list.png</texture>
+        <visible>true</visible>
+        <animation effect="slide" end="0,0" time="0" condition="!Player.PauseEnabled">Conditional</animation>
+      </control>
+
+      <!-- A button in the live player controls' bottom row (reelhouse-live-osd.xml), as Kodi's: an icon, with a round
+     highlight behind it when it has the focus. Params: id, x, ix (x + 16: the icon's left), icon
+     (reelhouse/icons/<icon>.png), colour, left, right (the buttons either side, noop at the ends), shown (when the
+     button's there; true for always), iconshown (when its icon is: pause swaps to play while paused), shift (how far
+     left it moves when Kodi can't pause the stream and pause isn't there: 0, or -86 for the buttons after it). -->
+      <control type="button" id="312">
+        <left>1652</left><top>990</top><width>76</width><height>76</height>
+        <texturefocus colordiffuse="FFE5A00D">reelhouse/ui/circle.png</texturefocus>
+        <texturenofocus>reelhouse/ui/clear.png</texturenofocus>
+        <onleft>311</onleft><onright>313</onright><onup>noop</onup><ondown>noop</ondown><oninfo>noop</oninfo>
+        <visible>true</visible>
+        <animation effect="slide" end="0,0" time="0" condition="!Player.PauseEnabled">Conditional</animation>
+      </control>
+      <control type="image">
+        <left>1668</left><top>1006</top><width>44</width><height>44</height>
+        <texture colordiffuse="FFECEFF3">reelhouse/icons/info.png</texture>
+        <visible>true</visible>
+        <animation effect="slide" end="0,0" time="0" condition="!Player.PauseEnabled">Conditional</animation>
+      </control>
+
+      <!-- A button in the live player controls' bottom row (reelhouse-live-osd.xml), as Kodi's: an icon, with a round
+     highlight behind it when it has the focus. Params: id, x, ix (x + 16: the icon's left), icon
+     (reelhouse/icons/<icon>.png), colour, left, right (the buttons either side, noop at the ends), shown (when the
+     button's there; true for always), iconshown (when its icon is: pause swaps to play while paused), shift (how far
+     left it moves when Kodi can't pause the stream and pause isn't there: 0, or -86 for the buttons after it). -->
+      <control type="button" id="313">
+        <left>1738</left><top>990</top><width>76</width><height>76</height>
+        <texturefocus colordiffuse="FFE5A00D">reelhouse/ui/circle.png</texturefocus>
+        <texturenofocus>reelhouse/ui/clear.png</texturenofocus>
+        <onleft>312</onleft><onright>314</onright><onup>noop</onup><ondown>noop</ondown><oninfo>noop</oninfo>
+        <visible>true</visible>
+        <animation effect="slide" end="0,0" time="0" condition="!Player.PauseEnabled">Conditional</animation>
+      </control>
+      <control type="image">
+        <left>1754</left><top>1006</top><width>44</width><height>44</height>
+        <texture colordiffuse="FFECEFF3">reelhouse/icons/subtitles.png</texture>
+        <visible>true</visible>
+        <animation effect="slide" end="0,0" time="0" condition="!Player.PauseEnabled">Conditional</animation>
+      </control>
+
+      <!-- A button in the live player controls' bottom row (reelhouse-live-osd.xml), as Kodi's: an icon, with a round
+     highlight behind it when it has the focus. Params: id, x, ix (x + 16: the icon's left), icon
+     (reelhouse/icons/<icon>.png), colour, left, right (the buttons either side, noop at the ends), shown (when the
+     button's there; true for always), iconshown (when its icon is: pause swaps to play while paused), shift (how far
+     left it moves when Kodi can't pause the stream and pause isn't there: 0, or -86 for the buttons after it). -->
+      <control type="button" id="314">
+        <left>1824</left><top>990</top><width>76</width><height>76</height>
+        <texturefocus colordiffuse="FFE5A00D">reelhouse/ui/circle.png</texturefocus>
+        <texturenofocus>reelhouse/ui/clear.png</texturenofocus>
+        <onleft>313</onleft><onright>noop</onright><onup>noop</onup><ondown>noop</ondown><oninfo>noop</oninfo>
+        <visible>true</visible>
+        <animation effect="slide" end="0,0" time="0" condition="!Player.PauseEnabled">Conditional</animation>
+      </control>
+      <control type="image">
+        <left>1840</left><top>1006</top><width>44</width><height>44</height>
+        <texture colordiffuse="FFECEFF3">reelhouse/icons/settings.png</texture>
+        <visible>true</visible>
+        <animation effect="slide" end="0,0" time="0" condition="!Player.PauseEnabled">Conditional</animation>
+      </control>
+
+    </control>
+    <!-- The programme's details (Info), over the bottom bar's shading. -->
+    <control type="group" id="230">
+      <visible>String.IsEqual(Window(Home).Property(reelhouse.liveosd),1) + String.IsEqual(Window(Home).Property(reelhouse.liveosdinfo),1)</visible>
+      <animation effect="fade" time="200">VisibleChange</animation>
+      <control type="image">
+        <left>0</left><top>600</top><width>1920</width><height>300</height>
+        <texture colordiffuse="D0111315">reelhouse/ui/white.png</texture>
+      </control>
+      <control type="image" id="231">
+        <left>40</left><top>630</top><width>200</width><height>200</height>
+        <aspectratio>keep</aspectratio>
+      </control>
+      <control type="label" id="232">
+        <left>280</left><top>618</top><width>1600</width><height>60</height>
+        <font>font36_title</font><textcolor>FFECEFF3</textcolor><aligny>center</aligny>
+      </control>
+      <control type="label" id="233">
+        <left>280</left><top>676</top><width>1600</width><height>40</height>
+        <font>font13</font><textcolor>FFA2ABB5</textcolor><aligny>center</aligny>
+      </control>
+      <control type="textbox" id="234">
+        <left>280</left><top>724</top><width>1600</width><height>116</height>
+        <font>font13</font><textcolor>FFECEFF3</textcolor>
+      </control>
+      <control type="label" id="235">
+        <left>280</left><top>846</top><width>1600</width><height>40</height>
+        <font>font13</font><textcolor>FFA2ABB5</textcolor><aligny>center</aligny>
+      </control>
+    </control>
+
+  </controls>
+</window>

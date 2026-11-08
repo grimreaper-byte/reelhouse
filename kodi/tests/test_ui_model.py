@@ -209,6 +209,9 @@ class SidebarTests(unittest.TestCase):
             def load_account(self):
                 app.run()  # pressed again meanwhile
 
+            def timeshift_wanted(self):
+                return False
+
             def show(self, target):
                 shown.append(target)
         saved = xbmc.executebuiltin, app.App, app.utils.signed_in

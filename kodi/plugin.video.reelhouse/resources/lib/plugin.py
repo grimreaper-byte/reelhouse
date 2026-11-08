@@ -13,12 +13,22 @@ import xbmcgui
 import xbmcplugin
 import xbmcvfs
 
-from . import connection, live_overlay, utils
+from . import connection, utils
 from .api import Api, ApiError, PLAYS_EVERYTHING
 from .syncdb import SyncDb
 from .utils import string
 
 PLUGIN = 'plugin://{}/'.format(utils.ADDON_ID)
+# Kodi's official add-on that can pause a live stream (when installed), and how it's asked to: its timeshift mode,
+# reading the playlist with FFmpeg as Kodi itself would.
+TIMESHIFT_PLAYER = utils.TIMESHIFT_PLAYER
+TIMESHIFT_PROPERTIES = (
+    ('inputstream', TIMESHIFT_PLAYER),
+    ('inputstream.ffmpegdirect.is_realtime_stream', 'true'),
+    ('inputstream.ffmpegdirect.stream_mode', 'timeshift'),
+    ('inputstream.ffmpegdirect.open_mode', 'ffmpeg'),
+    ('inputstream.ffmpegdirect.manifest_type', 'hls'),
+)
 
 
 def run(argv):
@@ -183,8 +193,16 @@ def live(handle, params):
     first, freeing its tuner.
     """
     uuid = params.get('channel')
-    if not uuid or not utils.signed_in():
-        return xbmcplugin.setResolvedUrl(handle, False, xbmcgui.ListItem())
+    item = start_channel(uuid) if uuid and utils.signed_in() else None
+    xbmcplugin.setResolvedUrl(handle, item is not None, item or xbmcgui.ListItem())
+
+
+def start_channel(uuid):
+    """Starts a channel at Reelhouse and waits for its first seconds: Kodi's item for its stream, or None (said why).
+
+    Also how Reelhouse's player controls change channel (live_osd.py): they hand Kodi the stream themselves, so Kodi
+    isn't left opening an add-on's item while the channel it's leaving runs out (two busy dialogs make Kodi quit).
+    """
     home = xbmcgui.Window(utils.HOME)
     try:
         previous = json.loads(home.getProperty(utils.LIVE_PROPERTY) or '{}').get('playId')
@@ -196,20 +214,25 @@ def live(handle, params):
             'quality': 'original', 'caps': PLAYS_EVERYTHING, 'previousSession': previous,
         })
     except ApiError as err:
+        utils.log('live TV channel {} not started: {}'.format(uuid, err), xbmc.LOGWARNING)
         utils.notify(string(30119) if err.status == 401 else string(30136) % err, error=True)
-        return xbmcplugin.setResolvedUrl(handle, False, xbmcgui.ListItem())
+        return None
     url = api.base_url + info['url']
     if not wait_for_playlist(url):
+        utils.log('live TV channel {}: its playlist never came'.format(uuid), xbmc.LOGWARNING)
         utils.notify(string(30136) % string(30137), error=True)
-        return xbmcplugin.setResolvedUrl(handle, False, xbmcgui.ListItem())
+        return None
     channel = info.get('channel') or {}
     now = info.get('now') or {}
     item = xbmcgui.ListItem(channel.get('name') or '', path=url)
     item.setMimeType('application/vnd.apple.mpegurl')
     item.setContentLookup(False)
+    if not info.get('radio') and xbmc.getCondVisibility('System.AddonIsEnabled({})'.format(TIMESHIFT_PLAYER)):
+        # Kodi's own reading of a live stream can't pause it. InputStream FFmpeg Direct reads it the same way, keeping
+        # what's played in a buffer on this device (its timeshift mode), so it can pause and go back.
+        for key, value in TIMESHIFT_PROPERTIES:
+            item.setProperty(key, value)
     title = ' · '.join(p for p in (channel.get('name'), now.get('title')) if p)
-    if not info.get('radio'):
-        title = live_overlay.TITLE_ROOM + title  # Kodi shows it at the top left: the logo goes in front (live_overlay.py)
     try:
         tag = item.getMusicInfoTag() if info.get('radio') else item.getVideoInfoTag()
         tag.setTitle(title)
@@ -218,11 +241,23 @@ def live(handle, params):
     logo = api.media_url(channel['icon'], w=240) if channel.get('icon') else ''
     if logo:
         item.setArt({'thumb': logo, 'icon': logo})
+    # For the service: its heartbeats, and Reelhouse's player controls (live_osd.py) with what's on now and next.
     home.setProperty(utils.LIVE_PROPERTY, json.dumps({
-        'playId': info['playId'], 'channel': channel.get('name'), 'uuid': uuid, 'logo': logo, 'stop': now.get('stop'),
-        'radio': bool(info.get('radio')),
+        'playId': info['playId'], 'channel': channel.get('name'), 'uuid': uuid, 'logo': logo,
+        'radio': bool(info.get('radio')), 'now': guide_entry(info.get('now')), 'next': guide_entry(info.get('next')),
     }))
-    xbmcplugin.setResolvedUrl(handle, True, item)
+    return item
+
+
+def guide_entry(event):
+    """What the player controls say of a programme, from Reelhouse's guide entry."""
+    if not event:
+        return None
+    keep = ('id', 'start', 'stop', 'title', 'subtitle', 'episodeLabel', 'summary', 'description', 'genreName')
+    entry = dict((k, event.get(k)) for k in keep if event.get(k) is not None)
+    if event.get('dvr'):
+        entry['dvr'] = {'state': event['dvr'].get('state'), 'uuid': event['dvr'].get('uuid')}
+    return entry
 
 
 def wait_for_playlist(url, timeout=25):
