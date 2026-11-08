@@ -11,7 +11,7 @@ import traceback
 import xbmc
 import xbmcgui
 
-from . import connection, utils
+from . import connection, live_overlay, utils
 from .api import Api, ApiError
 from .kodidb import KodiDbError
 from .sync import SyncAborted, Syncer
@@ -44,9 +44,11 @@ def stream_id(playing):
 
 
 class Player(xbmc.Player):
-    def __init__(self, service):
+    def __init__(self, service, overlay=None):
         xbmc.Player.__init__(self)
         self.service = service
+        self.overlay = overlay or live_overlay.Overlay()  # the logo and time left over Kodi's controls
+        self.asked_now = 0.0
         self.current = None
         self.live = None        # a live TV session playing: {'playId', 'channel'}
         self.position = 0.0
@@ -98,6 +100,8 @@ class Player(xbmc.Player):
         if info.get('playId') == match.group(1):
             self.live = info
             self.report_live('playing')
+            if not info.get('radio'):
+                self.overlay.show(info.get('logo'), info.get('stop'))
 
     def report_live(self, state):
         live = self.live
@@ -106,6 +110,7 @@ class Player(xbmc.Player):
         self.last_report = time.time()
         self.service.send('live', live['playId'], state)
         if state == 'stopped':
+            self.overlay.close()
             window = xbmcgui.Window(utils.HOME)
             try:
                 if json.loads(window.getProperty(utils.LIVE_PROPERTY) or '{}').get('playId') == live['playId']:
@@ -149,6 +154,7 @@ class Player(xbmc.Player):
         if self.live:
             if time.time() - self.last_report >= REPORT_EVERY:
                 self.report_live('paused' if xbmc.getCondVisibility('Player.Paused') else 'playing')
+            self.follow_programme()
             return
         if not self.current:
             return
@@ -164,6 +170,20 @@ class Player(xbmc.Player):
             return
         if time.time() - self.last_report >= REPORT_EVERY and not xbmc.getCondVisibility('Player.Paused'):
             self.report('playing')
+
+    def follow_programme(self):
+        """The overlay's time left, and once the programme ends, what's on now (asked at most every 30 s)."""
+        self.overlay.update()
+        live = self.live
+        if not live or not self.overlay.ended() or time.time() - self.asked_now < 30:
+            return
+        self.asked_now = time.time()
+        try:
+            now = (connection.api().get('/api/livetv/channels/{}/now'.format(live.get('uuid'))) or {}).get('now') or {}
+        except (ApiError, OSError, ValueError):
+            return
+        if self.live is live and now.get('stop'):
+            self.overlay.programme(now['stop'])
 
     def report(self, state):
         current = self.current

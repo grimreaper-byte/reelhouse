@@ -527,8 +527,9 @@ with the web app both ways, and new media appears in Kodi within seconds of Reel
 Reelhouse** (since add-on 0.2.0) shows Reelhouse as the web app looks — sidebar, Home, libraries, film and show pages,
 search, the live TV guide and Manage Recordings — driven with the remote, and it can open by itself when Kodi starts.
 Back never leaves it (since add-on 0.4.0): the sidebar's **Exit** returns to Kodi, and while something plays **Now
-playing** at the top of the sidebar returns to the player (since add-on 0.11.0). When Kodi starts, a notification says
-who it's signed in as (since add-on 0.5.0).
+playing** at the top of the sidebar returns to the player (since add-on 0.11.0). While a live channel plays, Kodi's
+controls show the channel's logo and how long the programme has left (since add-on 0.13.2). When Kodi starts, a
+notification says who it's signed in as (since add-on 0.5.0).
 
 Reelhouse serves the add-on at `http://<your server>:8484/kodi/`. In Kodi, turn on **Settings → System → Add-ons →
 Unknown sources**, add that address under **Settings → File manager → Add source**, then use **Add-ons → Install

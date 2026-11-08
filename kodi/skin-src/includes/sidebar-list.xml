@@ -1,10 +1,11 @@
-  <!-- One of the sidebar's two lists ({{list}}); the names and counts show while either has the focus. -->
+  <!-- One of the sidebar's two lists ({{list}}); the names and counts show while either has the focus. At its ends the
+     focus goes on to the other list or stops ({{up}}, {{down}}: noop), rather than going round the list again. -->
   <control type="list" id="{{list}}">
-    <left>0</left><top>{{top}}</top><width>392</width><height>{{height}}</height>
-    <onup>9000</onup><ondown>9002</ondown>
+    <left>0</left><top>{{top}}</top><width>460</width><height>{{height}}</height>
+    <onup>{{up}}</onup><ondown>{{down}}</ondown>
     <orientation>vertical</orientation>
     <scrolltime tween="cubic" easing="out">150</scrolltime>
-    <itemlayout width="392" height="64">
+    <itemlayout width="460" height="64">
       <control type="image">
         <left>36</left><top>12</top><width>40</width><height>40</height>
         <texture colordiffuse="{{TEXT_DIM}}">$INFO[ListItem.Property(icon)]</texture>
@@ -20,21 +21,21 @@
         <texture colordiffuse="{{DANGER}}">$INFO[ListItem.Property(spot)]</texture>
       </control>
       <control type="label">
-        <left>104</left><top>0</top><width>210</width><height>64</height>
+        <left>104</left><top>0</top><width>278</width><height>64</height>
         <font>font13</font><textcolor>{{TEXT_DIM}}</textcolor><aligny>center</aligny>
         <label>$INFO[ListItem.Label]</label>
         <visible>Control.HasFocus(9000) | Control.HasFocus(9002)</visible>
       </control>
       <control type="label">
-        <left>300</left><top>0</top><width>70</width><height>64</height>
+        <left>368</left><top>0</top><width>70</width><height>64</height>
         <font>font12</font><textcolor>{{TEXT_FAINT}}</textcolor><align>right</align><aligny>center</aligny>
         <label>$INFO[ListItem.Label2]</label>
         <visible>Control.HasFocus(9000) | Control.HasFocus(9002)</visible>
       </control>
     </itemlayout>
-    <focusedlayout width="392" height="64">
+    <focusedlayout width="460" height="64">
       <control type="image">
-        <left>14</left><top>2</top><width>364</width><height>60</height>
+        <left>14</left><top>2</top><width>432</width><height>60</height>
         <texture border="16" colordiffuse="{{ELEV2}}">reelhouse/ui/box.png</texture>
         <visible>Control.HasFocus({{list}})</visible>
       </control>
@@ -58,13 +59,13 @@
         <texture colordiffuse="{{DANGER}}">$INFO[ListItem.Property(spot)]</texture>
       </control>
       <control type="label">
-        <left>104</left><top>0</top><width>210</width><height>64</height>
+        <left>104</left><top>0</top><width>278</width><height>64</height>
         <font>font13</font><textcolor>{{TEXT}}</textcolor><aligny>center</aligny>
         <label>$INFO[ListItem.Label]</label>
         <visible>Control.HasFocus(9000) | Control.HasFocus(9002)</visible>
       </control>
       <control type="label">
-        <left>300</left><top>0</top><width>70</width><height>64</height>
+        <left>368</left><top>0</top><width>70</width><height>64</height>
         <font>font12</font><textcolor>{{TEXT_DIM}}</textcolor><align>right</align><aligny>center</aligny>
         <label>$INFO[ListItem.Label2]</label>
         <visible>Control.HasFocus(9000) | Control.HasFocus(9002)</visible>

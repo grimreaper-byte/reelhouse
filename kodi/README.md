@@ -75,7 +75,8 @@ when Kodi starts** in the add-on's settings for a Kodi that's mostly for Reelhou
   comes back to the screen you were on), Home, each library with its count and the icon picked for it in the web app's
   Settings → Libraries (since 0.3.0), and Search. Kept at the bottom (since 0.4.0): Live TV and Radio (when Reelhouse
   has them for you), Manage Recordings (when your account may record; since 0.6.0), Settings (the add-on's settings)
-  and Exit. Down from Search moves into the bottom group.
+  and Exit. Down from Search moves into the bottom group; Up on Home and Down on Exit stay where they are rather than
+  scrolling round (since 0.13.2). Slid out, the sidebar is wide enough for the longest names (since 0.13.2).
 - **Home:** the web app's rows: Continue Watching (Select carries on where you stopped; the menu or info button opens
   the page instead; a channel, when Settings → Live TV shows them there, plays straight away), Recently Added in each
   library, Watched by Others.
@@ -89,7 +90,9 @@ when Kodi starts** in the add-on's settings for a Kodi that's mostly for Reelhou
   colour, the highlighted one's details underneath, the days along the top. The arrow keys move as on a remote: left
   and right along a channel, up and down to the same time on the channels above and below. Select a programme that's
   on to watch (or listen to) it, or a later one to record it (Cancel recording on one that's scheduled) when your
-  account may record. While a channel plays, Kodi's next and previous buttons change channel. A recording someone else
+  account may record. While a channel plays, Kodi's next and previous buttons change channel, and Kodi's controls show
+  the channel's logo before its name at the top left and how long the programme has left beside the time (since
+  0.13.2; they come and go with the controls, and radio has neither). A recording someone else
   set can only be cancelled by them or an admin (since 0.6.0, with Reelhouse 0.14.0 or later). Accounts allowed to
   also have **Record series** (since 0.11.0, with Reelhouse 0.20.0): every episode of the show on that channel, an
   episode then offering **Skip this episode** rather than Cancel recording, and **Cancel series recording**.
@@ -169,6 +172,7 @@ from Reelhouse's event stream (`/api/events`), and every reconnect runs a quick 
 | `resources/lib/syncdb.py` | The add-on's own record of synced items (Reelhouse ID → Kodi ID, checksum) |
 | `resources/lib/service.py` | Background service: syncing, live updates, progress and watched reporting |
 | `resources/lib/plugin.py` | The add-on menu, sign-in/out and playback (films, episodes and live TV channels) |
+| `resources/lib/live_overlay.py` | While a live channel plays: its logo and the programme's time left, added to Kodi's own controls (laid out for Estuary) |
 | `tests/` | Tests against a real Kodi 21 database schema, a fake server and stand-ins for Kodi's Python modules (`kodistubs.py`) |
 
 The server side lives in `server/routes/sync.js` (sync API), `server/routes/auth.js` (`POST /api/auth/device`, the

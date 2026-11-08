@@ -72,6 +72,15 @@ class SkinTests(unittest.TestCase):
                     trapped.append(f'{name}: {button.get("id")}')
         self.assertEqual(trapped, [])
 
+    def test_the_sidebars_lists_stop_at_their_ends(self):
+        # Going round a list again from its end looked like the bottom of the sidebar scrolling.
+        for name in sorted(os.listdir(LAYOUTS)):
+            lists = {c.get('id'): c for c in layout(name).iter('control') if c.get('id') in ('9000', '9002')}
+            if not lists:
+                continue
+            self.assertEqual((lists['9000'].find('onup').text, lists['9000'].find('ondown').text), ('noop', '9002'), name)
+            self.assertEqual((lists['9002'].find('onup').text, lists['9002'].find('ondown').text), ('9000', 'noop'), name)
+
     def test_the_python_side_finds_its_controls(self):
         # Each window module's control ids (by constant name, or as numbers) and the layout it opens.
         checks = {

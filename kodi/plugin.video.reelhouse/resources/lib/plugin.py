@@ -13,7 +13,7 @@ import xbmcgui
 import xbmcplugin
 import xbmcvfs
 
-from . import connection, utils
+from . import connection, live_overlay, utils
 from .api import Api, ApiError, PLAYS_EVERYTHING
 from .syncdb import SyncDb
 from .utils import string
@@ -208,15 +208,20 @@ def live(handle, params):
     item.setMimeType('application/vnd.apple.mpegurl')
     item.setContentLookup(False)
     title = ' · '.join(p for p in (channel.get('name'), now.get('title')) if p)
+    if not info.get('radio'):
+        title = live_overlay.TITLE_ROOM + title  # Kodi shows it at the top left: the logo goes in front (live_overlay.py)
     try:
         tag = item.getMusicInfoTag() if info.get('radio') else item.getVideoInfoTag()
         tag.setTitle(title)
     except AttributeError:  # Kodi 19
         item.setInfo('music' if info.get('radio') else 'video', {'title': title})
-    if channel.get('icon'):
-        logo = api.media_url(channel['icon'], w=240)
+    logo = api.media_url(channel['icon'], w=240) if channel.get('icon') else ''
+    if logo:
         item.setArt({'thumb': logo, 'icon': logo})
-    home.setProperty(utils.LIVE_PROPERTY, json.dumps({'playId': info['playId'], 'channel': channel.get('name')}))
+    home.setProperty(utils.LIVE_PROPERTY, json.dumps({
+        'playId': info['playId'], 'channel': channel.get('name'), 'uuid': uuid, 'logo': logo, 'stop': now.get('stop'),
+        'radio': bool(info.get('radio')),
+    }))
     xbmcplugin.setResolvedUrl(handle, True, item)
 
 
