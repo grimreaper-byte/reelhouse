@@ -2,7 +2,8 @@
 
 The Reelhouse app for Android phones, tablets and TV boxes such as a Fire TV, from Android 7.1. It reaches Reelhouse
 at home directly and, away from home, through the **app tunnel**: WireGuard built into the app, so there's no
-WireGuard app, no VPN slot, and nothing else on the device goes through it.
+WireGuard app, no VPN slot, and nothing else on the device goes through it. The app talks only to your Reelhouse
+server: see its [privacy policy](../PRIVACY.md).
 
 Status: milestones 1–5 are done. You can:
 - pair the app (QR code, link, typed code or password);
