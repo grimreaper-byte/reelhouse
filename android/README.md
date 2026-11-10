@@ -111,7 +111,8 @@ it's on one by the device being a TV or having no touch screen, and then:
 - **Getting around:** the arrows move an accent ring, OK presses, Back goes back. Left from a page opens the sidebar,
   Right or Back returns to the page. Each screen starts on its main thing (a film's Play, a guide's programme on now),
   and coming back to a screen returns to what you left.
-- **Text boxes** don't bring up the keyboard as you pass over them: press OK on one to type, and Back to finish.
+- **Text boxes** don't bring up the keyboard as you pass over them: press OK on one to type, and Back to finish. In a
+  search box, Right goes to its ✕, which empties it (since 0.13.1).
 - **The player:** Left and Right skip 10 seconds, OK pauses, Up or Down brings up the controls, Back hides them first.
 - **Live TV:** Up and Down change channel, with a banner saying what's on; OK, Left or Right bring up the buttons; the
   Play/Pause key pauses.

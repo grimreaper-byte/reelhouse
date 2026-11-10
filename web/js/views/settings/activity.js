@@ -1,4 +1,4 @@
-import { h, icon, formatTime, formatBytes, clear } from '../../dom.js';
+import { h, icon, formatTime, formatBytes, clear, episodeLabel } from '../../dom.js';
 import { api } from '../../api.js';
 import { panel } from './form.js';
 
@@ -29,7 +29,9 @@ export async function activityTab(ctx) {
           : h('div.list-row.activity-card',
             h('img', { src: `/api/images/${s.itemId}/thumb?w=240`, alt: '', loading: 'lazy' }),
             h('div.grow',
-              h('div.title', s.grandparentTitle ? `${s.grandparentTitle} — ${s.title}` : s.title),
+              // An episode: its show, then "S1 · E3 — its title", as the player has them.
+              h('div.title', s.grandparentTitle || s.title),
+              s.grandparentTitle && h('div.sub', [episodeLabel(s), s.title].filter(Boolean).join(' — ')),
               h('div.sub', [s.username, s.client, s.ip].filter(Boolean).join(' · ')),
               h('div.sub', `${s.state === 'paused' ? 'Paused' : 'Playing'} · ${s.mode === 'direct' ? 'Direct play' : s.mode === 'download' ? 'Downloaded copy' : `Converting${s.reasons?.length ? ` (${s.reasons.join(', ')}${s.videoCopy ? '; picture copied' : ''})` : ''}`}`),
               h('div.bar', h('div', { style: { width: `${s.duration && s.position ? Math.min(100, (s.position / s.duration) * 100) : 0}%` } })),

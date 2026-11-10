@@ -353,10 +353,11 @@ lists every audio track and subtitle. Image-based subtitles (PGS/VobSub) are bur
 
 **What's being watched:** admins see a TV in the top bar (next to the account button) with the number of streams
 playing right now on its screen, from browsers, the Android app and Kodi alike. It updates by itself, and clicking it
-opens **Settings → Activity & logs**, which lists each stream: who, on which device, played directly or converted (and
-why), and how far in. The log records every stream that starts and stops, with the user and device, e.g. `User "admin"
-started "My Movie" on Pixel 8 (192.168.0.20) (direct play)` and `User "admin" stopped "My Movie" … at 3:50 of 7:57`. A
-player that goes quiet (a closed tab, a lost connection) counts as stopped after 2 minutes, or 15 while paused.
+opens **Settings → Activity & logs**, which lists each stream in the order it started (an episode with its show,
+series and episode number): who, on which device, played directly or converted (and why), and how far in. The log
+records every stream that starts and stops, with the user and device, e.g. `User "admin" started "My Movie" on Pixel 8
+(192.168.0.20) (direct play)` and `User "admin" stopped "My Movie" … at 3:50 of 7:57`. A player that goes quiet (a
+closed tab, a lost connection) counts as stopped after 2 minutes, or 15 while paused.
 
 **Out of sync?** The same panel has **Sync** controls for the audio and the subtitles. Use the −/+ buttons (50 ms
 steps) or type any number of milliseconds: positive values play it **later**, negative values **earlier**.
@@ -528,11 +529,12 @@ with the web app both ways, and new media appears in Kodi within seconds of Reel
 Reelhouse** (since add-on 0.2.0) shows Reelhouse as the web app looks — sidebar, Home, libraries, film and show pages,
 search, the live TV guide and Manage Recordings — driven with the remote, and it can open by itself when Kodi starts.
 Back never leaves it (since add-on 0.4.0): the sidebar's **Exit** returns to Kodi, and while something plays **Now
-playing** at the top of the sidebar returns to the player (since add-on 0.11.0). While a live channel plays,
-Reelhouse's own player controls show it as Kodi shows its own TV channels (the programme's times and progress, when it
-ends, the channel's logo), with channel changes, record, and pausing when Kodi has its InputStream FFmpeg Direct
-add-on, which the screens offer to install (since add-on 0.14.0). When Kodi starts, a notification says who it's
-signed in as (since add-on 0.5.0).
+playing** at the top of the sidebar returns to the player (since add-on 0.11.0). Films and episodes play in Kodi's own
+player, whose controls show an episode under its show as "S1 · E3 — title", with its season's cover in the info panel
+(since add-on 0.14.1). While a live channel plays, Reelhouse's own player controls show it as Kodi shows its own TV
+channels (the programme's times and progress, when it ends, the channel's logo), with channel changes, record, and
+pausing when Kodi has its InputStream FFmpeg Direct add-on, which the screens offer to install (since add-on 0.14.0).
+When Kodi starts, a notification says who it's signed in as (since add-on 0.5.0).
 
 Reelhouse serves the add-on at `http://<your server>:8484/kodi/`. In Kodi, turn on **Settings → System → Add-ons →
 Unknown sources**, add that address under **Settings → File manager → Add source**, then use **Add-ons → Install

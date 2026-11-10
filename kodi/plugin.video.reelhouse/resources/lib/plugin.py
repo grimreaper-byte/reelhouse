@@ -16,6 +16,7 @@ import xbmcvfs
 from . import connection, utils
 from .api import Api, ApiError, PLAYS_EVERYTHING
 from .syncdb import SyncDb
+from .ui import model
 from .utils import string
 
 PLUGIN = 'plugin://{}/'.format(utils.ADDON_ID)
@@ -169,6 +170,17 @@ def play(handle, params):
         utils.notify(string(30119) if err.status == 401 else string(30117) % err, error=True)
         return xbmcplugin.setResolvedUrl(handle, False, xbmcgui.ListItem())
     item = xbmcgui.ListItem(path=api.stream_url(item_id))
+    if params.get('screens'):
+        # Played from the Reelhouse screens, which know it by its title alone: what Kodi's controls show of it (an
+        # episode as "S1 · E3 — Pilot" under its show) and its pictures (the info panel's poster: an episode's season
+        # cover). Kodi's own library has its details already, and Kodi adds what's set here to those (MergeInfo), so
+        # its items are left as they are.
+        try:
+            details = api.get('/api/items/{}'.format(item_id), timeout=5)
+            utils.set_video_info(item, model.player_info(details.get('item') or {}, (details.get('show') or {}).get('title')))
+            item.setArt(dict((kind, api.media_url(path, w=width)) for kind, (path, width) in model.player_art(details).items()))
+        except ApiError as err:
+            utils.log('no details for item {} ({}): it plays with its title only'.format(item_id, err), xbmc.LOGWARNING)
     # Sidecar subtitle files aren't inside the stream; embedded ones are, and Kodi finds those itself.
     subtitles = sidecar_subtitles(api, item_id, [t for t in info.get('subtitleTracks') or []
                                                  if t.get('external') and t.get('kind') == 'text'])

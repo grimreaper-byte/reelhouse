@@ -20,8 +20,8 @@ android {
         applicationId = "app.reelhouse.android"
         minSdk = 25 // Android 7.1: Fire OS 6, as on the Fire TV Stick 4K (1st gen)
         targetSdk = 36
-        versionCode = 31
-        versionName = "0.13.0"
+        versionCode = 32
+        versionName = "0.13.1"
         // The CPU types the Go tunnel library is built for (buildTunnelAar); a phone of another kind can't install
         // the app rather than failing when the tunnel starts.
         ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64") }

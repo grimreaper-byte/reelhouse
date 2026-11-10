@@ -40,6 +40,7 @@ function streamDetails(req, row) {
     grandparentTitle: show?.title || null,
     seasonNumber: row.season_number,
     episodeNumber: row.episode_number,
+    episodeEnd: row.episode_end,
     ip: clientIp(req),
     client: clientName(req),
   };

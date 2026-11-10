@@ -123,7 +123,8 @@ when Kodi starts** in the add-on's settings for a Kodi that's mostly for Reelhou
   The screens are read again every minute.
 
 Films and episodes play in Kodi's own player, as items from Kodi's library do, so its controls, subtitle and audio
-menus work as usual; an episode carries on into the rest of its season. Live TV is converted by Reelhouse as in the
+menus work as usual; an episode carries on into the rest of its season, and the controls show it as "S1 · E3 — title"
+under its show, with its season's cover in the info panel (since 0.14.1). Live TV is converted by Reelhouse as in the
 web app (broadcast video is interlaced), and stopping it frees Tvheadend's tuner straight away.
 
 The screens use your Kodi skin's fonts (an add-on can't bring its own); they're laid out for Estuary, Kodi's standard

@@ -47,6 +47,30 @@ test('a new decision for what the same user is watching on the same client carri
   assert.equal(streamCount(), 3);
 });
 
+test('Now playing keeps the order streams started in: progress reports don’t move them up the list', () => {
+  startStream('a', film({ client: 'Living room TV' }), 1_000);
+  startStream('b', film({ client: 'Phone', itemId: 8 }), 2_000);
+  startStream('c', film({ userId: 2, username: 'kid', client: 'Firefox on Windows' }), 3_000);
+  const order = () => listStreams().map((s) => s.playId);
+  assert.deepEqual(order(), ['a', 'b', 'c']);
+  reportStream('a', { ...film({ client: 'Living room TV' }), position: 10, state: 'playing' }, 11_000);
+  reportStream('c', { ...film({ userId: 2, username: 'kid', client: 'Firefox on Windows' }), position: 5, state: 'paused' }, 12_000);
+  reportStream('b', { ...film({ client: 'Phone', itemId: 8 }), position: 20, state: 'playing' }, 13_000);
+  assert.deepEqual(order(), ['a', 'b', 'c']);
+  // A new decision for what's playing (another quality, say) keeps its place too.
+  startStream('a2', film({ client: 'Living room TV', mode: 'hls', reasons: ['picture check'] }), 14_000);
+  assert.deepEqual(order(), ['a2', 'b', 'c']);
+});
+
+test('a stream limit names what was played last on each device', () => {
+  const tv = { client: 'Living room TV', ip: '192.168.0.30' };
+  startStream('old', film({ ...tv, itemId: 8, title: 'Older film' }), 1_000);
+  startStream('new', film({ ...tv }), 2_000); // the next thing on the TV, before the first went quiet
+  reportStream('old', { ...film({ ...tv, itemId: 8, title: 'Older film' }), position: 60, state: 'paused' }, 1_500);
+  reportStream('new', { ...film({ ...tv }), position: 5, state: 'playing' }, 9_000);
+  assert.deepEqual(streamLimitReached(1, 1, { client: 'Tablet', ip: '192.168.0.40' }).inUse.map((s) => s.playId), ['new']);
+});
+
 test('a player that goes quiet ends its stream: soon while playing, much later while paused', () => {
   startStream('p1', film(), 0);
   startStream('p2', film({ itemId: 8, title: 'Paused film' }), 0);

@@ -11,6 +11,7 @@ LOGO_W = 240
 STILL_W = 480
 BACKDROP_W = 1920
 FACE_W = 240
+PLAYER_POSTER_W = 480  # Kodi's player info panel (Estuary: 400 wide)
 
 LANGUAGES = {
     'eng': 'English', 'en': 'English', 'fre': 'French', 'fra': 'French', 'fr': 'French', 'ger': 'German', 'deu': 'German',
@@ -126,6 +127,47 @@ def episode_label(item):
         return s
     e = 'E{}–{}'.format(ep, item['episodeEnd']) if item.get('episodeEnd') else 'E{}'.format(ep)
     return '{} · {}'.format(s, e)
+
+
+def player_info(item, show_title=None):
+    """What Kodi's player is told about a film or episode the screens play, by ListItem.setInfo's keys. An episode is
+    titled as the app has it, "S1 · E3 — Pilot", under its show. Its series and episode numbers aren't passed on their
+    own: given those, Kodi's skin writes its own "Episode: S1E3: Pilot"."""
+    kind = item.get('type')
+    title = item.get('title') or ''
+    info = {}
+    if kind == 'episode':
+        info['mediatype'] = 'episode'
+        label = episode_label(item)
+        title = '{} — {}'.format(label, title) if label and title else label or title
+        if show_title:
+            info['tvshowtitle'] = show_title
+    elif kind == 'movie':
+        info['mediatype'] = 'movie'
+        if item.get('year'):
+            info['year'] = int(item['year'])
+    if title:
+        info['title'] = title
+    if item.get('overview'):
+        info['plot'] = item['overview']
+    return info
+
+
+def player_art(details):
+    """The pictures Kodi's player is given for a film or episode the screens play (GET /api/items/:id), as Reelhouse
+    paths with the width to ask for: its poster, which for an episode is its season's cover (Reelhouse falls back to
+    the show's), its show's poster, and its still. Estuary's info panel shows the poster."""
+    item = details.get('item') or {}
+    images = item.get('images') or {}
+    show = (details.get('show') or {}).get('images') or {}
+    art = {}
+    if images.get('poster'):
+        art['poster'] = (images['poster'], PLAYER_POSTER_W)
+    if item.get('type') == 'episode' and show.get('poster'):
+        art['tvshow.poster'] = (show['poster'], PLAYER_POSTER_W)
+    if images.get('thumb'):
+        art['thumb'] = (images['thumb'], STILL_W)
+    return art
 
 
 def time_ago(ms, now=None):

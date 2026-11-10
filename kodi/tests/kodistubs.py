@@ -12,6 +12,7 @@ PLAYED = []          # what Player was asked to do: 'pause', 'stop'
 BUILTINS = []        # Kodi's built-in commands run (xbmc.executebuiltin)
 PLAYLIST = []        # the labels in Kodi's video playlist
 PLAYLIST_AT = [0]    # the one playing
+PLAYLIST_ITEMS = []  # what went into it: (address, ListItem)
 ABORT = threading.Event()
 
 
@@ -96,9 +97,11 @@ def install():
         def clear(self):
             PLAYED.append('cleared')
             del PLAYLIST[:]
+            del PLAYLIST_ITEMS[:]
 
         def add(self, url, listitem=None, index=-1):
             PLAYLIST.append(listitem.getLabel() if listitem else url)
+            PLAYLIST_ITEMS.append((url, listitem))
 
     xbmc.Monitor, xbmc.Player, xbmc.PlayList = Monitor, Player, PlayList
     xbmc.PLAYLIST_MUSIC, xbmc.PLAYLIST_VIDEO = 0, 1
@@ -124,9 +127,24 @@ def install():
         def notification(self, heading, message, icon=None, time=5000):
             NOTIFICATIONS.append(message)
 
+    class InfoTagVideo(object):
+        """Keeps what's set on it, by setter: {'setTitle': 'Pilot', ...}."""
+        def __init__(self):
+            self.values = {}
+
+        def __getattr__(self, name):
+            if not name.startswith('set'):
+                raise AttributeError(name)
+            return lambda *args: self.values.__setitem__(name, args[0] if len(args) == 1 else args)
+
     class ListItem(object):
         def __init__(self, label='', label2='', path=''):
             self.label, self.path, self.properties, self.art = label, path, {}, {}
+            self.tag = None
+
+        def getVideoInfoTag(self):
+            self.tag = self.tag or InfoTagVideo()
+            return self.tag
 
         def getLabel(self):
             return self.label

@@ -132,7 +132,7 @@ fun SearchScreen(initial: String, onOpenItem: (Item) -> Unit, onBack: () -> Unit
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                         keyboardActions = KeyboardActions(onSearch = { keyboard?.hide() }),
                         trailingIcon = {
-                            if (query.isNotEmpty()) IconButton(onClick = { vm.setQuery("") }) { Icon(Icons.Filled.Close, contentDescription = "Clear") }
+                            if (query.isNotEmpty()) IconButton(onClick = { vm.setQuery("") }, modifier = Modifier.clearButton()) { Icon(Icons.Filled.Close, contentDescription = "Clear") }
                         },
                         colors = TextFieldDefaults.colors(
                             focusedContainerColor = Color.Transparent,

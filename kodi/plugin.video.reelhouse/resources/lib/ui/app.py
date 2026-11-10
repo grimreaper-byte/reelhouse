@@ -141,13 +141,18 @@ class App(object):
     # ---------- playing ----------
 
     def play(self, item_id, start=0, queue=(), title=None):
-        """Plays a film or episode from `start` seconds, then the episodes in `queue` [(id, title)] after it."""
+        """Plays a film or episode from `start` seconds, then the episodes in `queue` after it: [(id, what Kodi's player
+        is told of it)], as episode_queue() makes them, so Kodi's "Next" line says which comes next. The one starting
+        is told as it starts (plugin.play)."""
         playlist = xbmc.PlayList(xbmc.PLAYLIST_VIDEO)
         playlist.clear()
-        for n, (iid, label) in enumerate([(item_id, title)] + list(queue)):
-            li = xbmcgui.ListItem(label or '')
+        for n, (iid, info) in enumerate([(item_id, {'title': title} if title else {})] + list(queue)):
+            li = xbmcgui.ListItem(info.get('title') or '')
             li.setProperty('IsPlayable', 'true')
-            playlist.add(plugin_url(mode='play', id=int(iid), start=int(start) if n == 0 and start else None), li)
+            if n:
+                utils.set_video_info(li, info)
+            playlist.add(plugin_url(mode='play', id=int(iid), start=int(start) if n == 0 and start else None,
+                                    screens=1), li)
         xbmc.Player().play(playlist)
 
     def episode_queue(self, episode):
@@ -162,7 +167,8 @@ class App(object):
         ids = [e['id'] for e in eps]
         if episode['id'] not in ids:
             return []
-        return [(e['id'], e.get('title')) for e in eps[ids.index(episode['id']) + 1:]]
+        show = (season.get('show') or {}).get('title')
+        return [(e['id'], model.player_info(e, show)) for e in eps[ids.index(episode['id']) + 1:]]
 
     def play_item(self, item, start=None):
         """Plays an item as its card or page has it: resuming unless told where to start."""

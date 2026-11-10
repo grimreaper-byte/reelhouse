@@ -172,14 +172,14 @@ private fun ChooseWay(onScan: () -> Unit, onCode: () -> Unit, onPassword: () -> 
     )
     Spacer(Modifier.height(24.dp))
     if (hasCamera) {
-        Button(onClick = onScan, modifier = Modifier.startFocus().fillMaxWidth().height(52.dp)) {
+        Button(onClick = onScan, modifier = Modifier.startFocus().fillMaxWidth(), height = 52.dp) {
             Icon(Icons.Filled.QrCodeScanner, contentDescription = null, modifier = Modifier.size(20.dp))
             Spacer(Modifier.size(10.dp))
             Text("Scan the QR code")
         }
         Spacer(Modifier.height(12.dp))
     }
-    OutlinedButton(onClick = onCode, modifier = (if (hasCamera) Modifier else Modifier.startFocus()).fillMaxWidth().height(52.dp)) {
+    OutlinedButton(onClick = onCode, modifier = (if (hasCamera) Modifier else Modifier.startFocus()).fillMaxWidth(), height = 52.dp) {
         Icon(Icons.Filled.Keyboard, contentDescription = null, modifier = Modifier.size(20.dp))
         Spacer(Modifier.size(10.dp))
         Text("Type the code (at home)")
@@ -213,7 +213,7 @@ private fun CodeForm(onPair: (String, String) -> Unit, onBack: () -> Unit) {
     )
     }
     Spacer(Modifier.height(16.dp))
-    Button(onClick = { onPair(address, code) }, enabled = address.isNotBlank() && code.count { it.isLetterOrDigit() } >= 8, modifier = Modifier.fillMaxWidth().height(48.dp)) {
+    Button(onClick = { onPair(address, code) }, enabled = address.isNotBlank() && code.count { it.isLetterOrDigit() } >= 8, modifier = Modifier.fillMaxWidth(), height = 48.dp) {
         Text("Pair")
     }
     TextButton(onClick = onBack) { Text("Back") }
@@ -246,7 +246,7 @@ private fun PasswordForm(onSignIn: (String, String, String) -> Unit, onBack: () 
     )
     }
     Spacer(Modifier.height(16.dp))
-    Button(onClick = { onSignIn(address, username, password) }, enabled = address.isNotBlank() && username.isNotBlank() && password.isNotEmpty(), modifier = Modifier.fillMaxWidth().height(48.dp)) {
+    Button(onClick = { onSignIn(address, username, password) }, enabled = address.isNotBlank() && username.isNotBlank() && password.isNotEmpty(), modifier = Modifier.fillMaxWidth(), height = 48.dp) {
         Text("Sign in")
     }
     TextButton(onClick = onBack) { Text("Back") }

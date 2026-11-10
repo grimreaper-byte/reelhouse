@@ -153,7 +153,7 @@ const shortTitle = (s) => (s.grandparentTitle
 export function streamLimitReached(userId, limit, device) {
   if (!limit) return null;
   const others = new Map();
-  for (const s of listStreams()) {
+  for (const s of [...streams.values()].sort((a, b) => b.updatedAt - a.updatedAt)) { // the newest on each device
     if (s.userId !== userId || s.mode === 'download' || deviceOf(s) === deviceOf(device)) continue;
     if (!others.has(deviceOf(s))) others.set(deviceOf(s), s);
   }
@@ -176,8 +176,11 @@ export function logStreamLimit(data, { limit }) {
     + `device${limit === 1 ? '' : 's'}, the most the account allows`);
 }
 
-/** What's being watched, most recently active first. */
-export const listStreams = () => [...streams.values()].sort((a, b) => b.updatedAt - a.updatedAt);
+/**
+ * What's being watched, in the order it started (Settings → Activity's Now playing): a progress report doesn't move a
+ * stream up the list, so two or more don't keep swapping places as their players report in turn.
+ */
+export const listStreams = () => [...streams.values()].sort((a, b) => a.startedAt - b.startedAt);
 export const streamCount = () => streams.size;
 
 /** For tests. */

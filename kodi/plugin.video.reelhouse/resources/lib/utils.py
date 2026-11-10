@@ -53,6 +53,23 @@ def log_error(message):
     log(message, xbmc.LOGERROR)
 
 
+# ListItem.setInfo's keys (Kodi 19) and InfoTagVideo's setters (Kodi 20 on).
+VIDEO_SETTERS = (('mediatype', 'setMediaType'), ('title', 'setTitle'), ('tvshowtitle', 'setTvShowTitle'),
+                 ('year', 'setYear'), ('plot', 'setPlot'))
+
+
+def set_video_info(item, info):
+    """Puts a film's or episode's details (ui.model.player_info) on a ListItem."""
+    try:
+        tag = item.getVideoInfoTag()
+    except AttributeError:  # Kodi 19
+        item.setInfo('video', info)
+        return
+    for key, setter in VIDEO_SETTERS:
+        if key in info:
+            getattr(tag, setter)(info[key])
+
+
 def notify(message, error=False, time_ms=5000):
     icon = xbmcgui.NOTIFICATION_ERROR if error else os.path.join(addon().getAddonInfo('path'), 'resources', 'icon.png')
     xbmcgui.Dialog().notification('Reelhouse', message, icon, time_ms)

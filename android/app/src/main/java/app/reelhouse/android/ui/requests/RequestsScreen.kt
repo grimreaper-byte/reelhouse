@@ -360,7 +360,7 @@ private fun SearchField(query: String, onChange: (String) -> Unit) {
             onValueChange = onChange,
             placeholder = { Text("Find a movie to request") },
             leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-            trailingIcon = { if (query.isNotEmpty()) IconButton(onClick = { onChange("") }) { Icon(Icons.Filled.Close, contentDescription = "Clear") } },
+            trailingIcon = { if (query.isNotEmpty()) IconButton(onClick = { onChange("") }, modifier = Modifier.clearButton()) { Icon(Icons.Filled.Close, contentDescription = "Clear") } },
             singleLine = true,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
             keyboardActions = KeyboardActions(onSearch = { keyboard?.hide() }),
@@ -405,7 +405,7 @@ private fun FilmCard(film: FilmResult, asking: Boolean, onAsk: (FilmResult) -> U
         Spacer(Modifier.height(6.dp))
         val small = PaddingValues(horizontal = 10.dp, vertical = 0.dp)
         when (val action = filmAction(film)) {
-            is FilmAction.Open -> OutlinedButton(onClick = { onOpen(action.itemId) }, contentPadding = small, modifier = Modifier.height(32.dp)) {
+            is FilmAction.Open -> OutlinedButton(onClick = { onOpen(action.itemId) }, contentPadding = small, height = 32.dp) {
                 Text("On the server", style = MaterialTheme.typography.labelMedium, maxLines = 1)
             }
             is FilmAction.AskedFor -> Text(action.label, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold, color = Palette.Accent)
@@ -414,7 +414,7 @@ private fun FilmCard(film: FilmResult, asking: Boolean, onAsk: (FilmResult) -> U
                 enabled = !asking,
                 contentPadding = small,
                 colors = ButtonDefaults.buttonColors(containerColor = Palette.Accent, contentColor = Palette.AccentText),
-                modifier = Modifier.height(32.dp),
+                height = 32.dp,
             ) {
                 Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(4.dp))

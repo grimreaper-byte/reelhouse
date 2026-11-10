@@ -212,12 +212,13 @@ fun Modifier.endOfRow(last: Boolean): Modifier = if (last) focusProperties { rig
  * a remote the keyboard takes over the screen, so moving past a box would trap you in it. So there the focus lands on
  * this instead, around the box, and OK on it opens the box. [content] puts the modifier it's given on its text box.
  * [down] is where Down goes, for a box as wide as the screen: from that, the nearest thing below is whatever is closest to
- * the screen's middle. If it isn't on screen any more, the usual search decides.
+ * the screen's middle. If it isn't on screen any more, the usual search decides. A button inside the box that empties it
+ * (its ✕) gets [RemoteTextBoxScope.clearButton].
  */
 @Composable
-fun RemoteTextBox(modifier: Modifier = Modifier, opened: Boolean = false, down: FocusRequester? = null, content: @Composable (Modifier) -> Unit) {
+fun RemoteTextBox(modifier: Modifier = Modifier, opened: Boolean = false, down: FocusRequester? = null, content: @Composable RemoteTextBoxScope.(Modifier) -> Unit) {
     if (!LocalRemoteDevice.current) {
-        Box(modifier) { content(Modifier) }
+        Box(modifier) { TouchTextBox.content(Modifier) }
         return
     }
     var open by rememberSaveable { mutableStateOf(opened) } // coming back to the screen, the focus goes where it was
@@ -227,10 +228,12 @@ fun RemoteTextBox(modifier: Modifier = Modifier, opened: Boolean = false, down: 
         object {
             var lastArrowAt = 0L
             var onTheBox = false // rather than a button inside it (Clear)
+            var onTheFrame = false // the box while it's shut: the focus on it, not on its ✕
         }
     }
     val inner = remember { FocusRequester() }
     val outer = remember { FocusRequester() }
+    val clear = remember { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current
     val focus = LocalFocusManager.current
     val toDown = Modifier.onPreviewKeyEvent { event ->
@@ -238,8 +241,35 @@ fun RemoteTextBox(modifier: Modifier = Modifier, opened: Boolean = false, down: 
         if (moved) state.lastArrowAt = SystemClock.uptimeMillis()
         moved
     }
-    Box(modifier.focusRequester(outer).focusProperties { canFocus = !open }.then(toDown).clickable { open = true }) {
-        content(
+    // The ✕ is inside the box, where moving the focus never looks from the box itself: Right goes there by hand (when
+    // there is one: not with the box empty), and Left back.
+    val toClear = Modifier.onPreviewKeyEvent { event ->
+        state.onTheFrame && event.key == Key.DirectionRight && event.type == KeyEventType.KeyDown && runCatching { clear.requestFocus() }.isSuccess
+    }
+    val scope = remember {
+        object : RemoteTextBoxScope {
+            override fun Modifier.clearButton(): Modifier = focusRequester(clear).onPreviewKeyEvent { event ->
+                when (event.key) {
+                    Key.DirectionLeft -> {
+                        if (event.type == KeyEventType.KeyDown) runCatching { outer.requestFocus() }
+                        true
+                    }
+                    Key.DirectionRight -> true
+                    // It goes once the box is empty, taking the focus with it: back to the box after its click.
+                    Key.DirectionCenter, Key.Enter, Key.NumPadEnter -> {
+                        if (event.type == KeyEventType.KeyUp) comeBack = true
+                        false
+                    }
+                    else -> false
+                }
+            }
+        }
+    }
+    Box(
+        modifier.focusRequester(outer).focusProperties { canFocus = !open }.then(toDown).then(toClear)
+            .onFocusChanged { state.onTheFrame = it.isFocused }.clickable { open = true },
+    ) {
+        scope.content(
             Modifier
                 .focusProperties { canFocus = open }
                 .focusRequester(inner)
@@ -284,6 +314,16 @@ fun RemoteTextBox(modifier: Modifier = Modifier, opened: Boolean = false, down: 
             comeBack = false
         }
     }
+}
+
+/** What a [RemoteTextBox]'s content has besides its text box's modifier. */
+interface RemoteTextBoxScope {
+    /** For the button inside the box that empties it (its ✕), so a remote can reach it: Right from the box. */
+    fun Modifier.clearButton(): Modifier
+}
+
+private object TouchTextBox : RemoteTextBoxScope {
+    override fun Modifier.clearButton(): Modifier = this
 }
 
 /**
