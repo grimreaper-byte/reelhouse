@@ -13,6 +13,9 @@ const SYNC_STEP_MS = 50;
 const SYNC_APPLY_DELAY_MS = 900; // let the user finish nudging before restarting a conversion
 const ITEM_PREFS_KEY = 'reelhouse.itemPrefs';
 const ITEM_PREFS_MAX = 300;
+// The subtitles showing when the player moves on to the next or previous episode, for that one to start with:
+// { id: the episode's, shown: { language } or null for off }. Anything else starts with subtitles off.
+let carriedSubtitles = null;
 
 // Per-item choices worth remembering between plays: the audio track and sync offsets,
 // as { audio: streamIndex, audioDelay: { [streamIndex]: ms }, subDelay: { [trackId]: ms } }.
@@ -629,11 +632,21 @@ class Player {
   }
 
   playPrev() {
-    if (this.info?.prev) navigate(`/play/${this.info.prev.id}`, { replace: true });
+    if (!this.info?.prev) return;
+    this.carrySubtitles(this.info.prev.id);
+    navigate(`/play/${this.info.prev.id}`, { replace: true });
   }
 
   playNext() {
-    if (this.info?.next) navigate(`/play/${this.info.next.id}`, { replace: true });
+    if (!this.info?.next) return;
+    this.carrySubtitles(this.info.next.id);
+    navigate(`/play/${this.info.next.id}`, { replace: true });
+  }
+
+  /** The episode the player goes on to starts with the subtitles showing now (a burned-in one's language too). */
+  carrySubtitles(id) {
+    const shown = this.currentSubtitleTrack();
+    carriedSubtitles = { id, shown: shown && !shown.forced ? { language: shown.language || null } : null };
   }
 
   // ---------- progress & UI updates ----------
@@ -853,14 +866,27 @@ class Player {
     this.restartWithSameTime();
   }
 
+  /**
+   * Subtitles start off, except a file's own forced ones (the parts in another language) for the audio playing.
+   * Going on to the next or previous episode, the subtitles that were showing carry on.
+   */
   pickDefaultSubtitle() {
     const tracks = this.info?.subtitleTracks || [];
-    const lang = getPrefs().subtitleLanguage;
+    const carried = carriedSubtitles?.id === this.item.id ? carriedSubtitles.shown : null;
+    carriedSubtitles = null;
+    const text = tracks.filter((t) => t.kind === 'text');
     let pick = null;
-    if (lang) {
-      pick = tracks.find((t) => t.kind === 'text' && t.language === lang && !t.forced) || tracks.find((t) => t.kind === 'text' && t.language === lang);
+    if (carried) {
+      const lang = carried.language;
+      pick = text.find((t) => t.language === lang && !t.forced) || text.find((t) => t.language === lang) ||
+        (lang ? null : text.find((t) => !t.forced)) || null;
     }
-    if (!pick) pick = tracks.find((t) => t.kind === 'text' && t.forced && t.isDefault) || null;
+    if (!pick) {
+      // A file's forced subtitles (the parts in another language): those for the audio playing.
+      const audio = (this.info?.audioTracks || []).find((a) => a.index === this.currentAudioIndex());
+      const forced = text.filter((t) => t.forced);
+      pick = forced.find((t) => audio?.language && t.language === audio.language) || forced.find((t) => t.isDefault) || null;
+    }
     this.subtitle = pick;
     this.prefs.subtitleOffsetMs = (pick && this.itemPrefs.subDelay?.[pick.id]) || 0;
   }
@@ -871,7 +897,6 @@ class Player {
     if (track?.kind === 'image') {
       this.subtitle = null;
       this.prefs.burnSubtitle = track.streamIndex;
-      setPrefs({ subtitleLanguage: track.language || null });
       this.refreshPanel();
       this.restartWithSameTime();
       return;
@@ -879,7 +904,6 @@ class Player {
     const wasBurning = this.prefs.burnSubtitle != null;
     this.prefs.burnSubtitle = null;
     this.subtitle = track;
-    setPrefs({ subtitleLanguage: track?.language || null });
     if (wasBurning) this.restartWithSameTime();
     else this.applySubtitle();
     this.refreshPanel();

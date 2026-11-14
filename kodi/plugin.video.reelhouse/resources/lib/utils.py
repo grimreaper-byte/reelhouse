@@ -1,5 +1,7 @@
 # Small helpers shared by the plugin and the service: settings, logging, strings, notifications.
+import json
 import os
+import time
 
 import xbmc
 import xbmcaddon
@@ -15,6 +17,30 @@ CHANNELS_PROPERTY = 'reelhouse.channels'  # the guide's channels in order, for t
 # Kodi's official add-on that can pause a live stream (plugin.start_channel uses it when it's installed).
 TIMESHIFT_PLAYER = 'inputstream.ffmpegdirect'
 CHANGED_PROPERTY = 'reelhouse.changed'  # bumped when Reelhouse announces changes; the Reelhouse screens re-read
+# Set by the Reelhouse screens when they start something while something else plays behind them (when it was asked):
+# the service shows it full screen once its picture starts (Kodi only does that itself when nothing was playing).
+FULLSCREEN_PROPERTY = 'reelhouse.fullscreen'
+
+
+def ask_full_screen():
+    """The Reelhouse screens are about to start something. While something else plays behind them (Back from the
+    player), Kodi would leave the new item behind them too, so the service is asked to show it full screen."""
+    if xbmc.getCondVisibility('Player.HasMedia'):
+        xbmcgui.Window(HOME).setProperty(FULLSCREEN_PROPERTY, str(time.time()))
+
+
+def rpc(method, **params):
+    """Calls Kodi's JSON-RPC in this process: its result, or None when Kodi refused (it's logged)."""
+    request = {'jsonrpc': '2.0', 'id': 1, 'method': method}
+    if params:
+        request['params'] = params
+    try:
+        reply = json.loads(xbmc.executeJSONRPC(json.dumps(request)))
+    except (TypeError, ValueError, RuntimeError):
+        return None
+    if 'error' in reply:
+        log('{} refused: {}'.format(method, reply['error']), xbmc.LOGWARNING)
+    return reply.get('result')
 
 
 def addon():

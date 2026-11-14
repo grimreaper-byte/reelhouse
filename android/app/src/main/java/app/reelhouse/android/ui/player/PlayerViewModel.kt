@@ -89,6 +89,7 @@ class PlayerViewModel(private val c: AppContainer, context: Context, itemId: Lon
         .setAudioAttributes(AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(), true)
         .setHandleAudioBecomingNoisy(true)
         .build()
+        .apply { trackSelectionParameters = subtitlesOffAtFirst(trackSelectionParameters) }
 
     private val _ui = MutableStateFlow(Ui(syncMs = syncMs, pictureDelayMs = pictureDelayMs()))
 
@@ -113,7 +114,8 @@ class PlayerViewModel(private val c: AppContainer, context: Context, itemId: Lon
 
     /**
      * The subtitles picked in this player (language and label), applied again whenever the tracks change: after a
-     * restart for another quality or audio track, and for the next episode. Null: nothing picked (the defaults).
+     * restart for another quality or audio track, and for the next episode. Null: nothing picked, so subtitles are
+     * off but for a file's forced ones ([subtitlesOffAtFirst]).
      */
     private var subtitleWish: SubtitleWish? = null
 

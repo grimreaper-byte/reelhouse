@@ -143,7 +143,7 @@ class App(object):
     def play(self, item_id, start=0, queue=(), title=None):
         """Plays a film or episode from `start` seconds, then the episodes in `queue` after it: [(id, what Kodi's player
         is told of it)], as episode_queue() makes them, so Kodi's "Next" line says which comes next. The one starting
-        is told as it starts (plugin.play)."""
+        is told as it starts (plugin.play), as a fresh start: its subtitles start off (the service, subtitles.py)."""
         playlist = xbmc.PlayList(xbmc.PLAYLIST_VIDEO)
         playlist.clear()
         for n, (iid, info) in enumerate([(item_id, {'title': title} if title else {})] + list(queue)):
@@ -152,7 +152,8 @@ class App(object):
             if n:
                 utils.set_video_info(li, info)
             playlist.add(plugin_url(mode='play', id=int(iid), start=int(start) if n == 0 and start else None,
-                                    screens=1), li)
+                                    fresh=1 if n == 0 else None, screens=1), li)
+        utils.ask_full_screen()
         xbmc.Player().play(playlist)
 
     def episode_queue(self, episode):
@@ -190,6 +191,7 @@ class App(object):
             if c.get('icon'):
                 logo = self.image(c['icon'], 240)
                 li.setArt({'thumb': logo, 'icon': logo})
+            utils.ask_full_screen()
             xbmc.Player().play(plugin_url(mode='live', channel=c['uuid']), li)
             return
         playlist = xbmc.PlayList(xbmc.PLAYLIST_MUSIC)
@@ -201,6 +203,7 @@ class App(object):
                 logo = self.image(c['icon'], 240)
                 li.setArt({'thumb': logo, 'icon': logo})
             playlist.add(plugin_url(mode='live', channel=c['uuid'], radio='1' if radio else None), li)
+        utils.ask_full_screen()
         xbmc.Player().play(playlist, startpos=index)
 
 

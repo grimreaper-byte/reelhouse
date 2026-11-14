@@ -1,7 +1,9 @@
 // The player's decisions that don't need a player: kept apart so they can be tested on the JVM.
 package app.reelhouse.android.ui.player
 
+import androidx.media3.common.C
 import androidx.media3.common.PlaybackException
+import androidx.media3.common.TrackSelectionParameters
 import app.reelhouse.android.data.model.Item
 import app.reelhouse.android.data.playback.AudioTrack
 import app.reelhouse.android.data.playback.Chapter
@@ -12,6 +14,14 @@ import java.util.Locale
 
 /** The quality to ask for: what was picked for this place, else the original at home and the server's default away. */
 fun chooseQuality(atHome: Boolean, picked: String?, remoteDefault: String): String = picked ?: if (atHome) "original" else remoteDefault
+
+/**
+ * Subtitles start off. Media3 would show the subtitle track a file marks as its default; only those it marks as
+ * forced (the parts in another language) still show by themselves, and those in the language of Android's caption
+ * setting when that's on. A pick in the player carries on to the next episode (PlayerViewModel's subtitleWish).
+ */
+fun subtitlesOffAtFirst(params: TrackSelectionParameters): TrackSelectionParameters =
+    params.buildUpon().setIgnoredTextSelectionFlags(C.SELECTION_FLAG_DEFAULT).build()
 
 /**
  * Where to start: the resume point, unless it's within the last 30 s. A watched item that's being watched again

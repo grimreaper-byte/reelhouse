@@ -2,10 +2,16 @@ import { h } from '../../dom.js';
 import { api } from '../../api.js';
 import { modal, toast, copyText } from '../../components.js';
 
+const until = (t) => new Date(t).toLocaleString(undefined, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+
 /**
  * Shows a one-time pairing code (and its QR code) for the Reelhouse app and waits for the app to use it.
  * For your own account by default; an admin passes `user` ({ id, username }) to pair a phone for someone else
  * (Settings → Users). `onPaired` runs once the app has used the code.
+ *
+ * "Copy a link to send" makes a pairing of its own to send by email or a message instead: a web address (the app's
+ * own reelhouse:// links aren't tappable in mail apps) that works once, for a day, whether or not this is still
+ * open. The links sent and not used yet are listed here, to call back.
  */
 export async function pairingDialog({ user = null, onPaired } = {}) {
   const base = user ? `/api/users/${user.id}/pairings` : '/api/me/pairings';
@@ -14,6 +20,26 @@ export async function pairingDialog({ user = null, onPaired } = {}) {
   let timer = null;
   let poll = null;
   let used = false;
+  const links = [...(p.links || [])];
+  const linksBox = h('div.pair-links');
+  const renderLinks = () => linksBox.replaceChildren(...links.map((l) => h('div.pair-link',
+    h('span', `Link sent · works once, until ${until(l.expiresAt)}`),
+    h('button.btn.btn-ghost.btn-sm', {
+      type: 'button',
+      onClick: async () => {
+        await api.del(`${base}/${l.id}`).catch(() => {});
+        links.splice(links.indexOf(l), 1);
+        renderLinks();
+        toast('Link cancelled: it won’t work any more');
+      },
+    }, 'Cancel'))));
+  const sendLink = async () => {
+    const l = await api.post(base, { link: true });
+    await copyText(l.url);
+    links.unshift({ id: l.id, expiresAt: l.expiresAt });
+    links.splice(3); // Reelhouse keeps the newest three
+    renderLinks();
+  };
   const stop = () => {
     clearInterval(timer);
     clearInterval(poll);
@@ -45,6 +71,8 @@ export async function pairingDialog({ user = null, onPaired } = {}) {
       h('p.hint', user
         ? `Give this code or link only to ${user.username}: until it’s used, it signs a device in to their account.`
         : 'Keep this code to yourself until it’s used: it signs a device in to your account.'),
+      h('p.hint', `Not there with the phone? “Copy a link to send” makes a link to email or message${user ? ` to ${user.username}` : ''} instead. It opens the app when tapped on the phone, works once, and lasts a day, even after you close this.`),
+      linksBox,
       p.app && h('details.get-app',
         h('summary', 'Don’t have the app yet?'),
         p.app.qr
@@ -56,18 +84,30 @@ export async function pairingDialog({ user = null, onPaired } = {}) {
           : h('p.hint', 'Open this server’s /android/ page on the phone (at the address you use at home) to download the app.')),
     ),
     actions: [
-      { label: 'Copy link', onClick: () => { copyText(p.link); return true; } },
+      { label: 'Copy a link to send', onClick: async () => { await sendLink(); return true; } },
       { label: 'Done', primary: true },
     ],
     wide: false,
     onClose: cancel,
   });
   tick();
+  renderLinks();
   timer = setInterval(tick, 1000);
   // Follows this pairing (not just any new sign-in) and closes once the app has used it.
   poll = setInterval(async () => {
     if (!document.body.contains(dialog.el)) return stop();
     try {
+      // A link sent from here may be used meanwhile, by the phone it went to.
+      for (const l of [...links]) {
+        const ls = await api.get(`${base}/${l.id}`);
+        if (ls.status === 'waiting') continue;
+        links.splice(links.indexOf(l), 1);
+        renderLinks();
+        if (ls.status === 'used') {
+          toast(user ? `${ls.device} is paired for ${user.username}, with the link` : `${ls.device} is paired, with the link`);
+          await onPaired?.();
+        }
+      }
       const st = await api.get(`${base}/${p.id}`);
       if (st.status === 'used') {
         used = true;

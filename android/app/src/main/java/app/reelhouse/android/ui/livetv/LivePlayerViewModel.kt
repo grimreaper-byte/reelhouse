@@ -31,6 +31,7 @@ import app.reelhouse.android.data.playback.TimedRenderersFactory
 import app.reelhouse.android.ui.common.errorText
 import app.reelhouse.android.ui.player.PlayerViewModel
 import app.reelhouse.android.ui.player.chooseQuality
+import app.reelhouse.android.ui.player.subtitlesOffAtFirst
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -78,6 +79,7 @@ class LivePlayerViewModel(private val c: AppContainer, context: Context, channel
         .setAudioAttributes(AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(), true)
         .setHandleAudioBecomingNoisy(true)
         .build()
+        .apply { trackSelectionParameters = subtitlesOffAtFirst(trackSelectionParameters) }
 
     private val _ui = MutableStateFlow(Ui(radio = radio))
     val ui: StateFlow<Ui> = _ui.asStateFlow()

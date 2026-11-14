@@ -6,6 +6,11 @@
 //   { v: 1, server, id, code, expiresAt, urls: [direct addresses], tunnel: { endpoint, publicKey, privateKey,
 //     presharedKey, address, url } | null }
 // `id` is the server's id (GET /api/server): the app pairs at a direct address only where that same id answers.
+//
+// A pairing link, to send by email or a message, is a pairing of its own that lasts a day instead (LINK_HOURS). Mail
+// apps only make web addresses tappable, so it goes as <PAIR_PAGE>#d=<the same base64url JSON>: a page on Reelhouse's
+// website that hands reelhouse://pair?d=… to the app (or offers the app when the phone hasn't got it). What's after
+// the # never leaves the phone, so the website doesn't see the code or the tunnel key.
 import crypto from 'node:crypto';
 import QRCode from 'qrcode';
 import { all, get, run, tx } from './db.js';
@@ -21,6 +26,10 @@ import { addressesReachable } from './lib/platform.js';
 import { appInfo } from './android.js';
 
 export const PAIRING_MINUTES = 10;
+export const LINK_HOURS = 24;
+export const PAIR_PAGE = 'https://reelhouseapp.com/pair/';
+// Of each kind (pairing screens' codes, and links), so making codes on the pairing screen never cancels a link that
+// was sent, or the other way round.
 export const MAX_OPEN_PAIRINGS = 3;
 // No 0/O, 1/I/L or U: easy to read out and type.
 const ALPHABET = '23456789ABCDEFGHJKMNPQRSTVWXYZ';
@@ -58,13 +67,25 @@ export function directAddresses(req) {
   return urls;
 }
 
-/** Starts a pairing for this user. Returns what the pairing screen shows. */
-export async function createPairing(user, req) {
+// A link's pairing is told from a pairing screen's by how long it lasts (no column needed for it).
+const IS_LINK = `(expires_at - created_at > ${PAIRING_MINUTES * 60 * 1000})`;
+
+/** A user's pairing links that haven't been used (or expired) yet, newest first: [{ id, expiresAt }]. */
+export function openLinks(userId, now = Date.now()) {
+  return all(`SELECT id, expires_at FROM pairings WHERE user_id = ? AND used_at IS NULL AND expires_at > ? AND ${IS_LINK} ORDER BY created_at DESC`, userId, now)
+    .map((p) => ({ id: p.id, expiresAt: p.expires_at }));
+}
+
+/**
+ * Starts a pairing for this user. Returns what the pairing screen shows; `link`: one to send as a link instead,
+ * lasting LINK_HOURS (its `url` is the one to send).
+ */
+export async function createPairing(user, req, { link = false } = {}) {
   const now = Date.now();
-  // Each open pairing holds a tunnel address for 10 minutes: a few per user, so nobody can use them all up.
-  const open = all('SELECT id FROM pairings WHERE user_id = ? AND used_at IS NULL AND expires_at > ? ORDER BY created_at DESC', user.id, now);
+  // Each open pairing holds a tunnel address until it expires: a few per user, so nobody can use them all up.
+  const open = all(`SELECT id FROM pairings WHERE user_id = ? AND used_at IS NULL AND expires_at > ? AND ${IS_LINK} = ? ORDER BY created_at DESC`, user.id, now, link ? 1 : 0);
   for (const p of open.slice(MAX_OPEN_PAIRINGS - 1)) cancelPairing(user.id, p.id);
-  const expiresAt = now + PAIRING_MINUTES * 60 * 1000;
+  const expiresAt = now + (link ? LINK_HOURS * 60 : PAIRING_MINUTES) * 60 * 1000;
   const code = newCode();
   const display = `${code.slice(0, 4)}-${code.slice(4)}`;
   const cfg = getSetting('appTunnel');
@@ -92,10 +113,16 @@ export async function createPairing(user, req) {
     sha256(code), id, user.id, now, expiresAt, peerId,
   );
   const payload = { v: 1, server: getSetting('serverName'), id: serverId(), code: display, expiresAt, urls: directAddresses(req), tunnel };
-  const link = `reelhouse://pair?d=${Buffer.from(JSON.stringify(payload)).toString('base64url')}`;
+  const d = Buffer.from(JSON.stringify(payload)).toString('base64url');
+  const appLink = `reelhouse://pair?d=${d}`;
+  const url = `${PAIR_PAGE}#d=${d}`;
+  if (link) return { id, expiresAt, url, link: appLink, tunnel: !!tunnel, warnings };
   // Shown on a screen, so the lowest error correction keeps the code as coarse (easy to scan) as possible.
-  const qr = await QRCode.toString(link, { type: 'svg', errorCorrectionLevel: 'L', margin: 1 });
-  return { id, code: display, expiresAt, link, qr, tunnel: !!tunnel, urls: payload.urls, warnings, app: await appDownload(payload.urls) };
+  const qr = await QRCode.toString(appLink, { type: 'svg', errorCorrectionLevel: 'L', margin: 1 });
+  return {
+    id, code: display, expiresAt, link: appLink, url, qr, tunnel: !!tunnel, urls: payload.urls, warnings,
+    app: await appDownload(payload.urls), links: openLinks(user.id, now),
+  };
 }
 
 /** Where a phone at home can download the app (/android/), with a QR code for its camera; null without an APK. */
@@ -108,7 +135,10 @@ async function appDownload(urls) {
   return { versionName: info.versionName, url, qr: await QRCode.toString(url, { type: 'svg', errorCorrectionLevel: 'L', margin: 1 }) };
 }
 
-/** Cancels a user's unused pairing (its pairing screen was closed): the code stops working, its tunnel key goes. */
+/**
+ * Cancels a user's unused pairing (its pairing screen was closed, or a link that was sent is called back): the code
+ * stops working, its tunnel key goes.
+ */
 export function cancelPairing(userId, id) {
   const p = get('SELECT tunnel_peer FROM pairings WHERE id = ? AND user_id = ? AND used_at IS NULL', String(id), userId);
   if (!p) return false;

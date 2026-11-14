@@ -1,6 +1,7 @@
 # What Kodi's player is told about a film or episode the Reelhouse screens play: an episode is titled as the app has
 # it, "S1 · E3 — Pilot", under its show (its numbers aren't passed on their own, or Kodi's skin writes its own
 # "Episode: S1E3: Pilot"). What Kodi's own library plays keeps the library's details.
+import json
 import unittest
 from urllib.parse import parse_qsl, urlparse
 
@@ -11,7 +12,7 @@ kodistubs.install()
 
 import xbmcplugin  # noqa: E402
 
-from resources.lib import connection, plugin  # noqa: E402
+from resources.lib import connection, plugin, utils  # noqa: E402
 from resources.lib.api import ApiError  # noqa: E402
 from resources.lib.ui import app as ui_app, model  # noqa: E402
 
@@ -121,6 +122,14 @@ class PlayTests(unittest.TestCase):
         self.assertIsNone(item.tag)
         self.assertEqual(item.art, {})
 
+    def test_the_service_hears_of_a_fresh_start(self):
+        self.play(FakeApi(EPISODE), screens='1', fresh='1')
+        self.assertTrue(json.loads(kodistubs.PROPERTIES[utils.PLAYING_PROPERTY])['fresh'])
+        del self.resolved[:]
+        kodistubs.PROPERTIES.clear()  # it started
+        self.play(FakeApi(EPISODE), screens='1')
+        self.assertFalse(json.loads(kodistubs.PROPERTIES[utils.PLAYING_PROPERTY])['fresh'])
+
     def test_it_still_plays_when_the_details_cant_be_had(self):
         item = self.play(FakeApi(None), screens='1')
         self.assertIsNone(item.tag)
@@ -138,7 +147,8 @@ class QueueTests(unittest.TestCase):
     def test_the_episodes_after_it_go_in_with_their_titles_under_the_show(self):
         self.app.play(12, 120, self.app.episode_queue(PILOT), title='Pilot')
         urls = [dict(parse_qsl(urlparse(url).query)) for url, _ in kodistubs.PLAYLIST_ITEMS]
-        self.assertEqual(urls, [{'mode': 'play', 'id': '12', 'start': '120', 'screens': '1'},
+        # The first is a fresh start (its subtitles start off); Kodi moves on to the others (they keep the subtitles).
+        self.assertEqual(urls, [{'mode': 'play', 'id': '12', 'start': '120', 'fresh': '1', 'screens': '1'},
                                 {'mode': 'play', 'id': '13', 'screens': '1'}])
         self.assertEqual(kodistubs.PLAYLIST, ['Pilot', 'S1 · E4–5 — The Next One'])
         first, after = [li for _, li in kodistubs.PLAYLIST_ITEMS]

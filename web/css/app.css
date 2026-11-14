@@ -633,6 +633,9 @@ pre.code { background: var(--bg); border: 1px solid var(--border); border-radius
 .get-app { margin-top: 12px; }
 .get-app summary { cursor: pointer; color: var(--accent); font-size: 14px; margin-bottom: 10px; }
 .pair-code { text-align: center; font: 600 28px/1.2 ui-monospace, SFMono-Regular, Consolas, monospace; letter-spacing: 0.12em; margin: 0 0 4px; user-select: all; }
+.pair-links:empty { display: none; }
+.pair-links { display: grid; gap: 6px; margin: 4px 0 8px; }
+.pair-link { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 14px; color: var(--text-dim); background: var(--bg-elev2); border-radius: 6px; padding: 4px 4px 4px 12px; }
 .log-view { background: #0b0c0e; border: 1px solid var(--border); border-radius: 6px; padding: 12px; height: 420px; overflow: auto; font-family: ui-monospace, Consolas, monospace; font-size: 12px; white-space: pre-wrap; word-break: break-all; }
 .log-view .warn { color: var(--warn); }
 .log-view .error { color: #ff8a83; }

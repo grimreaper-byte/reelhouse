@@ -1,5 +1,6 @@
 # Minimal stand-ins for Kodi's Python modules (xbmc, xbmcgui, ...), enough to import and drive the service and
 # plugin code outside Kodi. Settings live in SETTINGS; log lines and notifications are collected.
+import json
 import sys
 import threading
 import types
@@ -13,6 +14,8 @@ BUILTINS = []        # Kodi's built-in commands run (xbmc.executebuiltin)
 PLAYLIST = []        # the labels in Kodi's video playlist
 PLAYLIST_AT = [0]    # the one playing
 PLAYLIST_ITEMS = []  # what went into it: (address, ListItem)
+RPC = []             # Kodi's JSON-RPC calls made (xbmc.executeJSONRPC): (method, params)
+RPC_RESULTS = {}     # what they answer, by method (else "OK")
 ABORT = threading.Event()
 
 
@@ -26,6 +29,12 @@ def install():
     xbmc.getInfoLabel = lambda label: '1' if label == 'System.CurrentControlId' else ''  # something has the focus
     xbmc.executebuiltin = lambda command, wait=False: BUILTINS.append(command)
     xbmc.sleep = lambda ms: None
+
+    def execute_json_rpc(request):
+        call = json.loads(request)
+        RPC.append((call['method'], call.get('params') or {}))
+        return json.dumps({'jsonrpc': '2.0', 'id': call.get('id'), 'result': RPC_RESULTS.get(call['method'], 'OK')})
+    xbmc.executeJSONRPC = execute_json_rpc
 
     class Monitor(object):
         def abortRequested(self):

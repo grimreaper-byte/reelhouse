@@ -298,6 +298,66 @@ class PlayerTests(unittest.TestCase):
         self.assertEqual(self.sent, [])
 
 
+class FullScreenTests(unittest.TestCase):
+    """Something the Reelhouse screens start while something else plays behind them is shown full screen (Kodi leaves
+    it behind the screens): the screens ask (utils.ask_full_screen), the service does it as the picture starts."""
+
+    def setUp(self):
+        kodistubs.PROPERTIES.clear()
+        del kodistubs.BUILTINS[:]
+        self.conditions = {}
+        self.kept = kodistubs.sys.modules['xbmc'].getCondVisibility
+        kodistubs.sys.modules['xbmc'].getCondVisibility = lambda c: self.conditions.get(c, False)
+        owner = type('Owner', (), {'send': lambda _self, *args: None})()
+        self.player = service.Player(owner, FakeControls())
+
+    def tearDown(self):
+        kodistubs.sys.modules['xbmc'].getCondVisibility = self.kept
+
+    def starts(self, playing_file='http://rh:8484/api/stream/2?X-Reelhouse-Token=t'):
+        self.player.playing_file = playing_file
+        self.player.onAVStarted()
+        return [b for b in kodistubs.BUILTINS if b == 'Action(FullScreen)']
+
+    def test_the_screens_ask_only_while_something_plays_behind_them(self):
+        utils.ask_full_screen()
+        self.assertNotIn(utils.FULLSCREEN_PROPERTY, kodistubs.PROPERTIES)  # nothing playing: Kodi does it itself
+        self.conditions['Player.HasMedia'] = True
+        utils.ask_full_screen()
+        self.assertIn(utils.FULLSCREEN_PROPERTY, kodistubs.PROPERTIES)
+
+    def test_a_film_started_behind_the_screens_goes_full_screen(self):
+        self.conditions['Player.HasMedia'] = True
+        utils.ask_full_screen()
+        self.conditions['Player.HasVideo'] = True
+        self.assertEqual(self.starts(), ['Action(FullScreen)'])
+        self.assertNotIn(utils.FULLSCREEN_PROPERTY, kodistubs.PROPERTIES)  # once
+        self.assertEqual(self.starts(), ['Action(FullScreen)'])  # the next item in the playlist: nothing more
+
+    def test_already_full_screen_is_not_toggled_away(self):
+        kodistubs.PROPERTIES[utils.FULLSCREEN_PROPERTY] = str(time.time())
+        self.conditions.update({'Player.HasVideo': True, 'Window.IsActive(fullscreenvideo)': True})
+        self.assertEqual(self.starts(), [])
+
+    def test_radio_goes_to_the_visualisation(self):
+        kodistubs.PROPERTIES[utils.FULLSCREEN_PROPERTY] = str(time.time())
+        self.assertEqual(self.starts('http://rh:8484/api/live/abc/index.m3u8'), ['Action(FullScreen)'])
+        del kodistubs.BUILTINS[:]
+        kodistubs.PROPERTIES[utils.FULLSCREEN_PROPERTY] = str(time.time())
+        self.conditions['Window.IsActive(visualisation)'] = True
+        self.assertEqual(self.starts('http://rh:8484/api/live/abc/index.m3u8'), [])
+
+    def test_a_left_over_request_is_ignored(self):
+        kodistubs.PROPERTIES[utils.FULLSCREEN_PROPERTY] = str(time.time() - service.FULL_SCREEN_WITHIN - 1)
+        self.conditions['Player.HasVideo'] = True
+        self.assertEqual(self.starts(), [])
+        self.assertNotIn(utils.FULLSCREEN_PROPERTY, kodistubs.PROPERTIES)
+
+    def test_nothing_asked_nothing_done(self):
+        self.conditions['Player.HasVideo'] = True
+        self.assertEqual(self.starts(), [])
+
+
 class UnstartedStreamTests(unittest.TestCase):
     def setUp(self):
         kodistubs.PROPERTIES.clear()

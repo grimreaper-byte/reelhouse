@@ -9,6 +9,7 @@ import { logger } from '../lib/log.js';
 import { isPathInside } from '../lib/platform.js';
 import { EventEmitter } from 'node:events';
 import { libraryChanged, metadataProgress, scanProgress } from '../events.js';
+import { getSetting } from '../settings.js';
 import { regroupVersions, keepStateOfRemoved } from '../versions.js';
 import {
   VIDEO_EXTENSIONS, UNSUPPORTED_EXTENSIONS, isIgnoredDir, isSampleFile, parseMovieName, parseShowFolder,
@@ -110,8 +111,10 @@ async function drain() {
       const stats = await scanLibrary(lib, job.force);
       run('UPDATE libraries SET scanned_at = ? WHERE id = ?', Date.now(), lib.id);
       log.info(`Scanned "${lib.name}" in ${((Date.now() - started) / 1000).toFixed(1)}s:`, stats);
-      if (stats.added || stats.updated || stats.removed || stats.nfo || stats.versions) {
-        libraryChanged(lib.id, { added: stats.added, updated: stats.updated + stats.nfo + (stats.versions || 0), removed: stats.removed });
+      if (stats.added || stats.updated || stats.removed || stats.nfo || stats.art || stats.versions) {
+        libraryChanged(lib.id, {
+          added: stats.added, updated: stats.updated + stats.nfo + (stats.art || 0) + (stats.versions || 0), removed: stats.removed,
+        });
       }
       if (metadataHook) {
         status.phase = 'Fetching metadata';
@@ -261,8 +264,8 @@ function nfoFields(nfo) {
   return f;
 }
 
-// What a rescan needs to know about an existing item to update its NFO metadata.
-const ROW_COLUMNS = 'id, nfo_mtime, match_locked, tmdb_id, imdb_id, cast_json';
+// What a rescan needs to know about an existing item to update its NFO metadata and its artwork from local files.
+const ROW_COLUMNS = 'id, nfo_mtime, match_locked, tmdb_id, imdb_id, cast_json, poster, backdrop, thumb, art_json';
 
 /** An item's .nfo as it is now: its modified time and the column values it sets (both null if there's none). */
 async function currentNfo(nfoIndex, dir, names) {
@@ -304,6 +307,30 @@ async function refreshNfo(row, nfoIndex, dir, names) {
   }
   updateItem(row.id, update);
   row.nfo_mtime = nfo.mtime;
+  return true;
+}
+
+/**
+ * Brings an existing item's artwork up to date with its folder: a poster, background or thumbnail added (or
+ * renamed) there after the item was. `art` is what the folder has now ({ poster, backdrop } or { thumb }). The same
+ * rule as when online metadata arrives: an admin's hand-picked choice stays, and so does TMDB's unless local artwork
+ * is preferred. Artwork that disappeared is left as it is (the image falls back by itself). Returns true if the item
+ * changed.
+ */
+export function refreshLocalArt(row, art) {
+  if (!row) return false;
+  const picked = parseJson(row.art_json, {}) || {};
+  const preferLocal = getSetting('preferLocalArtwork');
+  const update = {};
+  for (const [kind, ref] of Object.entries(art || {})) {
+    if (!ref || picked[kind] || row[kind] === ref) continue;
+    const current = row[kind];
+    if (current && !String(current).startsWith('file:') && !preferLocal) continue;
+    update[kind] = ref;
+  }
+  if (!Object.keys(update).length) return false;
+  updateItem(row.id, { ...update, updated_at: now() });
+  Object.assign(row, update);
   return true;
 }
 
@@ -398,11 +425,17 @@ export function pruneEmptyContainers(libraryId) {
 
 // ----- movies -----
 
+/** A movie's artwork from its folder; a folder's own poster.jpg and so on count when the movie has it to itself. */
+async function folderMovieArt(cache, file, dir, dedicatedFolder) {
+  const siblings = dedicatedFolder ? (await cache.files(dir)).filter((n) => VIDEO_EXTENSIONS.has(path.extname(n).toLowerCase())) : [];
+  return movieArtwork(cache, file, dedicatedFolder && siblings.length <= 2);
+}
+
 async function scanMovies(lib, found, existing, force, nfoIndex) {
   const cache = new DirCache();
   const limit = createLimiter(3);
   let done = 0;
-  const stats = { added: 0, updated: 0, unchanged: 0, failed: 0, nfo: 0 };
+  const stats = { added: 0, updated: 0, unchanged: 0, failed: 0, nfo: 0, art: 0 };
 
   await Promise.all(found.map((f) => limit(async () => {
     const isNew = isNewFile(f, existing);
@@ -415,9 +448,12 @@ async function scanMovies(lib, found, existing, force, nfoIndex) {
       const base = path.parse(f.path).name;
       const nfoNames = dedicatedFolder ? [base, 'movie'] : [base];
       if (prev && !force && prev.file_size === f.size && prev.file_mtime === f.mtime) {
-        // The video hasn't changed, but its .nfo may have.
-        if (await refreshNfo(prev, nfoIndex, dir, nfoNames)) stats.nfo++;
-        else stats.unchanged++;
+        // The video hasn't changed, but its .nfo or its artwork (a poster added to the folder) may have.
+        const nfoChanged = await refreshNfo(prev, nfoIndex, dir, nfoNames);
+        const artChanged = refreshLocalArt(prev, await folderMovieArt(cache, f.path, dir, dedicatedFolder));
+        if (nfoChanged) stats.nfo++;
+        if (artChanged) stats.art++;
+        if (!nfoChanged && !artChanged) stats.unchanged++;
         return;
       }
       const info = await probeSafe(f.path);
@@ -449,6 +485,7 @@ async function scanMovies(lib, found, existing, force, nfoIndex) {
       if (prev) {
         updateItem(prev.id, fields);
         await refreshNfo(prev, nfoIndex, dir, nfoNames);
+        if (refreshLocalArt(prev, art)) stats.art++;
         stats.updated++;
       } else {
         const nfo = await currentNfo(nfoIndex, dir, nfoNames);
@@ -501,7 +538,7 @@ function showKeyFor(f) {
 
 async function scanShows(lib, found, existing, force, nfoIndex) {
   const cache = new DirCache();
-  const stats = { added: 0, updated: 0, unchanged: 0, failed: 0, shows: 0, nfo: 0 };
+  const stats = { added: 0, updated: 0, unchanged: 0, failed: 0, shows: 0, nfo: 0, art: 0 };
   stats.renamed = tx(() => renameShows(lib.id));
 
   // Index existing shows/seasons for this library.
@@ -546,7 +583,7 @@ async function scanShows(lib, found, existing, force, nfoIndex) {
       updated_at: t,
       ...nfoColumns(nfo),
     });
-    const row = { id, nfo_mtime: nfo.mtime, folder_path: info.key };
+    const row = { id, nfo_mtime: nfo.mtime, folder_path: info.key, poster: art.poster || null, backdrop: art.backdrop || null, art_json: null };
     shows.set(info.key, row);
     byName.set(showName(info.key), row);
     stats.shows++;
@@ -589,9 +626,12 @@ async function scanShows(lib, found, existing, force, nfoIndex) {
       const prev = existing.get(f.path);
       const epNfoNames = [path.parse(f.path).name];
       if (prev && !force && prev.file_size === f.size && prev.file_mtime === f.mtime) {
-        // The video hasn't changed, but its .nfo may have.
-        if (await refreshNfo(prev, nfoIndex, path.dirname(f.path), epNfoNames)) stats.nfo++;
-        else stats.unchanged++;
+        // The video hasn't changed, but its .nfo or its thumbnail may have.
+        const nfoChanged = await refreshNfo(prev, nfoIndex, path.dirname(f.path), epNfoNames);
+        const artChanged = refreshLocalArt(prev, { thumb: await episodeThumb(cache, f.path) });
+        if (nfoChanged) stats.nfo++;
+        if (artChanged) stats.art++;
+        if (!nfoChanged && !artChanged) stats.unchanged++;
         return;
       }
       const info = await probeSafe(f.path);
@@ -640,6 +680,7 @@ async function scanShows(lib, found, existing, force, nfoIndex) {
         if (prev) {
           updateItem(prev.id, fields);
           await refreshNfo(prev, nfoIndex, path.dirname(f.path), epNfoNames);
+          if (refreshLocalArt(prev, { thumb })) stats.art++;
           stats.updated++;
         } else {
           const nfo = await currentNfo(nfoIndex, path.dirname(f.path), epNfoNames);
@@ -680,8 +721,18 @@ async function scanShows(lib, found, existing, force, nfoIndex) {
   }
   for (const [key, dir] of showDirs) {
     const row = shows.get(key);
-    // A show is described by its own folder's tvshow.nfo, not by a same-named folder on another drive.
-    if (row && row.folder_path === key && (await refreshNfo(row, nfoIndex, dir, ['tvshow']))) stats.nfo++;
+    // A show is described by its own folder's tvshow.nfo, not by a same-named folder on another drive. Its poster
+    // and background come from there too, however long after the show they were added.
+    if (!row || row.folder_path !== key) continue;
+    if (await refreshNfo(row, nfoIndex, dir, ['tvshow'])) stats.nfo++;
+    if (refreshLocalArt(row, await showArtwork(cache, dir))) stats.art++;
+  }
+  // Seasons' posters (season01-poster.jpg in the show's folder, or poster.jpg in the season's), likewise.
+  const showDirById = new Map([...shows.values()].filter((r) => showDirs.has(r.folder_path)).map((r) => [r.id, showDirs.get(r.folder_path)]));
+  for (const row of all("SELECT id, show_id, season_number, folder_path, poster, art_json FROM items WHERE library_id = ? AND type = 'season'", lib.id)) {
+    const showDir = showDirById.get(row.show_id);
+    if (!showDir && !row.folder_path) continue;
+    if (refreshLocalArt(row, { poster: (await seasonArtwork(cache, showDir || null, row.folder_path, row.season_number)).poster })) stats.art++;
   }
 
   // Shows split before same-named folders counted as one (or across libraries merged into this one) come together;

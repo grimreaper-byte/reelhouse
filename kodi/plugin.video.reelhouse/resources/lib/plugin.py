@@ -186,14 +186,16 @@ def play(handle, params):
                                                  if t.get('external') and t.get('kind') == 'text'])
     if subtitles:
         item.setSubtitles(subtitles)
-    # Tells the service which Reelhouse item is starting, for progress reporting, and where to start it (the
-    # Reelhouse screens' Resume; Kodi's own library resumes by itself).
+    # Tells the service which Reelhouse item is starting, for progress reporting, where to start it (the Reelhouse
+    # screens' Resume; Kodi's own library resumes by itself), and whether it's a fresh start from the screens (its
+    # subtitles start off, whatever the episode before had).
     try:
         start = max(0.0, float(params.get('start') or 0))
     except ValueError:
         start = 0.0
     xbmcgui.Window(utils.HOME).setProperty(utils.PLAYING_PROPERTY, json.dumps({
         'id': item_id, 'playId': info.get('playId'), 'duration': info.get('duration'), 'start': start,
+        'fresh': bool(params.get('fresh')),
     }))
     xbmcplugin.setResolvedUrl(handle, True, item)
 

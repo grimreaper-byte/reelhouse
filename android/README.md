@@ -26,7 +26,8 @@ Status: milestones 1–5 are done. You can:
 - choose a picture for your account in Settings (since 0.1.7): checked on the phone, shown as it
   will look, then sent; HEIC photos are converted on the phone;
 - mark things watched;
-- play, with resume, audio, subtitle and quality choices, and the next episode;
+- play, with resume, audio, subtitle and quality choices, and the next episode; subtitles start off, but for a file's
+  forced ones, and the next episode keeps the ones you chose (since 0.13.2);
 - download movies, episodes and whole seasons to watch offline, when Reelhouse allows downloads;
 - install it from your Reelhouse, and update it from there too;
 - watch Live TV and listen to Radio from Tvheadend, when Reelhouse has it and your account may (since 0.2.0): the
@@ -179,7 +180,9 @@ Install on a phone with USB or wireless debugging turned on: `adb install -r app
 1. In Reelhouse: **Settings → Remote access → Reelhouse app tunnel**, turn it on (for use away from home).
 2. In Reelhouse: **Your account → Apps and devices → Pair the Reelhouse app** (or, as an admin, for someone else:
    **Settings → Users** → the link button next to them).
-3. In the app: **Scan the QR code**. At home, you can also type the code with Reelhouse's address.
+3. In the app: **Scan the QR code**. At home, you can also type the code with Reelhouse's address. Away from the
+   server, **Copy a link to send** in the same window makes a link for email or a message: tapped on the phone, a page
+   on Reelhouse's website hands it to the app as a `reelhouse://pair` link (the app asks first, then pairs).
 
 The app shows how it's connected (At home, Tunnel, Web) at the top. Settings shows the details. Debug builds
 have **Always use the tunnel**, for testing the tunnel at home.

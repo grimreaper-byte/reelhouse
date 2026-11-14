@@ -19,7 +19,9 @@ A Kodi add-on that brings Reelhouse to Kodi in two ways:
   net.
 - **Direct Play:** Kodi plays nearly every format itself, so it always gets the original file; nothing is converted.
   Subtitle files next to the video (`.srt`, `.ass`, `.vtt`) are added and named by language; subtitles inside the
-  file work as usual.
+  file work as usual. They start off (since 0.14.2), whatever Kodi's preferred subtitle language: only a file's
+  forced subtitles for the audio playing show by themselves, and Kodi going on to the next or previous episode keeps
+  the ones that were showing.
 - **Per-user:** Kodi signs in as one Reelhouse user, sees only the libraries that user may see, and keeps that
   user's watch history.
 
@@ -124,8 +126,9 @@ when Kodi starts** in the add-on's settings for a Kodi that's mostly for Reelhou
 
 Films and episodes play in Kodi's own player, as items from Kodi's library do, so its controls, subtitle and audio
 menus work as usual; an episode carries on into the rest of its season, and the controls show it as "S1 · E3 — title"
-under its show, with its season's cover in the info panel (since 0.14.1). Live TV is converted by Reelhouse as in the
-web app (broadcast video is interlaced), and stopping it frees Tvheadend's tuner straight away.
+under its show, with its season's cover in the info panel (since 0.14.1). Something picked while another item plays on
+behind the screens (after Back) comes up full screen too, as the first one does (since 0.14.2). Live TV is converted
+by Reelhouse as in the web app (broadcast video is interlaced), and stopping it frees Tvheadend's tuner straight away.
 
 The screens use your Kodi skin's fonts (an add-on can't bring its own); they're laid out for Estuary, Kodi's standard
 skin. Reelhouse's own player controls for films, the library's A–Z jump and choosing a live TV quality aren't there

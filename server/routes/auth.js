@@ -130,9 +130,9 @@ router.delete('/me/devices/:id', requireUser, (req, res) => {
 });
 
 // Pairing the Reelhouse app: a one-time code (and QR code) for a phone to sign in with, through the app tunnel if
-// it's on. See server/pairing.js.
+// it's on; { link: true } makes one to send as a link, lasting a day. See server/pairing.js.
 router.post('/me/pairings', requireUser, async (req, res) => {
-  res.json(await createPairing(req.user, req));
+  res.json(await createPairing(req.user, req, { link: req.body?.link === true }));
 });
 
 router.get('/me/pairings/:id', requireUser, (req, res) => res.json(pairingStatus(req.user.id, req.params.id)));
@@ -383,8 +383,9 @@ router.post('/users/:id/signout', requireAdmin, (req, res) => {
 router.post('/users/:id/pairings', requireAdmin, async (req, res) => {
   const user = loadUser(Number(req.params.id));
   if (!user) return res.status(404).json({ error: 'No such user' });
-  log.info(`Admin "${req.user.username}" made a pairing code for "${user.username}"`);
-  res.json(await createPairing(user, req));
+  const link = req.body?.link === true;
+  log.info(`Admin "${req.user.username}" made a pairing ${link ? 'link' : 'code'} for "${user.username}"`);
+  res.json(await createPairing(user, req, { link }));
 });
 
 router.get('/users/:id/pairings/:pid', requireAdmin, (req, res) => res.json(pairingStatus(Number(req.params.id), req.params.pid)));

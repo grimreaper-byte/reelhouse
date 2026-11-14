@@ -21,6 +21,7 @@ const { cleanupPeers, startAppTunnel, stopAppTunnel, helperPath } = await import
 const { ROOT_DIR } = await import('../server/lib/paths.js');
 const { LOGOUT_KEY_GRACE_MS } = await import('../server/routes/auth.js');
 const { recentLogs } = await import('../server/lib/log.js');
+const { PAIR_PAGE } = await import('../server/pairing.js');
 
 let server;
 let base;
@@ -220,6 +221,57 @@ test('a user has at most three open pairings, so nobody can use up the tunnel ad
   const addresses = made.map((p) => payloadOf(p.link).tunnel.address);
   assert.equal(get(`SELECT COUNT(*) AS n FROM tunnel_peers WHERE address IN (${addresses.map(() => '?').join(',')})`, ...addresses).n, 3);
   assert.equal((await call('POST', '/api/auth/pair', { body: { code: made[0].code, device: 'phone' } })).status, 401);
+});
+
+test('a pairing link lasts a day, opens through the website without it seeing the code, and outlives the pairing screen', async () => {
+  updateSettings({ appTunnel: { enabled: true, endpoint: 'home.example.net' } });
+  const kid = await kidToken();
+  run('DELETE FROM pairings WHERE user_id = 2');
+  const { status, data } = await call('POST', '/api/me/pairings', { token: kid, body: { link: true } });
+  assert.equal(status, 200);
+  assert.deepEqual([data.code, data.qr], [undefined, undefined], 'nothing to type or scan: it goes as a link');
+  const url = new URL(data.url);
+  assert.equal(`${url.origin}${url.pathname}`, PAIR_PAGE);
+  assert.equal(url.search, '', 'all of it after the #, which browsers never send');
+  const d = new URLSearchParams(url.hash.slice(1)).get('d');
+  assert.equal(data.link, `reelhouse://pair?d=${d}`, 'the page hands the app the link it already knows');
+  const payload = payloadOf(data.link);
+  assert.equal(payload.expiresAt, data.expiresAt);
+  assert.ok(payload.expiresAt > Date.now() + 23 * 3600 * 1000);
+  assert.ok(payload.tunnel.privateKey, 'a tunnel key, for a phone away from home');
+  assert.equal(get('SELECT pending_until FROM tunnel_peers WHERE address = ?', payload.tunnel.address).pending_until, data.expiresAt);
+
+  // Making codes on the pairing screen (closing it each time) leaves the link alone; the screen lists it to call back.
+  for (let i = 0; i < 4; i++) {
+    const screen = (await call('POST', '/api/me/pairings', { token: kid })).data;
+    assert.deepEqual(screen.links, [{ id: data.id, expiresAt: data.expiresAt }]);
+    assert.ok(new URL(screen.url).hash.startsWith('#d='));
+    await call('DELETE', `/api/me/pairings/${screen.id}`, { token: kid });
+  }
+  assert.equal((await call('GET', `/api/me/pairings/${data.id}`, { token: kid })).data.status, 'waiting');
+
+  // At most three open links, as with codes.
+  const more = [];
+  for (let i = 0; i < 3; i++) more.push((await call('POST', '/api/me/pairings', { token: kid, body: { link: true } })).data);
+  assert.equal((await call('GET', `/api/me/pairings/${data.id}`, { token: kid })).data.status, 'expired');
+  assert.equal((await call('POST', '/api/auth/pair', { body: { code: payload.code, device: 'phone' } })).status, 401);
+
+  // A link works once, and leaves the list when it's used or called back.
+  const paired = await call('POST', '/api/auth/pair', { body: { code: payloadOf(more[2].link).code, device: 'Friend’s phone' } });
+  assert.equal(paired.data.user.username, 'kid');
+  assert.deepEqual((await call('GET', `/api/me/pairings/${more[2].id}`, { token: kid })).data, { status: 'used', device: 'Friend’s phone' });
+  assert.deepEqual((await call('DELETE', `/api/me/pairings/${more[1].id}`, { token: kid })).data, { cancelled: true });
+  const screen = (await call('POST', '/api/me/pairings', { token: kid })).data;
+  assert.deepEqual(screen.links.map((l) => l.id), [more[0].id]);
+  await call('DELETE', `/api/me/pairings/${screen.id}`, { token: kid });
+
+  // An admin can send one for someone else (Settings → Users).
+  assert.equal((await call('POST', '/api/users/2/pairings', { token: kid, body: { link: true } })).status, 403);
+  const forKid = (await call('POST', '/api/users/2/pairings', { token: adminToken, body: { link: true } })).data;
+  assert.ok(forKid.url.startsWith(`${PAIR_PAGE}#d=`));
+  assert.ok(recentLogs().some((l) => l.msg.includes('Admin "dave" made a pairing link for "kid"')), 'logged');
+  run('DELETE FROM pairings WHERE user_id = 2');
+  cleanupPeers();
 });
 
 test('a paired app can ask for its current tunnel settings (the public address may change)', async () => {

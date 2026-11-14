@@ -11,7 +11,7 @@ import traceback
 import xbmc
 import xbmcgui
 
-from . import connection, live_osd, utils
+from . import connection, live_osd, subtitles, utils
 from .api import Api, ApiError
 from .kodidb import KodiDbError
 from .sync import SyncAborted, Syncer
@@ -22,6 +22,8 @@ REPORT_EVERY = 10   # seconds between progress reports while playing (and live T
 LIVE_RETRY = 15     # seconds before reconnecting the live event stream
 GREET_RETRY = 5     # seconds before asking again (5, 10, then every LIVE_RETRY) when Reelhouse is out of reach at start-up
 SETTLE = 2          # seconds to gather a burst of live events into one sync
+FULL_SCREEN_WITHIN = 120  # seconds: an older request from the screens is left over (what they started never played)
+CARRY_SUBTITLES_WITHIN = 30  # seconds: the episode before was playing this recently, so its subtitles carry on
 UNSENT_MAX = 500    # updates kept while Reelhouse is unreachable
 
 
@@ -52,6 +54,7 @@ class Player(xbmc.Player):
         self.live = None        # a live TV session playing: {'playId', 'channel'}
         self.position = 0.0
         self.last_report = 0.0
+        self.subtitles_seen = None  # (subtitles.shown(), when) for the Reelhouse item playing, looked at each second
 
     def leave(self):
         """What was playing is over: Reelhouse hears it now, rather than wondering where its player went."""
@@ -65,6 +68,7 @@ class Player(xbmc.Player):
         self.leave()
 
     def onAVStarted(self):
+        self.show_full_screen()
         window = xbmcgui.Window(utils.HOME)
         raw = window.getProperty(utils.PLAYING_PROPERTY)
         try:
@@ -84,9 +88,37 @@ class Player(xbmc.Player):
             else:
                 self.position = self._time()
             self.report('playing')
+            self.start_subtitles(info)
         else:
             self.current = None
+            self.subtitles_seen = None
             self.start_live(playing)
+
+    def start_subtitles(self, info):
+        """Subtitles start off (subtitles.py), unless Kodi moved on from an episode that had them on: from the one
+        before in its playlist (Next, Previous, or the end), not a fresh start from the Reelhouse screens."""
+        seen, self.subtitles_seen = self.subtitles_seen, None
+        carried = None
+        if seen and not info.get('fresh') and time.time() - seen[1] < CARRY_SUBTITLES_WITHIN:
+            carried = seen[0]
+        subtitles.start(carried)
+
+    def show_full_screen(self):
+        """Shows what the Reelhouse screens just started full screen, when they asked (it began while something else
+        played behind them, which Kodi leaves behind them). Kodi's video player, or the visualisation for radio; never
+        toggled when it's already showing."""
+        window = xbmcgui.Window(utils.HOME)
+        asked = window.getProperty(utils.FULLSCREEN_PROPERTY)
+        if not asked:
+            return
+        window.clearProperty(utils.FULLSCREEN_PROPERTY)
+        try:
+            fresh = time.time() - float(asked) < FULL_SCREEN_WITHIN
+        except ValueError:
+            fresh = False
+        shown = 'fullscreenvideo' if xbmc.getCondVisibility('Player.HasVideo') else 'visualisation'
+        if fresh and not xbmc.getCondVisibility('Window.IsActive({})'.format(shown)):
+            xbmc.executebuiltin('Action(FullScreen)')
 
     def start_live(self, playing):
         match = re.search(r'/api/live/([^/?#]+)/', playing)
@@ -131,6 +163,7 @@ class Player(xbmc.Player):
 
     def onPlayBackStopped(self):
         self.leave()
+        self.subtitles_seen = None  # what starts next is a fresh start
 
     def onPlayBackEnded(self):
         if self.current:
@@ -141,6 +174,7 @@ class Player(xbmc.Player):
 
     def onPlayBackError(self):
         self.current = None
+        self.subtitles_seen = None
         self.report_live('stopped')
 
     def _time(self):
@@ -167,6 +201,7 @@ class Player(xbmc.Player):
                 self.current['duration'] = total
         except RuntimeError:
             return
+        self.subtitles_seen = (subtitles.shown(subtitles.state()), time.time())
         if time.time() - self.last_report >= REPORT_EVERY and not xbmc.getCondVisibility('Player.Paused'):
             self.report('playing')
 

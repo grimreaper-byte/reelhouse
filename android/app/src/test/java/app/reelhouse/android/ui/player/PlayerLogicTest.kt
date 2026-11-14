@@ -1,6 +1,8 @@
 package app.reelhouse.android.ui.player
 
+import androidx.media3.common.C
 import androidx.media3.common.PlaybackException
+import androidx.media3.common.TrackSelectionParameters
 import app.reelhouse.android.data.model.Item
 import app.reelhouse.android.data.model.ItemState
 import app.reelhouse.android.data.playback.AudioTrack
@@ -20,6 +22,15 @@ class PlayerLogicTest {
         assertEquals("original", chooseQuality(atHome = true, picked = null, remoteDefault = "4m-720"))
         assertEquals("4m-720", chooseQuality(atHome = false, picked = null, remoteDefault = "4m-720"))
         assertEquals("2m-720", chooseQuality(atHome = true, picked = "2m-720", remoteDefault = "4m-720"))
+    }
+
+    @Test
+    fun `subtitles start off, a file's default track isn't shown and its forced ones still are`() {
+        val params = subtitlesOffAtFirst(TrackSelectionParameters.Builder().setPreferredAudioLanguage("en").build())
+        assertEquals(C.SELECTION_FLAG_DEFAULT, params.ignoredTextSelectionFlags)
+        assertEquals(0, params.ignoredTextSelectionFlags and C.SELECTION_FLAG_FORCED)
+        assertEquals(listOf("en"), params.preferredAudioLanguages) // the rest is kept
+        assertTrue(params.disabledTrackTypes.isEmpty())
     }
 
     private fun item(position: Double, duration: Double?, watched: Boolean = false) =

@@ -170,8 +170,9 @@ to your media are picked up automatically: `movie.nfo` or `<video name>.nfo` for
 folder and `<video name>.nfo` for episodes (as written by Kodi, tinyMediaManager or Jellyfin). Whatever an `.nfo`
 sets (title, plot, cast and so on) wins over the online metadata, and adding, editing or deleting one later is
 noticed on the next scan; there's no need to re-add the file. Actor photos are taken from the `.nfo`'s TMDB thumbnail
-links, or from TMDB's cast when the names match. Image files are read when a title is first added; one you add later
-isn't picked up by scans yet, but you can choose it with the pencil button (see **Changing artwork** below).
+links, or from TMDB's cast when the names match. Image files added or renamed later are picked up on the next scan
+too (since 0.24.0), unless you chose that picture yourself with the pencil button (see **Changing artwork** below);
+TMDB's picture gives way to your file unless you turned off **Prefer local artwork** (Settings → Metadata).
 
 Two copies of a film in one library (say `Heat (1995).avi` and `Heat (1995) 1080p.mkv`, in one folder or two) are
 one film: they have the same online match, or the same title and year when there's no match. **Play** plays the
@@ -250,6 +251,10 @@ and only Reelhouse can be reached through it (not the rest of the machine).
 3. Pair each phone from **Your account → Apps and devices → Pair the Reelhouse app**: scan the QR code in the app,
    or type the code while at home. Each phone gets its own key; signing the phone out removes it. An admin can
    also make the code for someone else, without their password: **Settings → Users**, the link button next to them.
+   For a phone that isn't with you, **Copy a link to send** makes a link to email or message instead (since 0.24.0).
+   Tapped on the phone, it opens the app through a page on Reelhouse's website (`reelhouseapp.com/pair/`), which
+   never sees the code: that's after the `#`. It works once and lasts a day, even after the pairing window is closed,
+   which lists the links not used yet so you can call them back.
 
 The Docker image includes the tunnel; on a Windows or Linux install, build it first
 ([tunnel/README.md](tunnel/README.md)). The app itself is in [android/](android/README.md). It pairs, browses,
@@ -351,6 +356,11 @@ your home network**: Original unless you change it (since 0.22.0), so nothing is
 as it is. If your upload can't keep up with your files, pick something lower there. The **Audio & subtitles** button
 lists every audio track and subtitle. Image-based subtitles (PGS/VobSub) are burned into the picture.
 
+**Subtitles start off** in the web app, the Android app and Kodi alike (since 0.24.0), even when a file marks one of
+its subtitle tracks as the default. Only a file's forced subtitles (the parts in another language) show by
+themselves, those for the audio that's playing. Going on to the next or previous episode keeps the subtitles that
+were showing; anything else you start begins with them off again.
+
 **What's being watched:** admins see a TV in the top bar (next to the account button) with the number of streams
 playing right now on its screen, from browsers, the Android app and Kodi alike. It updates by itself, and clicking it
 opens **Settings → Activity & logs**, which lists each stream in the order it started (an episode with its show,
@@ -388,8 +398,8 @@ tabs.
 
 **Changing artwork (admins):** the pencil button on a movie, show, season or episode page opens the artwork editor.
 Pick the poster or background (a season's poster, an episode's thumbnail) from every image TMDB has for it, or from
-image files in the title's own folder. Your pick stays when metadata is refreshed; choose **Automatic** to let
-Reelhouse decide again. TMDB's images need a TMDB key (Settings → Metadata) and a matched title.
+image files in the title's own folder. Your pick stays when metadata is refreshed or the folder is scanned again;
+choose **Automatic** to let Reelhouse decide again. TMDB's images need a TMDB key (Settings → Metadata) and a matched title.
 
 **Downloads:** every signed-in user can save the original file with **⋯ → Download file** on a movie or episode, for
 the libraries they have access to, and the Android app can download movies, episodes and seasons to watch offline.
