@@ -1,11 +1,16 @@
 # Reelhouse with Docker Compose:
 #   1. Point the media volumes below at your folders.
-#   2. docker compose up -d --build
+#   2. docker compose up -d
 #   3. Open http://<host-ip>:8484 and add libraries from /media/movies and /media/tv.
+# The image is the ready-made one from GitHub's container registry, for 64-bit Intel/AMD (x86_64), 64-bit ARM (arm64:
+# Raspberry Pi 4/5, most NAS boxes) and 32-bit ARM (arm/v7: older NAS boxes); Docker picks the right one by itself.
+# To build it yourself from this folder instead, swap the image line for the two commented lines under it, then run
+# docker compose up -d --build (on 32-bit ARM, see the Dockerfile's note on NODE_IMAGE).
 services:
   reelhouse:
-    build: .
-    image: reelhouse:latest
+    image: ghcr.io/grimreaper-byte/reelhouse:latest
+    # build: .
+    # image: reelhouse:latest
     container_name: reelhouse
     restart: unless-stopped
     ports:

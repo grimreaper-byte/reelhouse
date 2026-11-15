@@ -1,6 +1,11 @@
 # Reelhouse media server
 #   docker build -t reelhouse .
 #   docker compose up -d        (see docker-compose.yml)
+#
+# Node.js 24 has no 32-bit ARM builds (older NAS boxes, e.g. QNAP's ARM models), so there Reelhouse runs on Node.js 22:
+#   docker build --build-arg NODE_IMAGE=node:22-slim -t reelhouse .
+# The published image (ghcr.io/grimreaper-byte/reelhouse) is built for linux/amd64, linux/arm64 and linux/arm/v7.
+ARG NODE_IMAGE=node:24-slim
 
 # The app tunnel helper (tunnel/, Go), built without needing Go on the machine. A plain stage (no
 # --platform=$BUILDPLATFORM) so older Docker installs without BuildKit can build the image too.
@@ -11,7 +16,7 @@ RUN go mod download
 COPY tunnel/ ./
 RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/reelhouse-tunnel .
 
-FROM node:24-slim
+FROM ${NODE_IMAGE}
 
 # ffmpeg for scanning and transcoding; Mesa (AMD) and Intel VA-API drivers for hardware
 # encoding. Intel's driver only exists for amd64.

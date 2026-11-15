@@ -76,22 +76,22 @@ runs as its own user and keeps data in `/var/lib/reelhouse`.
 
 ### Docker
 
-The ready-made image is on GitHub's container registry, for 64-bit Intel/AMD servers (`x86_64`). Copy
-[docker-compose.yml](docker-compose.yml) to your server, edit the media paths in it, delete its `build: .` line and
-change its `image:` line to:
-
-```yaml
-image: ghcr.io/grimreaper-byte/reelhouse:latest
-```
-
-Then start it:
+The ready-made image, `ghcr.io/grimreaper-byte/reelhouse:latest`, is on GitHub's container registry for 64-bit
+Intel/AMD servers (`x86_64`), 64-bit ARM (`arm64`: Raspberry Pi 4/5, most NAS boxes) and 32-bit ARM (`arm/v7`: older
+NAS boxes, such as QNAP's ARM models), since 0.24.0. Docker picks the right one by itself. On 32-bit ARM it runs on
+Node.js 22, as Node.js 24 has no 32-bit ARM builds. Copy [docker-compose.yml](docker-compose.yml) to your server, edit
+the media paths in it, then start it:
 
 ```bash
 docker compose up -d
 ```
 
-To build the image yourself instead (for your own changes, say), keep those two lines as they are and run this in the
-project folder:
+A small ARM processor plays files as they are without trouble, but converting HD video (for a browser that can't play
+a file as it is, or a lower quality away from home) may not keep up on one.
+
+To build the image yourself instead (for your own changes, say), swap the compose file's `image:` line for the two
+commented lines under it and run this in the project folder (on 32-bit ARM, build with
+`--build-arg NODE_IMAGE=node:22-slim`):
 
 ```bash
 docker compose up -d --build
@@ -121,11 +121,11 @@ docker compose up -d --build
   `REELHOUSE_HOST_NETWORK` to `1` or `0`.
 - Finish the first-run setup before exposing the port to the internet.
 
-**In Portainer:** add a stack with the compose file above, with those two lines changed and your own full host paths,
-or use **Containers → Add container**: image `ghcr.io/grimreaper-byte/reelhouse:latest`, network `host` (or publish
-port 8484), environment `TZ`, `PUID`, `PGID`, bind volumes `/config` and `/media` (read-only), restart policy *Unless
-stopped*, and for a GPU the `/dev/dri` device or the NVIDIA GPU option. To update, **Recreate** the container (or
-**Update the stack**) with re-pulling turned on.
+**In Portainer:** add a stack with the compose file above and your own full host paths, or use **Containers → Add
+container**: image `ghcr.io/grimreaper-byte/reelhouse:latest`, network `host` (or publish port 8484), environment
+`TZ`, `PUID`, `PGID`, bind volumes `/config` and `/media` (read-only), restart policy *Unless stopped*, and for a GPU
+the `/dev/dri` device or the NVIDIA GPU option. To update, **Recreate** the container (or **Update the stack**) with
+re-pulling turned on.
 
 **From an image file** (a server without internet access, or your own build): build the image on another machine, save
 it to a file, and load that on the server.
