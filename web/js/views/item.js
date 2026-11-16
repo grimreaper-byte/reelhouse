@@ -56,7 +56,8 @@ function withRelated(page, item, ctx) {
   }).catch((err) => {
     if (err.name !== 'AbortError') console.warn('Related titles unavailable:', err.message);
   });
-  return ctx.refresh ? ready.then(() => page) : page;
+  // A live refresh, or coming Back to this page, waits for the rows below so the scroll position lands where it was.
+  return ctx.refresh || ctx.restoring ? ready.then(() => page) : page;
 }
 
 // ---------- shared pieces ----------

@@ -181,9 +181,16 @@ best copy (the sharpest picture). The film's page shows a badge for each copy's 
 copy counts for the film, and deleting one copy leaves the other, still where you left off. The Android app has
 Play version… under **⋮** (since app 0.1.13); Kodi gets the film once and plays the best copy.
 
-In the web app, a library sorted by Title has the letters down the right of the page: click one to jump to that part of
-the list (since 0.19.0 whenever the page can scroll, with the letters that have no titles dimmed). Each library remembers
-its own sort, so one left on Date added shows no letters until it's sorted by Title again.
+In the web app, a library sorted by Title has the letters down the right of the page: click one to jump to that part
+of the list (since 0.19.0 whenever the page can scroll, with the letters that have no titles dimmed). Each library
+remembers its own sort, so one left on Date added shows no letters until it's sorted by Title again. Going **Back** to
+a page (a library from a film, Home, a film's page after the player) returns to where it was scrolled to, as in the
+Android app (since 0.24.1); a link or the sidebar still opens a page at its top.
+
+Pointing at a cover (on Home, in a library, in search results) shows a **✓** in its top-left corner: click it to mark
+the film or episode watched without opening it, or a show or season with all its episodes (since 0.24.1). On something
+already watched the ✓ is gold and marks it unwatched again. Touch screens leave it out, since they can't point; a
+title's own page has the same button.
 
 The order of your libraries in **Settings → Libraries** (move them with the arrows) is their order in the sidebar,
 on Home and in the Android app; it's saved straight away. Each library can also have its own icon (since 0.9.0):

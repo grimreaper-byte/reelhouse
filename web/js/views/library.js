@@ -25,9 +25,10 @@ const letterOf = (item) => {
   return /[A-Z]/.test(ch) ? ch : '#';
 };
 
-// How many cards each library page had rendered, so a live refresh can render as many again and
-// the scroll position still lands in the same place.
+// How many cards each library page had rendered (per visit: the history entry, see router.js), so a live refresh, or
+// coming Back to it from a film's page, renders as many again and the scroll position still lands in the same place.
 const renderedCounts = new Map();
+const COUNTS_KEPT = 100;
 
 export async function libraryView(ctx) {
   const id = ctx.params.id;
@@ -115,9 +116,12 @@ export async function libraryView(ctx) {
       grid.append(card);
     }
     rendered += slice.length;
-    renderedCounts.set(id, rendered);
+    renderedCounts.delete(visit);
+    renderedCounts.set(visit, rendered);
+    if (renderedCounts.size > COUNTS_KEPT) renderedCounts.delete(renderedCounts.keys().next().value);
   };
-  const keep = ctx.refresh ? renderedCounts.get(id) || 0 : 0;
+  const visit = ctx.key || `library-${id}`;
+  const keep = ctx.refresh || ctx.restoring ? renderedCounts.get(visit) || 0 : 0;
   do renderMore(); while (rendered < Math.min(keep, items.length));
   page.append(grid);
 

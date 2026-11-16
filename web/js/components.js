@@ -1,5 +1,6 @@
 import { h, icon, imgUrl, episodeLabel, clear } from './dom.js';
-import { navigate } from './router.js';
+import { navigate, refresh } from './router.js';
+import { api } from './api.js';
 
 // ---------- images ----------
 
@@ -40,6 +41,48 @@ function watchedFlag() {
   return h('div.watched-flag', icon('check', 14));
 }
 
+/** Whether a card's title counts as watched: a film or episode by its own mark, a show or season when every episode is. */
+function cardWatched(item) {
+  if (item.type === 'show' || item.type === 'season') return !!item.leafCount && (item.viewedLeafCount || 0) >= item.leafCount;
+  return !!item.state?.watched;
+}
+
+/** How the ✓'s label names a card's title: "Show S1 · E3" for an episode, "Show: Season 2" for a season. */
+function cardName(item) {
+  if (item.type === 'episode' && item.show) return `${item.show.title} ${episodeLabel(item)}`;
+  if (item.type === 'season' && item.show) return `${item.show.title}: ${item.title}`;
+  return item.title;
+}
+
+/**
+ * The ✓ in a cover's corner, shown while the pointer is over it (since 0.24.1): marks the title watched (a show or
+ * season: all its episodes), or unwatched again when it already is. The page then refreshes in place.
+ */
+function watchToggle(item) {
+  const watched = cardWatched(item);
+  const label = watched ? 'Mark as unwatched' : 'Mark as watched';
+  return h(`button.cover-action.watch-toggle${watched ? '.on' : ''}`, {
+    type: 'button',
+    title: label,
+    'aria-label': `${label}: ${cardName(item)}`,
+    onClick: async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const btn = e.currentTarget;
+      btn.disabled = true;
+      try {
+        await api.post(`/api/items/${item.id}/watched`, { watched: !watched });
+        refresh(); // the cover's watched corner and the gold ✓ say it's done
+      } catch (err) {
+        btn.disabled = false;
+        toastError(err);
+      }
+    },
+  }, icon('check', 14));
+}
+
+const canMarkWatched = (item) => ['movie', 'episode', 'show', 'season'].includes(item.type) && item.id != null;
+
 /** Player URL that resumes from the saved position. */
 export function playUrl(item) {
   return `/play/${item.id}${item.state?.position ? `?t=${Math.floor(item.state.position)}` : ''}`;
@@ -64,6 +107,7 @@ export function posterCard(item, { title, subtitle, width = 160 } = {}) {
         },
       }, icon('play', 24))),
       badges(item),
+      canMarkWatched(item) && watchToggle(item),
     ),
     h('div.card-title', title ?? (item.type === 'episode' && item.show ? item.show.title : item.title)),
     h('div.card-sub', subtitle ?? defaultSubtitle(item)),
@@ -87,6 +131,7 @@ export function landscapeCard(item) {
       lazyImg(src, { width: 300, fallback: () => placeholder(item) }) || placeholder(item),
       h('div.card-overlay', h('div.play-circle', icon('play', 24))),
       badges(item),
+      canMarkWatched(item) && watchToggle(item),
     ),
     h('div.card-title', isEp && item.show ? item.show.title : item.title),
     h('div.card-sub', isEp ? `${episodeLabel(item)} · ${item.title}` : item.year || ''),

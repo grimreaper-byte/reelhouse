@@ -7,6 +7,21 @@ let renderTarget = null;
 let notFound = null;
 const navListeners = new Set();
 
+// Where each page in this tab's history was scrolled to when it was left, so Back and Forward come back to the same
+// place (a library's grid, Home's rows, a film page after the player), as the Android app does. Keyed by the history
+// entry (history.state.key); a link or the sidebar opens a page at its top as before. Views see ctx.restoring and
+// ctx.key, to render as much as they had then (the library's grid renders in chunks).
+const SCROLLS_KEPT = 100;
+const scrolls = new Map();
+let keyCount = 0;
+const newKey = () => `${Date.now().toString(36)}.${(keyCount++).toString(36)}`;
+
+function remember(key, saved) {
+  scrolls.delete(key);
+  scrolls.set(key, saved);
+  if (scrolls.size > SCROLLS_KEPT) scrolls.delete(scrolls.keys().next().value);
+}
+
 export function route(pattern, view, opts = {}) {
   const keys = [];
   const re = new RegExp(`^${pattern.replace(/\/:(\w+)/g, (_, k) => {
@@ -28,8 +43,8 @@ export function setRenderTarget(fn) {
 export const onNavigate = (fn) => navListeners.add(fn);
 
 export function navigate(url, { replace = false, state } = {}) {
-  if (replace) history.replaceState(state ?? null, '', url);
-  else history.pushState({ ...(state || {}), internal: true }, '', url);
+  if (replace) history.replaceState({ ...(state || {}), key: history.state?.key || newKey() }, '', url);
+  else history.pushState({ ...(state || {}), internal: true, key: newKey() }, '', url);
   return render();
 }
 
@@ -64,8 +79,13 @@ function restoreScroll(target, saved) {
   }
 }
 
-export async function render({ soft = false } = {}) {
+/** `popped`: Back or Forward brought this page back, so it returns to where it was scrolled to (if this tab saw it). */
+export async function render({ soft = false, popped = false } = {}) {
   const path = location.pathname;
+  const key = history.state?.key || null;
+  // The page being left, before anything replaces it (the spinner included).
+  if (!soft && current?.key && current.target?.isConnected) remember(current.key, captureScroll(current.target));
+  const restoring = popped && key ? scrolls.get(key) || null : null;
   const query = Object.fromEntries(new URLSearchParams(location.search));
   let match = null;
   for (const r of routes) {
@@ -92,14 +112,16 @@ export async function render({ soft = false } = {}) {
     query,
     signal: controller.signal,
     refresh: soft,
+    restoring: !!restoring,
+    key,
     cleanups: [],
     onCleanup(fn) {
       this.cleanups.push(fn);
     },
   };
-  current = { controller, cleanups: ctx.cleanups };
   const opts = match?.route.opts || {};
   const target = renderTarget(opts);
+  current = { controller, cleanups: ctx.cleanups, key, target };
   if (!soft) for (const fn of navListeners) fn(path, opts);
   const view = match?.route.view || notFound;
 
@@ -118,7 +140,7 @@ export async function render({ soft = false } = {}) {
     clearTimeout(spinnerTimer);
     if (controller.signal.aborted) return;
     target.replaceChildren(node);
-    if (saved) restoreScroll(target, saved);
+    if (saved || restoring) restoreScroll(target, saved || restoring);
   } catch (err) {
     clearTimeout(spinnerTimer);
     if (controller.signal.aborted || err.name === 'AbortError') return;
@@ -137,7 +159,9 @@ export async function render({ soft = false } = {}) {
 }
 
 export function startRouter() {
-  window.addEventListener('popstate', () => render());
+  // The page the tab opened on gets its key too, so coming Back to it finds where it was.
+  if (!history.state?.key) history.replaceState({ ...(history.state || {}), key: newKey() }, '');
+  window.addEventListener('popstate', () => render({ popped: true }));
   // Intercept same-origin link clicks.
   document.addEventListener('click', (e) => {
     if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;

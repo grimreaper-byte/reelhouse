@@ -417,6 +417,10 @@ a.person:focus-visible .face { box-shadow: 0 0 0 2px var(--accent); }
 .cover-action.danger:hover { background: #c4433b; }
 .cover-action:not(.danger):hover { background: rgba(0,0,0,0.9); }
 @media (hover: none) { .cover-action { opacity: 1; } }
+.cover-action.watch-toggle { width: 26px; height: 26px; top: 7px; left: 7px; }
+.cover-action.watch-toggle.on, .cover-action.watch-toggle.on:hover { background: var(--accent); color: var(--accent-text); }
+/* Touch screens have no hover: a ✓ on every cover would only clutter them (the title's page has Watched). */
+@media (hover: none) { .cover-action.watch-toggle { display: none; } }
 .episode-grid { --card-w: 250px; }
 .episode-card .card-img { aspect-ratio: 16 / 9; }
 .episode-card:focus-visible { outline: none; }
