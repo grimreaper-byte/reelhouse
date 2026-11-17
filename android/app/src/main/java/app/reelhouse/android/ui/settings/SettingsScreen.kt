@@ -1,5 +1,6 @@
 package app.reelhouse.android.ui.settings
 
+import android.content.pm.PackageManager
 import android.text.format.DateUtils
 import android.text.format.Formatter
 import androidx.compose.foundation.clickable
@@ -11,12 +12,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Tv
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -64,7 +67,7 @@ import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(onBack: () -> Unit, onLicences: () -> Unit) {
+fun SettingsScreen(onBack: () -> Unit, onLicences: () -> Unit, onPairTv: () -> Unit) {
     val context = LocalContext.current
     val c = context.container
     val profile by c.store.profile.collectAsState()
@@ -108,6 +111,21 @@ fun SettingsScreen(onBack: () -> Unit, onLicences: () -> Unit) {
             Row2("Server", p.serverName)
             Row2("Signed in as", p.user.username)
             Row2("This device", p.deviceName)
+            // Signing in a TV (a Fire TV Stick, say) from here: it has no camera to scan Reelhouse's QR code with.
+            if (context.packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY)) {
+                Spacer(Modifier.height(8.dp))
+                OutlinedButton(onClick = onPairTv) {
+                    Icon(Icons.Filled.Tv, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.size(8.dp))
+                    Text("Pair a TV")
+                }
+                Text(
+                    "Signs a TV in to this account: on the TV, choose Pair with your phone and scan its code.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Palette.TextDim,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+            }
 
             Section("Connection")
             Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {

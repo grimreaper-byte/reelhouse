@@ -50,6 +50,14 @@ data class TunnelSettings(
 @Serializable
 data class ServerName(val name: String = "Reelhouse", val version: String = "")
 
+/** POST /api/me/pairings: a pairing code for this account (what else it answers, the QR code and so on, isn't needed). */
+@Serializable
+data class PairingCreated(val id: String, val link: String, val expiresAt: Long = 0)
+
+/** GET /api/me/pairings/:id. */
+@Serializable
+data class PairingStatus(val status: String, val device: String? = null)
+
 /** POST /api/auth/pair and POST /api/auth/device. */
 @Serializable
 data class SignInResponse(

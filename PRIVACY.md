@@ -1,6 +1,6 @@
 # Privacy policy: the Reelhouse app for Android
 
-Last updated: 14 November 2026
+Last updated: 17 November 2026
 
 Reelhouse is software you run yourself. The Reelhouse app for Android connects only to the Reelhouse server you pair
 it with or sign in to: your own, or one whose owner gave you an account. The people who make Reelhouse run no servers
@@ -19,6 +19,9 @@ Only to the Reelhouse server you connect it to:
 - for the app tunnel, when you pair at home, the public half of a key made on the phone (the private half never leaves
   it). Paired away from home, the tunnel uses a key your server put in the pairing code.
 
+And only when you pair a TV from the phone (**Settings → Pair a TV**): a pairing code for your account, sent
+straight to that TV over your home network, encrypted with a key that only the TV's screen shows.
+
 What that server keeps is up to whoever runs it. Reelhouse's server keeps your watch history and resume points, and a
 log of what was played on which device, which its admins can see.
 
@@ -29,8 +32,8 @@ until you sign out, delete them, or uninstall the app.
 
 ## Camera
 
-Only to scan the pairing QR code your Reelhouse server shows. The picture is read on the phone and is not saved or
-sent anywhere. You can pair without the camera by typing the code instead.
+Only to scan the pairing QR code your Reelhouse server shows, or a TV's code (Pair a TV). The picture is read on the
+phone and is not saved or sent anywhere. You can pair without the camera by typing the code instead.
 
 ## Pairing links
 

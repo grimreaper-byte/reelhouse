@@ -10,6 +10,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -39,6 +40,7 @@ import app.reelhouse.android.ui.library.LibraryScreen
 import app.reelhouse.android.ui.livetv.GuideScreen
 import app.reelhouse.android.ui.livetv.LivePlayerScreen
 import app.reelhouse.android.ui.pair.PairScreen
+import app.reelhouse.android.ui.pair.PairTvScreen
 import app.reelhouse.android.ui.person.PersonScreen
 import app.reelhouse.android.ui.player.PlayerScreen
 import app.reelhouse.android.ui.recordings.RecordingSeriesScreen
@@ -54,6 +56,9 @@ import kotlinx.serialization.Serializable
 @Serializable data object HomeKey : NavKey
 @Serializable data object SettingsKey : NavKey
 @Serializable data object LicencesKey : NavKey
+
+/** Settings → Pair a TV; [link]: a TV's reelhouse://pair-tv code already scanned with the camera app. */
+@Serializable data class PairTvKey(val link: String? = null) : NavKey
 @Serializable data object DownloadsKey : NavKey
 @Serializable data object RequestsKey : NavKey
 @Serializable data object RecordingsKey : NavKey
@@ -135,7 +140,8 @@ private fun SignedIn() {
                 entry<PersonKey> { key -> PersonScreen(key.name, key.fromItem, onOpenItem = { backStack.add(ItemKey(it.id)) }, onBack = back) }
                 entry<GuideKey> { key -> GuideScreen(key.radio, onPlay = { backStack.add(LiveKey(it.uuid, it.radio)) }, onBack = back) }
                 entry<LiveKey> { key -> LivePlayerScreen(key.channel, key.radio, onBack = back) }
-                entry<SettingsKey> { SettingsScreen(onBack = back, onLicences = { backStack.add(LicencesKey) }) }
+                entry<SettingsKey> { SettingsScreen(onBack = back, onLicences = { backStack.add(LicencesKey) }, onPairTv = { backStack.add(PairTvKey()) }) }
+                entry<PairTvKey> { key -> PairTvScreen(key.link, onBack = back) }
                 entry<LicencesKey> { LicencesScreen(onBack = back) }
                 entry<DownloadsKey> { DownloadsScreen(onPlay = { id -> backStack.add(PlayerKey(id)) }, onBack = back) }
                 entry<RequestsKey> { RequestsScreen(onOpenItem = { id -> backStack.add(ItemKey(id)) }, onBack = back) }
@@ -147,6 +153,15 @@ private fun SignedIn() {
                 entry<PlayerKey> { key -> PlayerScreen(key.itemId, key.startAt, onBack = back) }
             },
         )
+    }
+
+    // A TV's code scanned with the camera app: Pair a TV takes it from there.
+    val pendingTv by c.pendingPairTv.collectAsState()
+    LaunchedEffect(pendingTv) {
+        pendingTv?.let {
+            c.pendingPairTv.value = null
+            backStack.add(PairTvKey(it))
+        }
     }
 
     // A pairing link opened while already paired: offer to switch.

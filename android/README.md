@@ -6,7 +6,7 @@ WireGuard app, no VPN slot, and nothing else on the device goes through it. The 
 server: see its [privacy policy](../PRIVACY.md).
 
 Status: milestones 1–5 are done. You can:
-- pair the app (QR code, link, typed code or password);
+- pair the app (QR code, link, typed code or password), and pair a TV from a phone (since 0.14.0);
 - browse Home, libraries (sort, filter, genre), movie, show, season and episode pages, and search;
 - get around with a sidebar, as in the web app (since 0.1.11): a strip of icons on a tablet or a phone held sideways
   (☰ or a mouse slides it out, the pin keeps it open), a drawer from Home's ☰ on a phone held upright; each library
@@ -183,6 +183,12 @@ Install on a phone with USB or wireless debugging turned on: `adb install -r app
 3. In the app: **Scan the QR code**. At home, you can also type the code with Reelhouse's address. Away from the
    server, **Copy a link to send** in the same window makes a link for email or a message: tapped on the phone, a page
    on Reelhouse's website hands it to the app as a `reelhouse://pair` link (the app asks first, then pairs).
+4. On a TV (no camera): **Pair with your phone** shows a QR code (`reelhouse://pair-tv?a=<address:port>&k=<key>&n=
+   <name>`) and listens on the home network for 10 minutes. On a paired phone, **Settings → Pair a TV** scans it
+   (or the camera app opens it), asks first, makes a pairing (`POST /api/me/pairings`) and posts its link to the TV
+   sealed with the key (AES-256-GCM); the TV pairs as with a scanned code, and the phone follows the pairing until
+   it's used. The phone only sends to addresses on a home network. Debug builds offer Pair with your phone on
+   every device, for trying it on an emulator (`data/pairing/TvHandoff.kt`).
 
 The app shows how it's connected (At home, Tunnel, Web) at the top. Settings shows the details. Debug builds
 have **Always use the tunnel**, for testing the tunnel at home.

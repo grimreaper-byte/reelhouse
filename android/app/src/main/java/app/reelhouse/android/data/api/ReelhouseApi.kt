@@ -35,6 +35,8 @@ import app.reelhouse.android.data.playback.QualitiesResponse
 import app.reelhouse.android.data.playback.Quality
 import kotlinx.serialization.json.jsonObject
 import app.reelhouse.android.data.model.MeResponse
+import app.reelhouse.android.data.model.PairingStatus
+import app.reelhouse.android.data.model.PairingCreated
 import app.reelhouse.android.data.model.ServerInfo
 import app.reelhouse.android.data.model.SignInResponse
 import app.reelhouse.android.data.model.TunnelResponse
@@ -281,6 +283,23 @@ class ReelhouseApi(
     suspend fun removeAllRequests(): Int {
         val b = base() ?: throw OfflineException()
         return call("DELETE", joinUrl(b, "/api/requests"), null, RemovedResponse.serializer(), 20_000, signedIn = true).removed
+    }
+
+    // ---------- pairing another device (a TV) for this account, server/pairing.js ----------
+
+    /** A one-time pairing code (10 minutes) for this account, with the reelhouse://pair link that carries it. */
+    suspend fun createPairing(): PairingCreated {
+        val b = base() ?: throw OfflineException()
+        return call("POST", joinUrl(b, "/api/me/pairings"), null, PairingCreated.serializer(), 30_000, signedIn = true)
+    }
+
+    /** waiting | used (with the device that used it) | expired. */
+    suspend fun pairingStatus(id: String): PairingStatus = get("/api/me/pairings/${enc(id)}", PairingStatus.serializer())
+
+    /** Makes an unused pairing code stop working (and drops its tunnel key). */
+    suspend fun cancelPairing(id: String) {
+        val b = base() ?: throw OfflineException()
+        call("DELETE", joinUrl(b, "/api/me/pairings/${enc(id)}"), null, JsonObject.serializer(), 20_000, signedIn = true)
     }
 
     // ---------- your picture ----------

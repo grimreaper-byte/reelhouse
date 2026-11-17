@@ -262,6 +262,10 @@ and only Reelhouse can be reached through it (not the rest of the machine).
    Tapped on the phone, it opens the app through a page on Reelhouse's website (`reelhouseapp.com/pair/`), which
    never sees the code: that's after the `#`. It works once and lasts a day, even after the pairing window is closed,
    which lists the links not used yet so you can call them back.
+   **A TV** (a Fire TV Stick, say) has no camera and nothing to tap a link on: on the TV choose **Pair with your
+   phone**, then on a phone already signed in open **Settings → Pair a TV** and scan the code the TV shows (since
+   app 0.14.0). The phone makes a pairing for its own account and sends it to the TV over the home network,
+   encrypted with a key only the TV's screen shows; the phone has to be on the same Wi-Fi as the TV.
 
 The Docker image includes the tunnel; on a Windows or Linux install, build it first
 ([tunnel/README.md](tunnel/README.md)). The app itself is in [android/](android/README.md). It pairs, browses,

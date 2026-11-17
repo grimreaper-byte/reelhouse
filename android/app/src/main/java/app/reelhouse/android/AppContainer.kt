@@ -45,6 +45,9 @@ class AppContainer(app: Application) {
     /** A reelhouse://pair link opened from outside the app, waiting to be used. */
     val pendingPairLink = MutableStateFlow<PendingPairLink?>(null)
 
+    /** A TV's reelhouse://pair-tv code opened from the camera app, for Settings → Pair a TV to take. */
+    val pendingPairTv = MutableStateFlow<String?>(null)
+
     val http: OkHttpClient = Http.client(::tokenFor)
     val api: ReelhouseApi = ReelhouseApi(http, base = { connection.baseUrl }, onUnauthorized = ::signedOutByServer)
     val connection: ConnectionManager = ConnectionManager(app, store, api, RoutePlanner(GoTunnels), scope)

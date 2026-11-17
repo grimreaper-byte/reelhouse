@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
+import app.reelhouse.android.data.pairing.PairTvLink
 import app.reelhouse.android.data.pairing.PairingLink
 import app.reelhouse.android.data.pairing.PendingPairLink
 import app.reelhouse.android.ui.BootScreen
@@ -35,9 +36,12 @@ class MainActivity : ComponentActivity() {
         takePairingLink(intent)
     }
 
-    /** reelhouse://pair?d=… opened from a browser, a message or the camera app. */
+    /** reelhouse://pair?d=… opened from a browser, a message or the camera app; or a TV's reelhouse://pair-tv code. */
     private fun takePairingLink(intent: Intent?) {
         val link = intent?.dataString ?: return
-        if (PairingLink.isPairingLink(link)) container.pendingPairLink.value = PendingPairLink(link)
+        when {
+            PairTvLink.isPairTvLink(link) -> container.pendingPairTv.value = link
+            PairingLink.isPairingLink(link) -> container.pendingPairLink.value = PendingPairLink(link)
+        }
     }
 }

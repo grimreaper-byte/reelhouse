@@ -23,6 +23,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.QrCodeScanner
+import androidx.compose.material.icons.filled.Smartphone
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -35,6 +36,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -51,6 +53,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
+import app.reelhouse.android.BuildConfig
 import app.reelhouse.android.container
 import app.reelhouse.android.data.pairing.PendingPairLink
 import app.reelhouse.android.ui.common.RemoteTextBox
@@ -58,6 +61,7 @@ import app.reelhouse.android.ui.common.startFocus
 import app.reelhouse.android.ui.components.Button
 import app.reelhouse.android.ui.components.OutlinedButton
 import app.reelhouse.android.ui.theme.Palette
+import kotlinx.coroutines.delay
 
 @Composable
 fun PairScreen() {
@@ -66,6 +70,15 @@ fun PairScreen() {
     val vm = viewModel { PairViewModel(c) }
     val notice by c.notice.collectAsState()
     val pending by c.pendingPairLink.collectAsState()
+    val pendingTv by c.pendingPairTv.collectAsState()
+
+    // A TV's code scanned with the camera app before this phone is signed in: it needs a sign-in to send.
+    LaunchedEffect(pendingTv) {
+        if (pendingTv != null) {
+            c.pendingPairTv.value = null
+            vm.error = "To pair a TV, pair this phone first. Then open Settings → Pair a TV and scan the TV's code."
+        }
+    }
 
     // A reelhouse://pair link opened from outside the app: anything can open one, so ask first.
     var asking by remember { mutableStateOf<PendingPairLink?>(null) }
@@ -148,7 +161,13 @@ fun PairScreen() {
                 Spacer(Modifier.height(12.dp))
                 Text(busy, style = MaterialTheme.typography.bodyMedium, color = Palette.TextDim)
             } else when (vm.mode) {
-                PairViewModel.Mode.Choose, PairViewModel.Mode.Scan -> ChooseWay(onScan = ::startScan, onCode = { vm.show(PairViewModel.Mode.Code) }, onPassword = { vm.show(PairViewModel.Mode.Password) })
+                PairViewModel.Mode.Choose, PairViewModel.Mode.Scan -> ChooseWay(
+                    onScan = ::startScan,
+                    onPhone = { vm.startFromPhone(context) },
+                    onCode = { vm.show(PairViewModel.Mode.Code) },
+                    onPassword = { vm.show(PairViewModel.Mode.Password) },
+                )
+                PairViewModel.Mode.FromPhone -> vm.tvCode?.let { PhoneCode(it, onBack = { vm.show(PairViewModel.Mode.Choose) }) }
                 PairViewModel.Mode.Code -> CodeForm(onPair = vm::pairCode, onBack = { vm.show(PairViewModel.Mode.Choose) })
                 PairViewModel.Mode.Password -> PasswordForm(onSignIn = vm::signIn, onBack = { vm.show(PairViewModel.Mode.Choose) })
             }
@@ -162,10 +181,15 @@ fun PairScreen() {
 }
 
 @Composable
-private fun ChooseWay(onScan: () -> Unit, onCode: () -> Unit, onPassword: () -> Unit) {
+private fun ChooseWay(onScan: () -> Unit, onPhone: () -> Unit, onCode: () -> Unit, onPassword: () -> Unit) {
     val hasCamera = LocalContext.current.packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY)
     Text(
-        "In Reelhouse on a computer, open Your account → Apps and devices → Pair the Reelhouse app.",
+        if (hasCamera) {
+            "In Reelhouse on a computer, open Your account → Apps and devices → Pair the Reelhouse app."
+        } else {
+            "Pair with a phone that already has Reelhouse, or with a code from Reelhouse on a computer (Your account → " +
+                "Apps and devices → Pair the Reelhouse app)."
+        },
         style = MaterialTheme.typography.bodyMedium,
         color = Palette.TextDim,
         textAlign = TextAlign.Center,
@@ -178,14 +202,57 @@ private fun ChooseWay(onScan: () -> Unit, onCode: () -> Unit, onPassword: () -> 
             Text("Scan the QR code")
         }
         Spacer(Modifier.height(12.dp))
+        // Debug builds offer pairing from a phone everywhere, so it can be tried on an emulator (which has a camera).
+        if (BuildConfig.DEBUG) {
+            OutlinedButton(onClick = onPhone, modifier = Modifier.fillMaxWidth(), height = 52.dp) {
+                Icon(Icons.Filled.Smartphone, contentDescription = null, modifier = Modifier.size(20.dp))
+                Spacer(Modifier.size(10.dp))
+                Text("Pair with your phone")
+            }
+            Spacer(Modifier.height(12.dp))
+        }
+    } else {
+        // A TV: no camera, and nothing to tap a link on. A phone signed in to Reelhouse scans this TV's code instead.
+        Button(onClick = onPhone, modifier = Modifier.startFocus().fillMaxWidth(), height = 52.dp) {
+            Icon(Icons.Filled.Smartphone, contentDescription = null, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.size(10.dp))
+            Text("Pair with your phone")
+        }
+        Spacer(Modifier.height(12.dp))
     }
-    OutlinedButton(onClick = onCode, modifier = (if (hasCamera) Modifier else Modifier.startFocus()).fillMaxWidth(), height = 52.dp) {
+    OutlinedButton(onClick = onCode, modifier = Modifier.fillMaxWidth(), height = 52.dp) {
         Icon(Icons.Filled.Keyboard, contentDescription = null, modifier = Modifier.size(20.dp))
         Spacer(Modifier.size(10.dp))
         Text("Type the code (at home)")
     }
     Spacer(Modifier.height(8.dp))
     TextButton(onClick = onPassword) { Text("Sign in with a password instead") }
+}
+
+/** The TV's code for a phone to scan, and how long it lasts. */
+@Composable
+private fun PhoneCode(code: PairViewModel.TvCode, onBack: () -> Unit) {
+    var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(code) {
+        while (true) {
+            now = System.currentTimeMillis()
+            delay(1000)
+        }
+    }
+    val left = ((code.expiresAt - now) / 1000).coerceAtLeast(0)
+    Text(
+        "On your phone, open Reelhouse → Settings → Pair a TV, and scan this code. The phone must be on the same " +
+            "Wi-Fi as this TV; the TV signs in to the account the phone uses.",
+        style = MaterialTheme.typography.bodyMedium,
+        color = Palette.TextDim,
+        textAlign = TextAlign.Center,
+    )
+    Spacer(Modifier.height(20.dp))
+    QrImage(code.link, description = "Code for the Reelhouse app on your phone", modifier = Modifier.size(260.dp))
+    Spacer(Modifier.height(12.dp))
+    Text("Works for ${left / 60}:${(left % 60).toString().padStart(2, '0')}", style = MaterialTheme.typography.bodySmall, color = Palette.TextDim)
+    Spacer(Modifier.height(8.dp))
+    TextButton(onClick = onBack, modifier = Modifier.startFocus()) { Text("Back") }
 }
 
 @Composable

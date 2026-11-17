@@ -41,12 +41,14 @@
                 <category android:name="android.intent.category.LAUNCHER" />
                 <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
             </intent-filter>
-            <!-- Pairing links from Reelhouse (Your account → Apps and devices → Copy link). -->
+            <!-- Pairing links from Reelhouse (Your account → Apps and devices → Copy a link to send), and a TV's code
+                 for a phone to pair it (reelhouse://pair-tv, scanned with the camera app). -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="reelhouse" android:host="pair" />
+                <data android:scheme="reelhouse" android:host="pair-tv" />
             </intent-filter>
         </activity>
         <!-- Hands a downloaded update to Android's installer. -->
