@@ -187,6 +187,7 @@ class LiveControls(object):
         self.channels = []        # the guide's channels in order, as the screens left them: {'uuid', 'name'}
         self.current = None       # the uuid of the channel playing (or last played)
         self.wanted = None        # the channel (its place in self.channels) a channel change is heading for
+        self.starting = None      # the one being started at Reelhouse right now (its place), until it plays or can't
         self.switching = False
 
     # ----- from the service -----
@@ -550,9 +551,9 @@ class LiveControls(object):
 
     def change_channel(self, step):
         """The next or previous channel in the guide's order (no further than its ends); pressed again before it has
-        started, on from the one it's heading for."""
+        started (waiting its turn, or being started at Reelhouse), on from the one it's heading for."""
         with self.lock:
-            base = self.wanted if self.wanted is not None else self.place()
+            base = next((p for p in (self.wanted, self.starting) if p is not None), self.place())
             if base < 0 or not 0 <= base + step < len(self.channels):
                 return
         self.go_to(base + step)
@@ -576,10 +577,16 @@ class LiveControls(object):
                     self.switching = False
                     return
                 channel = self.channels[place]
-            item = plugin.start_channel(channel['uuid'])  # says why when it can't
-            if item is not None:
+                self.starting = place
+            item = None
+            try:
+                item = plugin.start_channel(channel['uuid'])  # says why when it can't
+            finally:
                 with self.lock:
-                    self.current = channel['uuid']
+                    self.starting = None
+                    if item is not None:
+                        self.current = channel['uuid']
+            if item is not None:
                 xbmc.Player().play(item.getPath(), item)
 
     def pick_channel(self):

@@ -85,6 +85,11 @@ function connect() {
     }
   });
   source.addEventListener('library', (e) => onLibraryEvent(JSON.parse(e.data)));
+  // Something of this account's was marked watched, paused or stopped on another device, or a channel joined its
+  // Continue Watching: the page on screen follows, as the Android app and Kodi do (a quiet re-render, like a library's).
+  source.addEventListener('state', () => {
+    if (onPage()) scheduleRefresh();
+  });
   // A stream started or stopped (admins only).
   source.addEventListener('activity', (e) => activity?.set(JSON.parse(e.data).count));
   // New files being added to a library this user can open: which one, and how far along.

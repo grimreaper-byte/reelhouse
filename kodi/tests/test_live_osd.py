@@ -221,6 +221,31 @@ class ControlsTests(unittest.TestCase):
         self.controls.on_action(self.dialog, live_osd.ACTION_DOWN)  # pressed again before the first has started
         self.assertEqual(self.switched_to()[0], ['c0'])  # straight to the one asked for last
 
+    def test_pressed_again_while_the_first_is_starting_goes_on_from_it(self):
+        # Flicking through channels: the second Up arrives while Reelhouse is still starting the first one asked for.
+        # It went on from the channel playing, so the same channel was started twice and the one after never came.
+        from resources.lib import plugin
+        self.with_channels(['Test One', 'Test Two', 'Test Three', 'Test Four'], playing=0)
+        self.controls.hide()
+        self.controls.on_action(self.dialog, live_osd.ACTION_UP)
+        asked = []
+
+        def start_channel(uuid):
+            asked.append(uuid)
+            if len(asked) == 1:
+                self.controls.on_action(self.dialog, live_osd.ACTION_UP)  # pressed again meanwhile
+            return xbmcgui.ListItem(uuid, path='http://rh/api/live/{}/index.m3u8'.format(uuid))
+
+        kept, plugin.start_channel = plugin.start_channel, start_channel
+        try:
+            self.spawned.remove(self.controls.switch)
+            self.controls.switch()
+        finally:
+            plugin.start_channel = kept
+        self.assertEqual(asked, ['c1', 'c2'])
+        self.controls.on_action(self.dialog, live_osd.ACTION_DOWN)  # and back from the one it got to
+        self.assertEqual(self.switched_to()[0], ['c1'])
+
     def test_up_changes_channel_while_the_controls_show_too(self):
         # They show for a few seconds as a channel starts: flicking through channels, the next press went to them.
         self.with_channels(['Test One', 'Test Two', 'Test Three'], playing=0)
