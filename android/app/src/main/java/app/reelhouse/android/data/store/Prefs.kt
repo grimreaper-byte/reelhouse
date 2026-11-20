@@ -30,6 +30,14 @@ class Prefs(context: Context) {
         get() = sp.getBoolean("sidebar.pinned", false)
         set(value) = sp.edit().putBoolean("sidebar.pinned", value).apply()
 
+    /**
+     * Whether a phone may control this device with the phone remote (null: as it comes, which is on for a TV box and
+     * off for a phone or tablet).
+     */
+    var remoteTarget: Boolean?
+        get() = if (sp.contains("remote.target")) sp.getBoolean("remote.target", false) else null
+        set(value) = sp.edit().apply { if (value == null) remove("remote.target") else putBoolean("remote.target", value) }.apply()
+
     /** Download only over Wi-Fi (or another unmetered network). */
     var wifiOnlyDownloads: Boolean
         get() = sp.getBoolean("downloads.wifiOnly", true)

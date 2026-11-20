@@ -36,6 +36,8 @@ Everything runs on your own computer: no cloud accounts, no subscriptions, no pa
   from your own Reelhouse, on phones, tablets and TV boxes such as a Fire TV (driven with its remote)
 - A **Kodi add-on** that puts your movies and shows into Kodi's own library, with watched status and resume points
   kept in sync both ways
+- **[The app as a remote](#phone-remote)**: play a film or episode from your phone on Reelhouse open in a browser, in
+  Kodi, or on the app on a TV box on the same network, and pause, skip or stop it from the phone
 - **Live TV** from [Tvheadend](#live-tv-tvheadend): a TV guide, live channels in the browser and the Android app, and
   recordings scheduled from the guide, one at a time or a whole series, for the accounts you allow, each person seeing
   their own on a Manage Recordings page, and, if you like, the channels they've watched in Continue Watching
@@ -566,6 +568,30 @@ Admins find all of this in **Settings → Kodi add-on**: what it does, the insta
 filled in, the signed-in Kodis, and the things to watch out for. Start with an empty Kodi library (a fresh install
 or a new profile): the add-on writes your titles into it, so ones Kodi already has from its own sources would show
 up twice. For the same reason, don't add your media folders to Kodi yourself.
+
+## Phone remote
+
+Since 0.25.0 (with app 0.15.0 and Kodi add-on 0.15.0), the Reelhouse app on a phone or tablet can play films and
+episodes on your other devices and control them, like casting. A **Cast** button appears at the top of the app's Home
+and film pages when one of them is about: pick the device, and **Play** goes there; a bar along the bottom and a
+remote screen show what's playing, with pause, skips, a seek bar, next and previous episode, and Stop. In the phone's
+own player, the Cast button carries on over there from where you are, and the remote screen shows the film's cover
+behind it. (The app's top bar now shows how it's connected as a coloured dot after the name, which makes room for the
+button; Settings still says it in words.)
+
+What it can play on:
+
+- **A browser** with Reelhouse open, while the page is showing (one per browser: the tab you used last). Browsers
+  only start a video by themselves on a page you've already clicked in; otherwise the phone says to press Play there.
+  To keep a browser out of it: **Settings → Your account → Phone remote**.
+- **Kodi** with the Reelhouse add-on (0.15.0 or newer), while Kodi is running. Off in the add-on's settings with
+  **Let your phone control Kodi**.
+- **The Reelhouse app on a Fire TV or TV box**, while Reelhouse is open on it. On phones and tablets this is off until
+  switched on in the app's **Settings → Let your phone control this device**.
+
+Only your own devices are listed, and only those on the **same network** as the phone: at home together, or both at
+a friend's house through the app tunnel. Reelhouse checks this again for every command. The phone tells Reelhouse,
+and Reelhouse passes it on to the device; nothing goes anywhere else. Live TV channels can't be sent yet.
 
 ## Updating
 

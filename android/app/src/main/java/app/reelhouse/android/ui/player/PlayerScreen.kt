@@ -76,7 +76,9 @@ import androidx.media3.ui.PlayerView
 import app.reelhouse.android.container
 import app.reelhouse.android.data.model.Item
 import app.reelhouse.android.data.playback.AvSync
+import androidx.compose.material.icons.filled.Cast
 import app.reelhouse.android.ui.common.LocalRemoteDevice
+import app.reelhouse.android.ui.remote.PlayOnSheet
 import app.reelhouse.android.ui.common.formatPosition
 import app.reelhouse.android.ui.common.startFocus
 import app.reelhouse.android.ui.components.Button
@@ -88,7 +90,7 @@ private enum class Menu(val title: String) { Subtitles("Subtitles"), Audio("Audi
 @OptIn(UnstableApi::class)
 @kotlin.OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PlayerScreen(itemId: Long, startAt: Double, onBack: () -> Unit) {
+fun PlayerScreen(itemId: Long, startAt: Double, onBack: () -> Unit, onCast: (Long, Double) -> Unit = { _, _ -> }) {
     val context = LocalContext.current
     val c = context.container
     val vm = viewModel(key = "player-$itemId") { PlayerViewModel(c, context.applicationContext, itemId, startAt) }
@@ -144,8 +146,21 @@ fun PlayerScreen(itemId: Long, startAt: Double, onBack: () -> Unit) {
             modifier = Modifier.fillMaxSize(),
         )
 
+        // On a phone with one of its owner's other devices about (the phone remote): carry on over there. The list
+        // stays open when the controls fade.
+        val targets by c.remote.targets.collectAsState()
+        var casting by remember { mutableStateOf(false) }
         AnimatedVisibility(controls || ui.error != null || ui.loading, enter = fadeIn(), exit = fadeOut(), modifier = Modifier.align(Alignment.TopCenter)) {
-            TopBar(ui, vm.qualityLabel(), onBack = onBack, onMenu = { menu = it })
+            TopBar(
+                ui, vm.qualityLabel(), onBack = onBack, onMenu = { menu = it },
+                onCast = if (!remote && targets.isNotEmpty() && ui.item != null) ({ casting = true }) else null,
+            )
+        }
+        if (casting) {
+            PlayOnSheet(onDismiss = { casting = false }, onRemote = {}, onPicked = {
+                val (id, at) = vm.handOver() ?: return@PlayOnSheet
+                onCast(id, at)
+            })
         }
         if (ui.loading && ui.error == null) {
             CircularProgressIndicator(Modifier.align(Alignment.Center), color = Palette.Accent)
@@ -242,7 +257,7 @@ fun PlayerScreen(itemId: Long, startAt: Double, onBack: () -> Unit) {
 }
 
 @Composable
-private fun TopBar(ui: PlayerViewModel.Ui, qualityLabel: String?, onBack: () -> Unit, onMenu: (Menu) -> Unit) {
+private fun TopBar(ui: PlayerViewModel.Ui, qualityLabel: String?, onBack: () -> Unit, onMenu: (Menu) -> Unit, onCast: (() -> Unit)? = null) {
     val item = ui.item
     Row(
         Modifier.fillMaxWidth()
@@ -265,6 +280,7 @@ private fun TopBar(ui: PlayerViewModel.Ui, qualityLabel: String?, onBack: () -> 
             ).joinToString(" · ")
             if (line.isNotEmpty()) Text(line, color = Color.White.copy(alpha = 0.75f), style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
+        onCast?.let { IconButton(onClick = it) { Icon(Icons.Filled.Cast, contentDescription = "Play on another device", tint = Color.White) } }
         if (ui.info != null) {
             IconButton(onClick = { onMenu(Menu.Subtitles) }) { Icon(Icons.Filled.Subtitles, contentDescription = "Subtitles", tint = Color.White) }
             IconButton(onClick = { onMenu(Menu.Audio) }) { Icon(Icons.Filled.Audiotrack, contentDescription = "Audio", tint = Color.White) }

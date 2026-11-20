@@ -6,6 +6,7 @@ import { render } from '../../router.js';
 import { AVATAR_TYPES, prepareAvatar, avatarContent } from '../../avatar.js';
 import { panel, textField, actionButton, checkField } from './form.js';
 import { pairingDialog } from './pairing.js';
+import { remoteTargetOn, setRemoteTargetOn } from '../../remote-target.js';
 
 export async function accountTab(ctx) {
   const user = state.me.user;
@@ -21,6 +22,7 @@ export async function accountTab(ctx) {
     picturePanel(user),
     devicesPanel(devices),
     sharingPanel(user),
+    remotePanel(),
     panel('Change password', 'Changing your password signs you out on all other devices, apps included.',
       current.el, next.el, confirm.el,
       h('div.panel-actions', actionButton('Change password', async () => {
@@ -118,6 +120,19 @@ function sharingPanel(user) {
     },
   });
   return panel('Watched by Others', 'Home has a row of what other people on this Reelhouse have been watching lately.', share.el);
+}
+
+// The phone remote (remote-target.js): kept in this browser, as each browser is a device of its own.
+function remotePanel() {
+  const allow = checkField('Let my phone control this browser', remoteTargetOn(), {
+    hint: 'The Reelhouse app on your phone can play things here and pause, skip or stop them, while this page is open '
+      + 'and your phone is on the same network. Only for this browser.',
+    onChange: (on) => {
+      setRemoteTargetOn(on);
+      toast(on ? 'Your phone can control this browser' : 'Your phone can no longer control this browser');
+    },
+  });
+  return panel('Phone remote', 'Use the Reelhouse app on your phone as a remote for what plays here.', allow.el);
 }
 
 // Apps (the Kodi add-on, the Reelhouse app) signed in to this account with their own long-lived sign-in.

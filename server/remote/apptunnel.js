@@ -324,6 +324,24 @@ export async function appTunnelStatus() {
   };
 }
 
+/**
+ * Where a device's tunnel traffic comes from (the IP of the network it's on: its router's public address, or a home
+ * address when it tunnels from inside the home), from the helper's last status; null when not known. For the phone
+ * remote's "same network" check (server/remote.js), which calls refreshTunnelStatus first.
+ */
+export function peerEndpoint(address) {
+  const p = address && get('SELECT public_key FROM tunnel_peers WHERE address = ?', address);
+  const endpoint = p && peerStatus.get(p.public_key)?.endpoint;
+  if (!endpoint) return null;
+  const m = /^\[([^\]]+)\](?::\d+)?$/.exec(endpoint) || /^([^:]+)(?::\d+)?$/.exec(endpoint);
+  return m ? m[1] : null;
+}
+
+/** For tests: what the helper last said about its devices ([{ publicKey, endpoint, lastHandshake, … }]). */
+export function setPeerStatusForTests(peers) {
+  peerStatus = new Map(peers.map((p) => [p.publicKey, p]));
+}
+
 /** Last handshake (ms) of a device key, for the devices list. */
 export function peerLastHandshake(id) {
   const p = get('SELECT public_key FROM tunnel_peers WHERE id = ?', id);

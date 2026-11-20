@@ -4,6 +4,7 @@ import path from 'node:path';
 import { all, get, run, placeholders, parseJson } from '../db.js';
 import { requireUser, requireAdmin, allowedLibraryIds, userForSession } from '../auth.js';
 import { openEventStream, libraryChanged, stateChanged } from '../events.js';
+import { joinStream, leaveStream } from '../remote.js';
 import {
   serializeItem, serializeMany, getAccessibleItem, setWatched, adjacentEpisodes, nextUpEpisode, statesFor, playableIdsUnder,
 } from '../items.js';
@@ -180,11 +181,13 @@ router.get('/scan/status', requireUser, (req, res) => {
   res.json(status);
 });
 
-// Live updates: the web app keeps this open and refreshes pages when a library changes.
+// Live updates: the web app keeps this open and refreshes pages when a library changes. ?target=… makes it a device
+// the phone remote can control, ?controller=1 a phone that wants to hear about those (server/remote.js).
 router.get('/events', requireUser, (req, res) => {
   const token = req.sessionToken;
   if (!token) return res.status(401).end(); // play tokens can't subscribe
-  openEventStream(req, res, () => userForSession(token));
+  const client = openEventStream(req, res, () => userForSession(token), { onClose: leaveStream });
+  joinStream(req, client, req.query);
 });
 
 // ---------- browsing ----------

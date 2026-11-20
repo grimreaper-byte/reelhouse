@@ -14,6 +14,16 @@ const lastLog = () => recentLogs(1).at(-1)?.msg;
 
 beforeEach(() => clearStreams());
 
+test('a report that arrives after the stop does not bring the stream back', () => {
+  startStream('late', film(), 1_000);
+  reportStream('late', { ...film(), position: 110, state: 'stopped' }, 5_000);
+  assert.equal(reportStream('late', { ...film(), position: 110, state: 'paused' }, 5_050), null);
+  assert.equal(streamCount(), 0);
+  // An unknown one still starts a stream (a player carrying on after Reelhouse restarted).
+  reportStream('after-restart', { ...film(), position: 20, state: 'playing' }, 6_000);
+  assert.equal(streamCount(), 1);
+});
+
 test('a direct stream is logged with who started it, on what, and when it stops, where', () => {
   startStream('p1', film(), 1_000);
   assert.equal(lastLog(), 'User "admin" started "My Movie" on Pixel 8 (192.168.0.20) (direct play)');

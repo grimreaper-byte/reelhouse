@@ -57,6 +57,7 @@ import app.reelhouse.android.ui.common.focusRow
 import app.reelhouse.android.ui.common.remoteFocus
 import app.reelhouse.android.ui.components.AvatarCircle
 import app.reelhouse.android.ui.components.ConnectionChip
+import app.reelhouse.android.ui.remote.CastButton
 import app.reelhouse.android.ui.components.LandscapeCard
 import app.reelhouse.android.ui.components.PosterCard
 import app.reelhouse.android.ui.components.statusRowBar
@@ -75,6 +76,8 @@ class HomeNav(
     val settings: () -> Unit,
     val downloads: () -> Unit,
     val menu: (() -> Unit)? = null,
+    /** The phone remote's screen (ui/remote). */
+    val remote: () -> Unit = {},
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -92,10 +95,16 @@ fun HomeScreen(nav: HomeNav) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Brand() },
+                // How the app is connected, as a dot after the name (its words are in Settings).
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Brand(Modifier.weight(1f, fill = false))
+                        ConnectionChip(connection, compact = true)
+                    }
+                },
                 navigationIcon = { nav.menu?.let { IconButton(onClick = it) { Icon(Icons.Filled.Menu, contentDescription = "Menu") } } },
                 actions = {
-                    ConnectionChip(connection)
+                    CastButton(onRemote = nav.remote)
                     IconButton(onClick = nav.search) { Icon(Icons.Filled.Search, contentDescription = "Search") }
                     profile?.let { p ->
                         IconButton(onClick = nav.settings) {
@@ -152,8 +161,8 @@ fun HomeScreen(nav: HomeNav) {
  * shrinks a little rather than being cut short where the top bar is narrow.
  */
 @Composable
-private fun Brand() {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+private fun Brand(modifier: Modifier = Modifier) {
+    Row(modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         Image(painterResource(R.drawable.logo), contentDescription = null, modifier = Modifier.height(24.dp).aspectRatio(51f / 38f))
         Text(
             "Reelhouse",

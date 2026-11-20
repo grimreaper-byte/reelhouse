@@ -13,6 +13,30 @@ export const QUIET_PLAYING_MS = 2 * 60 * 1000;
 export const QUIET_PAUSED_MS = 15 * 60 * 1000;
 
 const streams = new Map(); // playId → stream
+// Streams that ended lately (playId → when): a report that was overtaken by the stop (a player closing sends
+// "paused" and "stopped" almost together) mustn't bring one back, where it would sit as paused for QUIET_PAUSED_MS.
+const ended = new Map();
+const ENDED_KEPT_MS = 10 * 60 * 1000;
+const watchers = new Set();
+
+/**
+ * Calls `fn(stream)` whenever a stream starts, gets a progress report or ends (after the change, so an ended one is
+ * gone from listStreams); for the phone remote (server/remote.js). Returns a function that stops it.
+ */
+export function watchStreams(fn) {
+  watchers.add(fn);
+  return () => watchers.delete(fn);
+}
+
+function notify(stream) {
+  for (const fn of watchers) {
+    try {
+      fn(stream);
+    } catch (err) {
+      log.error(`Stream watcher failed: ${err.message}`);
+    }
+  }
+}
 
 /** 1:28:05 or 4:07. */
 export function clock(seconds) {
@@ -83,21 +107,24 @@ export function startStream(playId, data, now = Date.now()) {
     if (earlier.mode !== stream.mode || earlier.quality !== stream.quality || !!earlier.videoCopy !== !!stream.videoCopy) {
       log.info(`${who(stream)} switched ${title(stream)} on ${where(stream)} to ${how(stream)}`);
     }
+    notify(stream);
     return stream;
   }
   const stream = { position: null, state: 'playing', ...data, playId, startedAt: now, updatedAt: now };
   streams.set(playId, stream);
   log.info(`${who(stream)} started ${title(stream)} on ${where(stream)} (${how(stream)})`);
   changed();
+  notify(stream);
   return stream;
 }
 
 /**
- * A progress report. Unknown play ids (e.g. after a restart of Reelhouse) start a stream; "stopped" and "ended" end
- * it. Returns the stream, or null once ended.
+ * A progress report. Unknown play ids (e.g. after a restart of Reelhouse) start a stream, but not one that ended
+ * lately (a late report); "stopped" and "ended" end it. Returns the stream, or null once ended.
  */
 export function reportStream(playId, data, now = Date.now()) {
   const known = streams.get(playId);
+  if (!known && ended.has(playId)) return null;
   if (data.state === 'stopped' || data.state === 'ended') {
     if (!known) return null;
     endStream(playId, data.state === 'ended' ? 'finished' : 'stopped', { ...data });
@@ -106,6 +133,7 @@ export function reportStream(playId, data, now = Date.now()) {
   if (!known) return startStream(playId, data, now);
   const stream = { ...known, ...data, playId, updatedAt: now };
   streams.set(playId, stream);
+  notify(stream);
   return stream;
 }
 
@@ -115,6 +143,9 @@ export function endStream(playId, reason, update = {}) {
   if (!known) return;
   const stream = { ...known, ...update };
   streams.delete(playId);
+  const now = update.now ?? Date.now();
+  ended.set(playId, now);
+  for (const [id, at] of ended) if (now - at > ENDED_KEPT_MS) ended.delete(id);
   const watched = clock(((update.now ?? Date.now()) - stream.startedAt) / 1000);
   if (reason === 'finished') {
     log.info(`${who(stream)} finished ${title(stream)} on ${where(stream)} (${how(stream)}, ${watched} since starting)`);
@@ -125,6 +156,7 @@ export function endStream(playId, reason, update = {}) {
     log.info(`${who(stream)} stopped ${title(stream)} on ${where(stream)}${at(stream)} (${how(stream)}, ${watched} since starting)`);
   }
   changed();
+  notify(stream);
 }
 
 /** Ends streams whose player has gone quiet. */
@@ -186,4 +218,5 @@ export const streamCount = () => streams.size;
 /** For tests. */
 export function clearStreams() {
   streams.clear();
+  ended.clear();
 }

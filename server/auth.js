@@ -172,6 +172,7 @@ export function authenticate(req, res, next) {
     if (s && s.expires_at > now) {
       req.user = loadUser(s.user_id);
       req.sessionToken = token;
+      req.sessionId = hash.slice(0, 16); // as listDevices names a sign-in
       req.device = s.device; // an app's sign-in name (e.g. "Pixel 8"); null for a browser
       // Sliding expiry, written at most once an hour.
       if (now - s.last_seen_at > 60 * 60 * 1000) {

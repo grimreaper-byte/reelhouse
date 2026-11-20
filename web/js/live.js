@@ -6,6 +6,7 @@
 import { refresh } from './router.js';
 import { state } from './state.js';
 import { toast } from './components.js';
+import { remoteTargetOn, remoteHello, remoteGone, remoteCommand } from './remote-target.js';
 
 const SETTLE_MS = 1200; // coalesce bursts of events into one refresh
 const BUSY_RETRY_MS = 2000;
@@ -71,7 +72,8 @@ function onLibraryEvent(data) {
 function connect() {
   if (source || document.hidden) return;
   clearTimeout(retryTimer);
-  source = new EventSource('/api/events');
+  // While a phone may control this browser, the stream also brings its commands (remote-target.js).
+  source = new EventSource(remoteTargetOn() ? '/api/events?target=web' : '/api/events');
   source.addEventListener('hello', (e) => {
     // (Re)connected: streams may have started or stopped while this tab wasn't listening.
     void activity?.refresh();
@@ -99,6 +101,9 @@ function connect() {
   // Someone asked for a film, a request was removed, or a requested film arrived: the sidebar's count and an open
   // Requests page follow (see app.js and views/requests.js).
   source.addEventListener('requests', (e) => window.dispatchEvent(new CustomEvent('reelhouse:requests', { detail: JSON.parse(e.data) })));
+  // The phone remote: who this tab is, then what the phone asks for.
+  source.addEventListener('remote-hello', (e) => remoteHello(JSON.parse(e.data)));
+  source.addEventListener('remote', (e) => void remoteCommand(JSON.parse(e.data)));
   // E.g. downloads turned off: the item menu stops offering "Download file".
   source.addEventListener('defaults', (e) => {
     if (state.me) state.me.defaults = JSON.parse(e.data);
@@ -115,6 +120,7 @@ function connect() {
 function disconnect() {
   source?.close();
   source = null;
+  remoteGone();
 }
 
 let started = false;
@@ -137,5 +143,10 @@ export function startLive(refreshLibraries, activityCount = null, scanProgress =
   if (started || typeof EventSource === 'undefined') return;
   started = true;
   document.addEventListener('visibilitychange', () => (document.hidden ? disconnect() : connect()));
+  // The phone remote switched on or off here: listen again, with or without its commands.
+  window.addEventListener('reelhouse:remote-target', () => {
+    disconnect();
+    connect();
+  });
   connect();
 }

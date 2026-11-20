@@ -172,6 +172,7 @@ fun SettingsScreen(onBack: () -> Unit, onLicences: () -> Unit, onPairTv: () -> U
             }
 
             PlaybackSection()
+            RemoteSection()
 
             Section("Downloads")
             Row(
@@ -279,3 +280,34 @@ internal fun Row2(label: String, value: String) {
 /** Material's, but off shows too: its thumb and border are the outline colour, here nearly the background. */
 @Composable
 private fun SettingSwitch(): SwitchColors = SwitchDefaults.colors(uncheckedThumbColor = Palette.TextDim, uncheckedBorderColor = Palette.TextFaint)
+
+/** The phone remote: whether a phone may control this device (on by default on a TV box), and what it is. */
+@Composable
+private fun RemoteSection() {
+    val c = LocalContext.current.container
+    val on by c.remoteTargetOn.collectAsState()
+    Section("Phone remote")
+    Row(
+        Modifier.fillMaxWidth().toggleable(on, null, TextRing, role = Role.Switch) { c.setRemoteTarget(it) }.padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text("Let your phone control this device")
+            Text(
+                "The Reelhouse app on your phone can play things here and pause, skip or stop them, while Reelhouse is " +
+                    "open here and the phone is on the same network.",
+                style = MaterialTheme.typography.bodySmall,
+                color = Palette.TextDim,
+            )
+        }
+        Switch(checked = on, onCheckedChange = null, colors = SettingSwitch())
+    }
+    if (!c.tvBox) {
+        Text(
+            "To play on a TV, a browser or Kodi with Reelhouse open on the same network, use the Cast button at the top of Home or a film's page.",
+            style = MaterialTheme.typography.bodySmall,
+            color = Palette.TextDim,
+            modifier = Modifier.padding(vertical = 4.dp),
+        )
+    }
+}

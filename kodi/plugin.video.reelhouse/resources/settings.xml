@@ -55,6 +55,11 @@
           <default>false</default>
           <control type="toggle"/>
         </setting>
+        <setting id="remote_control" type="boolean" label="30141" help="30142">
+          <level>0</level>
+          <default>true</default>
+          <control type="toggle"/>
+        </setting>
         <setting id="action_timeshift" type="action" label="30138" help="30139">
           <level>0</level>
           <data>InstallAddon(inputstream.ffmpegdirect)</data>

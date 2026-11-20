@@ -43,6 +43,8 @@ function streamDetails(req, row) {
     episodeEnd: row.episode_end,
     ip: clientIp(req),
     client: clientName(req),
+    // The sign-in it came with: the phone remote shows a device's stream as what it's playing (server/remote.js).
+    sessionId: req.sessionId || null,
   };
 }
 

@@ -25,6 +25,39 @@ def plugin_url(**params):
     return PLUGIN + '?' + urlencode(dict((k, v) for k, v in params.items() if v not in (None, '')))
 
 
+def play(item_id, start=0, queue=(), title=None):
+    """Plays a film or episode from `start` seconds, then the episodes in `queue` after it: [(id, what Kodi's player
+    is told of it)], as episode_queue() makes them, so Kodi's "Next" line says which comes next. The one starting
+    is told as it starts (plugin.play), as a fresh start: its subtitles start off (the service, subtitles.py)."""
+    playlist = xbmc.PlayList(xbmc.PLAYLIST_VIDEO)
+    playlist.clear()
+    for n, (iid, info) in enumerate([(item_id, {'title': title} if title else {})] + list(queue)):
+        li = xbmcgui.ListItem(info.get('title') or '')
+        li.setProperty('IsPlayable', 'true')
+        if n:
+            utils.set_video_info(li, info)
+        playlist.add(plugin_url(mode='play', id=int(iid), start=int(start) if n == 0 and start else None,
+                                fresh=1 if n == 0 else None, screens=1), li)
+    utils.ask_full_screen()
+    xbmc.Player().play(playlist)
+
+
+def episode_queue(api, episode):
+    """The episodes after one in its season (Kodi plays on into them)."""
+    if episode.get('type') != 'episode' or not episode.get('parentId'):
+        return []
+    try:
+        season = api.get('/api/items/{}'.format(int(episode['parentId'])))
+    except ApiError:
+        return []
+    eps = season.get('children') or []
+    ids = [e['id'] for e in eps]
+    if episode['id'] not in ids:
+        return []
+    show = (season.get('show') or {}).get('title')
+    return [(e['id'], model.player_info(e, show)) for e in eps[ids.index(episode['id']) + 1:]]
+
+
 class App(object):
     def __init__(self):
         self.api = connection.api()
@@ -141,35 +174,10 @@ class App(object):
     # ---------- playing ----------
 
     def play(self, item_id, start=0, queue=(), title=None):
-        """Plays a film or episode from `start` seconds, then the episodes in `queue` after it: [(id, what Kodi's player
-        is told of it)], as episode_queue() makes them, so Kodi's "Next" line says which comes next. The one starting
-        is told as it starts (plugin.play), as a fresh start: its subtitles start off (the service, subtitles.py)."""
-        playlist = xbmc.PlayList(xbmc.PLAYLIST_VIDEO)
-        playlist.clear()
-        for n, (iid, info) in enumerate([(item_id, {'title': title} if title else {})] + list(queue)):
-            li = xbmcgui.ListItem(info.get('title') or '')
-            li.setProperty('IsPlayable', 'true')
-            if n:
-                utils.set_video_info(li, info)
-            playlist.add(plugin_url(mode='play', id=int(iid), start=int(start) if n == 0 and start else None,
-                                    fresh=1 if n == 0 else None, screens=1), li)
-        utils.ask_full_screen()
-        xbmc.Player().play(playlist)
+        play(item_id, start, queue, title)
 
     def episode_queue(self, episode):
-        """The episodes after one in its season (Kodi plays on into them)."""
-        if episode.get('type') != 'episode' or not episode.get('parentId'):
-            return []
-        try:
-            season = self.api.get('/api/items/{}'.format(int(episode['parentId'])))
-        except ApiError:
-            return []
-        eps = season.get('children') or []
-        ids = [e['id'] for e in eps]
-        if episode['id'] not in ids:
-            return []
-        show = (season.get('show') or {}).get('title')
-        return [(e['id'], model.player_info(e, show)) for e in eps[ids.index(episode['id']) + 1:]]
+        return episode_queue(self.api, episode)
 
     def play_item(self, item, start=None):
         """Plays an item as its card or page has it: resuming unless told where to start."""

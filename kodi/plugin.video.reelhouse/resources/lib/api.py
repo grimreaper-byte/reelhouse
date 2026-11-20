@@ -147,9 +147,9 @@ class Api(object):
 
     # ---------- live updates ----------
 
-    def events(self, timeout=90):
-        """Opens Reelhouse's live update stream (see EventStream)."""
-        return EventStream(self, timeout)
+    def events(self, timeout=90, query=None):
+        """Opens Reelhouse's live update stream (see EventStream); `query` e.g. {'target': 'kodi'} (remote.py)."""
+        return EventStream(self, timeout, query)
 
     def host(self):
         return urlsplit(self.base_url).netloc
@@ -163,7 +163,7 @@ class EventStream(object):
     wakes such a read from another thread on every platform. So reads wait in short slices instead.
     """
 
-    def __init__(self, api, timeout):
+    def __init__(self, api, timeout, query=None):
         if not api.base_url:
             raise ApiError('No Reelhouse address set')
         self.stopped = threading.Event()
@@ -173,7 +173,8 @@ class EventStream(object):
         try:
             self.conn.connect()
             self.conn.sock = _StoppableSocket(self.conn.sock, self.stopped, timeout)
-            self.conn.request('GET', parts.path + '/api/events', headers=api.headers('text/event-stream'))
+            path = parts.path + '/api/events' + ('?' + urlencode(query) if query else '')
+            self.conn.request('GET', path, headers=api.headers('text/event-stream'))
             self.res = self.conn.getresponse()
         except (HTTPException, OSError) as err:
             self.conn.close()

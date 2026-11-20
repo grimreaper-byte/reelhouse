@@ -43,6 +43,9 @@ import app.reelhouse.android.data.model.TunnelResponse
 import app.reelhouse.android.data.model.TunnelSettings
 import app.reelhouse.android.data.model.User
 import app.reelhouse.android.data.model.UserResponse
+import app.reelhouse.android.data.remote.RemoteCommandSent
+import app.reelhouse.android.data.remote.RemoteTarget
+import app.reelhouse.android.data.remote.RemoteTargetsResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.KSerializer
@@ -300,6 +303,32 @@ class ReelhouseApi(
     suspend fun cancelPairing(id: String) {
         val b = base() ?: throw OfflineException()
         call("DELETE", joinUrl(b, "/api/me/pairings/${enc(id)}"), null, JsonObject.serializer(), 20_000, signedIn = true)
+    }
+
+    // ---------- the phone remote (server/remote.js) ----------
+
+    /** This person's devices on the same network as this phone, which it may control. */
+    suspend fun remoteTargets(): List<RemoteTarget> = get("/api/remote/targets", RemoteTargetsResponse.serializer()).targets
+
+    /** Sends one of them a command; the id comes back in its answer (ServerEvent.RemoteDone). */
+    suspend fun remoteCommand(targetId: String, type: String, itemId: Long?, start: Double?, position: Double?, seconds: Double?): String {
+        val b = base() ?: throw OfflineException()
+        return call("POST", joinUrl(b, "/api/remote/targets/${enc(targetId)}/commands"), buildJsonObject {
+            put("type", type)
+            itemId?.let { put("itemId", it) }
+            start?.let { put("start", it) }
+            position?.let { put("position", it) }
+            seconds?.let { put("seconds", it) }
+        }, RemoteCommandSent.serializer(), 15_000, signedIn = true).commandId
+    }
+
+    /** This device's answer to a phone's command (null [problem]: done). */
+    suspend fun remoteDone(commandId: String, problem: String?) {
+        val b = base() ?: throw OfflineException()
+        call("POST", joinUrl(b, "/api/remote/commands/${enc(commandId)}/done"), buildJsonObject {
+            put("ok", problem == null)
+            problem?.let { put("problem", it) }
+        }, JsonObject.serializer(), 15_000, signedIn = true)
     }
 
     // ---------- your picture ----------

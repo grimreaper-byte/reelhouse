@@ -14,6 +14,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import android.widget.Toast
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.platform.LocalContext
@@ -43,6 +45,9 @@ import app.reelhouse.android.ui.pair.PairScreen
 import app.reelhouse.android.ui.pair.PairTvScreen
 import app.reelhouse.android.ui.person.PersonScreen
 import app.reelhouse.android.ui.player.PlayerScreen
+import app.reelhouse.android.ui.player.resumePoint
+import app.reelhouse.android.ui.remote.MiniController
+import app.reelhouse.android.ui.remote.RemoteControlScreen
 import app.reelhouse.android.ui.recordings.RecordingSeriesScreen
 import app.reelhouse.android.ui.recordings.RecordingShowScreen
 import app.reelhouse.android.ui.recordings.RecordingsScreen
@@ -82,6 +87,9 @@ import kotlinx.serialization.Serializable
 /** [startAt] in seconds; -1 resumes where the item was left. */
 @Serializable data class PlayerKey(val itemId: Long, val startAt: Double = -1.0) : NavKey
 
+/** The phone remote: what plays on another device, and its buttons. */
+@Serializable data object RemoteControlKey : NavKey
+
 /** Pairing until there's a server, then the app. */
 @Composable
 fun ReelhouseRoot() {
@@ -105,12 +113,52 @@ private fun SignedIn() {
     val c = LocalContext.current.container
     val backStack = rememberNavBackStack(HomeKey)
     val back: () -> Unit = { backStack.removeLastOrNull() }
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val openRemote: () -> Unit = { if (backStack.lastOrNull() != RemoteControlKey) backStack.add(RemoteControlKey) }
+    // Play on this phone, or on the device the phone remote plays on (from where it was left: -1).
+    val play: (Long, Double) -> Unit = { id, at ->
+        if (c.remote.active.value != null) {
+            scope.launch {
+                val start = if (at >= 0) at else runCatching { resumePoint(c.api.item(id).item) }.getOrDefault(0.0)
+                c.remote.play(id, start)
+            }
+            openRemote()
+        } else {
+            backStack.add(PlayerKey(id, at))
+        }
+    }
     val itemNav = ItemNav(
         open = { id -> backStack.add(ItemKey(id)) },
-        play = { id, at -> backStack.add(PlayerKey(id, at)) },
+        play = play,
         person = { name, fromItem -> backStack.add(PersonKey(name, fromItem)) },
         back = back,
+        remote = openRemote,
     )
+
+    // A phone's commands for this device (the phone remote, when it may be controlled): a play opens the player
+    // (instead of one that's open); Stop leaves it; the rest go to the player on screen.
+    LaunchedEffect(Unit) {
+        c.remoteReceiver.commands.collect { cmd ->
+            val top = backStack.lastOrNull()
+            when {
+                cmd.type == "play" && cmd.itemId != null -> {
+                    if (top is PlayerKey || top is LiveKey) backStack.removeAt(backStack.lastIndex)
+                    backStack.add(PlayerKey(cmd.itemId, cmd.start ?: 0.0))
+                    cmd.from?.let { Toast.makeText(context, "Playing from $it", Toast.LENGTH_SHORT).show() }
+                    c.remoteReceiver.done(cmd)
+                }
+                cmd.type == "stop" && top is PlayerKey -> {
+                    backStack.removeAt(backStack.lastIndex)
+                    c.remoteReceiver.done(cmd)
+                }
+                else -> {
+                    val player = c.remoteReceiver.player.takeIf { top is PlayerKey }
+                    c.remoteReceiver.done(cmd, if (player == null) "Nothing is playing on ${c.deviceName}" else player(cmd))
+                }
+            }
+        }
+    }
     // The sidebar (Sidebar.kt) beside every screen but the player.
     SidebarFrame(backStack, hidden = backStack.lastOrNull().let { it is PlayerKey || it is LiveKey }) { menu ->
         NavDisplay(
@@ -131,6 +179,7 @@ private fun SignedIn() {
                             settings = { backStack.add(SettingsKey) },
                             downloads = { backStack.add(DownloadsKey) },
                             menu = menu,
+                            remote = openRemote,
                         ),
                     )
                 }
@@ -150,9 +199,22 @@ private fun SignedIn() {
                     RecordingShowScreen(key.key, key.title, key.everyone, onOpenSeries = { season -> backStack.add(RecordingSeriesKey(key.key, key.title, season, key.everyone)) }, onBack = back)
                 }
                 entry<RecordingSeriesKey> { key -> RecordingSeriesScreen(key.key, key.title, key.season, key.everyone, onBack = back) }
-                entry<PlayerKey> { key -> PlayerScreen(key.itemId, key.startAt, onBack = back) }
+                entry<PlayerKey> { key ->
+                    PlayerScreen(key.itemId, key.startAt, onBack = back, onCast = { id, at ->
+                        // Handed over to another device: it carries on there from here.
+                        backStack.removeAt(backStack.lastIndex)
+                        c.remote.play(id, at)
+                        openRemote()
+                    })
+                }
+                entry<RemoteControlKey> { RemoteControlScreen(onBack = back) }
             },
         )
+        // While the phone plays on another device: what's playing there, along the bottom (not over a player).
+        val top = backStack.lastOrNull()
+        if (top !is PlayerKey && top !is LiveKey && top != RemoteControlKey) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) { MiniController(onOpen = openRemote) }
+        }
     }
 
     // A TV's code scanned with the camera app: Pair a TV takes it from there.
@@ -166,7 +228,6 @@ private fun SignedIn() {
 
     // A pairing link opened while already paired: offer to switch.
     val pending by c.pendingPairLink.collectAsState()
-    val scope = rememberCoroutineScope()
     pending?.let { link ->
         val profile by c.store.profile.collectAsState()
         AlertDialog(

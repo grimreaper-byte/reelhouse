@@ -105,6 +105,20 @@ time, Android asks to allow Reelhouse to install apps.
 - A download is the original file. If the phone can't play it as it is (some phones can't play 10-bit HEVC, for
   example), Reelhouse converts it while you're connected; offline, the player says so.
 
+## The phone as a remote
+
+Since 0.15.0 (with Reelhouse 0.25.0) the app can play on, and control, your other devices on the same network:
+Reelhouse open in a browser, Kodi with the Reelhouse add-on, and the app on a TV box. The **Cast** button at the top
+of Home (and on film and episode pages) appears when one is about; pick a device in **Play on**, and Play goes there.
+A bar along the bottom shows what's playing; touch it for the remote (pause, back 10 s, forward 30 s, a seek bar,
+previous and next episode, Stop, Disconnect), with the film's cover (an episode's show's) behind it. In the app's own
+player the Cast button hands what's playing over at the current position. Downloads always play on the phone.
+
+On a TV box the app takes a phone's commands while it's open (**Settings → Phone remote**, on by default there). On a
+phone or tablet that switch is off until you turn it on. The top bar's connection status is a coloured dot after the
+name (green at home, amber through the tunnel or the web address, red offline); touch it, or see Settings, for the
+words.
+
 ## On a Fire TV or Android TV box
 
 The app runs on a box with Android 7.1 or newer (a Fire TV Stick 4K on Fire OS 6 is the one it's been tried on). It knows

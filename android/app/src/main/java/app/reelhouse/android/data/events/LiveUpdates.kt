@@ -8,17 +8,21 @@ import app.reelhouse.android.data.AppJson
 import app.reelhouse.android.data.connection.ConnectionManager
 import app.reelhouse.android.data.joinUrl
 import app.reelhouse.android.data.model.Defaults
+import app.reelhouse.android.data.remote.RemoteCommand
+import app.reelhouse.android.data.remote.RemoteState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.jsonArray
@@ -52,6 +56,18 @@ sealed interface ServerEvent {
 
     /** Events may have been missed (e.g. while the app was in the background): refresh everything. */
     data object Resync : ServerEvent
+
+    /** The phone remote (data/remote): one of this person's devices came or went: ask for the list again. */
+    data object RemoteTargetsChanged : ServerEvent
+
+    /** What one of them plays changed (null: nothing now). */
+    data class RemoteStateChanged(val targetId: String, val state: RemoteState?) : ServerEvent
+
+    /** A device answered a command this phone sent; [problem] says what went wrong ("blocked", or a sentence). */
+    data class RemoteDone(val id: String, val ok: Boolean, val problem: String?) : ServerEvent
+
+    /** A phone's command for this device (while a phone may control it). */
+    data class RemoteCommandReceived(val command: RemoteCommand) : ServerEvent
 }
 
 /** Parses one server-sent event (server/events.js). Null for events the app doesn't use. */
@@ -65,6 +81,17 @@ fun parseServerEvent(type: String?, data: String): ServerEvent? = runCatching {
         "defaults" -> ServerEvent.DefaultsChanged(AppJson.decodeFromJsonElement(Defaults.serializer(), obj))
         "livetv" -> ServerEvent.LiveTvChanged
         "requests" -> ServerEvent.RequestsChanged(obj.long("count")?.toInt() ?: 0)
+        "remote-targets" -> ServerEvent.RemoteTargetsChanged
+        "remote-state" -> ServerEvent.RemoteStateChanged(
+            obj["targetId"]?.jsonPrimitive?.content ?: return null,
+            obj["state"]?.takeIf { it !is JsonNull }?.let { AppJson.decodeFromJsonElement(RemoteState.serializer(), it) },
+        )
+        "remote-done" -> ServerEvent.RemoteDone(
+            obj["id"]?.jsonPrimitive?.content ?: return null,
+            obj["ok"]?.jsonPrimitive?.booleanOrNull != false,
+            obj["problem"]?.takeIf { it !is JsonNull }?.jsonPrimitive?.content,
+        )
+        "remote" -> ServerEvent.RemoteCommandReceived(AppJson.decodeFromJsonElement(RemoteCommand.serializer(), obj))
         else -> null
     }
 }.getOrNull()
@@ -73,9 +100,16 @@ private fun JsonObject.long(key: String) = this[key]?.jsonPrimitive?.longOrNull
 
 /**
  * Keeps Reelhouse's live update stream (GET /api/events) open while the app is on screen and connected, on whatever
- * route is current, and passes the events on.
+ * route is current, and passes the events on. [query] is what the stream is opened with: whether this phone wants to
+ * hear about the devices it can control, and whether a phone may control this one (server/remote.js); a change
+ * opens it again.
  */
-class LiveUpdates(client: OkHttpClient, private val connection: ConnectionManager, private val scope: CoroutineScope) {
+class LiveUpdates(
+    client: OkHttpClient,
+    private val connection: ConnectionManager,
+    private val scope: CoroutineScope,
+    private val query: StateFlow<String>,
+) {
     // The server sends a keepalive every 25 s; a minute of silence means the connection is dead.
     private val sse = EventSources.createFactory(client.newBuilder().readTimeout(70, TimeUnit.SECONDS).build())
     private val _events = MutableSharedFlow<ServerEvent>(extraBufferCapacity = 64)
@@ -96,19 +130,19 @@ class LiveUpdates(client: OkHttpClient, private val connection: ConnectionManage
             }
         })
         job = scope.launch {
-            combine(connection.state, foreground) { state, fg -> state.route?.baseUrl.takeIf { fg } }
+            combine(connection.state, foreground, query) { state, fg, q -> state.route?.baseUrl?.takeIf { fg }?.let { it to q } }
                 .distinctUntilChanged()
-                .collectLatest { base -> if (base != null) stream(base) }
+                .collectLatest { open -> if (open != null) stream(open.first, open.second) }
         }
     }
 
     /** Streams from [base] until cancelled (route change, background), reconnecting after drops. */
-    private suspend fun stream(base: String) {
+    private suspend fun stream(base: String, query: String) {
         var source: EventSource? = null
         try {
             while (true) {
                 val closed = kotlinx.coroutines.CompletableDeferred<Unit>()
-                val request = Request.Builder().url(joinUrl(base, "/api/events")).header("Accept", "text/event-stream").build()
+                val request = Request.Builder().url(joinUrl(base, "/api/events$query")).header("Accept", "text/event-stream").build()
                 source = sse.newEventSource(request, object : EventSourceListener() {
                     override fun onEvent(eventSource: EventSource, id: String?, type: String?, data: String) {
                         if (type == "hello") {

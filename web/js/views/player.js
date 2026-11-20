@@ -4,6 +4,7 @@ import { browserCaps } from '../caps.js';
 import { back, navigate } from '../router.js';
 import { preferredQuality, savePreferredQuality, getPrefs, setPrefs } from '../state.js';
 import { toast } from '../components.js';
+import { playerOpened, playerClosed } from '../remote-target.js';
 import { loadHls } from '../hls-loader.js';
 import { usableChapters, chapterIndex, nextChapter, previousChapter, chapterTitle, chapterLabel } from '../chapters.js';
 
@@ -117,6 +118,11 @@ class Player {
     this.panel = null;
     this.startSeq = 0;
     this.resumeAt = null; // position a (re)start will resume at, while the new stream loads
+    // How the first start went, for the phone remote: 'playing', 'blocked' (the browser wants a press of Play) or
+    // 'failed'.
+    this.started = new Promise((resolve) => {
+      this.markStarted = resolve;
+    });
     const prefs = getPrefs();
     this.itemPrefs = loadItemPrefs(item.id);
     const audioIndex = this.itemPrefs.audio ?? null;
@@ -130,6 +136,7 @@ class Player {
     };
     this.build(prefs);
     this.bind();
+    playerOpened(this);
     void this.start(startAt);
   }
 
@@ -385,6 +392,7 @@ class Player {
       });
     } catch (err) {
       if (stale()) return;
+      this.markStarted('failed');
       this.showMessage('Can’t play this right now', err.message, [{ label: 'Try again', primary: true, onClick: () => this.start(at) }]);
       return;
     }
@@ -430,6 +438,7 @@ class Player {
         this.video.src = info.url;
         this.seekOnLoad(at);
       } else {
+        this.markStarted('failed');
         this.showMessage('Unsupported browser', 'This browser can’t play converted video streams.', []);
         return;
       }
@@ -438,10 +447,12 @@ class Player {
     this.refreshPanel();
     try {
       await this.video.play();
+      this.markStarted('playing');
     } catch (err) {
       if (err.name === 'NotAllowedError') {
         this.setSpinner(false);
         this.showBigPlay();
+        this.markStarted('blocked');
       }
     }
   }
@@ -650,6 +661,12 @@ class Player {
   }
 
   // ---------- progress & UI updates ----------
+
+  /** A progress report now, not at the next heartbeat (after the phone remote changed something). */
+  reportNow() {
+    this.lastReport = 0;
+    this.report(this.video.paused ? 'paused' : 'playing');
+  }
 
   report(state, { keepalive = false } = {}) {
     if (!this.info || this.stoppedReported) return;
@@ -1217,6 +1234,7 @@ class Player {
     if (this.destroyed) return;
     this.report('stopped', { keepalive: true });
     this.destroyed = true;
+    playerClosed(this);
     clearInterval(this.reportTimer);
     clearInterval(this.countdownTimer);
     clearTimeout(this.idleTimer);

@@ -11,7 +11,7 @@ import traceback
 import xbmc
 import xbmcgui
 
-from . import connection, live_osd, subtitles, utils
+from . import connection, live_osd, remote, subtitles, utils
 from .api import Api, ApiError
 from .kodidb import KodiDbError
 from .sync import SyncAborted, Syncer
@@ -226,6 +226,7 @@ class Service(xbmc.Monitor):
         self.last_full = 0.0
         self.live_generation = 0
         self.live_stream = None
+        self.live_query = None          # what the live stream was opened with (remote.py: as a target or not)
         self.rejected = False
         self.out_of_date = False        # a sync failed for lack of a connection: sync once Reelhouse is back
         self.outbox = queue.Queue()     # progress reports and watched marks, sent in order by one thread
@@ -320,6 +321,9 @@ class Service(xbmc.Monitor):
 
     def onSettingsChanged(self):
         self.rejected = False
+        # The phone remote switched on or off: listen again, as a target or not.
+        if self.live_stream and remote.events_query() != self.live_query:
+            self.restart_live()
 
     def request_sync(self, library_id=None, user=False):
         with self.jobs_lock:
@@ -524,7 +528,8 @@ class Service(xbmc.Monitor):
                     return
                 continue
             try:
-                stream = Api(utils.setting('server_url'), utils.setting('device_token')).events()
+                self.live_query = remote.events_query()
+                stream = Api(utils.setting('server_url'), utils.setting('device_token')).events(query=self.live_query)
                 self.live_stream = stream
                 if generation != self.live_generation:
                     stream.close()  # restarted while connecting
@@ -547,6 +552,8 @@ class Service(xbmc.Monitor):
                         self.changed()
                     elif event == 'livetv':
                         self.changed()  # e.g. channels in Continue Watching turned on or off
+                    elif event == 'remote':
+                        remote.handle(self.player, data)  # the phone remote: one at a time, in order
             except ApiError as err:
                 if err.status == 401:
                     self.on_rejected()

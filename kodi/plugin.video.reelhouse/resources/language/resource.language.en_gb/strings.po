@@ -243,3 +243,15 @@ msgstr ""
 msgctxt "#30140"
 msgid "InputStream FFmpeg Direct offered"
 msgstr ""
+
+msgctxt "#30141"
+msgid "Let your phone control Kodi"
+msgstr ""
+
+msgctxt "#30142"
+msgid "The Reelhouse app on your phone can play films and episodes here and pause, skip or stop them, when your phone is on the same network as this Kodi."
+msgstr ""
+
+msgctxt "#30143"
+msgid "Playing from %s"
+msgstr ""

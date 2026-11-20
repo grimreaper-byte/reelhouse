@@ -141,6 +141,7 @@ yet.
 | Reelhouse address, Sign in…, Sign out | The server and account. Signing out offers to remove the Reelhouse items from Kodi. |
 | Open Reelhouse | Opens Reelhouse's own screens (see above). |
 | Open Reelhouse when Kodi starts | Off by default. Kodi opens straight into Reelhouse's screens. |
+| Let your phone control Kodi | On by default (add-on 0.15.0, Reelhouse 0.25.0). The Reelhouse app on your phone, on the same network, can play films and episodes here and pause, skip, seek or stop them; "Playing from …" says which phone. Needs Live updates on. |
 | Sync when Kodi starts | On by default. |
 | Live updates | On by default. Keeps a connection open to Reelhouse while Kodi runs. |
 | Full check every | Never, 15 or 30 minutes, an hour (default), 3 or 12 hours. |
@@ -155,6 +156,8 @@ yet.
 - If Reelhouse can't be reached, watched marks and resume points from Kodi wait and are sent when it's back (as long
   as Kodi stays open), and Kodi catches up on anything that changed meanwhile.
 - Kodi's **Clean library** and **Update library** leave the synced items alone; removals come from Reelhouse.
+- The phone remote waits for whatever Kodi is opening to start before it opens the next thing: Kodi quits if two
+  items open at once (its "two concurrent busy dialogs" error), so Next pressed twice quickly takes a moment.
 - Signing in again replaces this Kodi's earlier sign-in. Kodi gets a new entry under Apps and devices, and the old
   one is signed out.
 - Don't also add your media folders to Kodi as a normal video source: you'd get every title twice.

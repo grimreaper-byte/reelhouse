@@ -13,6 +13,7 @@ import adminRoutes from './routes/admin.js';
 import liveTvRoutes from './routes/livetv.js';
 import syncRoutes from './routes/sync.js';
 import requestRoutes from './routes/requests.js';
+import remoteRoutes from './routes/remote.js';
 import kodiRoutes from './kodi.js';
 import androidRoutes from './android.js';
 
@@ -62,7 +63,7 @@ export function createApp() {
 
   app.use('/api', express.json({ limit: '1mb' }), authenticate, csrfGuard);
   // adminRoutes guards everything that reaches it (router.use(requireAdmin)), so it goes last.
-  app.use('/api', authRoutes, libraryRoutes, playbackRoutes, syncRoutes, liveTvRoutes, requestRoutes, adminRoutes);
+  app.use('/api', authRoutes, libraryRoutes, playbackRoutes, syncRoutes, liveTvRoutes, requestRoutes, remoteRoutes, adminRoutes);
   app.use('/api', (req, res) => res.status(404).json({ error: 'Not found' }));
 
   // The Kodi add-on, for Kodi's "Install from zip file", and the Android app for phones to install.

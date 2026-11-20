@@ -79,7 +79,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.material.icons.filled.CastConnected
 import app.reelhouse.android.container
+import app.reelhouse.android.ui.remote.CastButton
+import app.reelhouse.android.ui.remote.castingTo
 import app.reelhouse.android.data.model.CastMember
 import app.reelhouse.android.data.model.Item
 import app.reelhouse.android.data.model.ItemDetails
@@ -118,6 +121,8 @@ class ItemNav(
     /** A cast member's page, with the movie or show they were picked from. */
     val person: (String, Long) -> Unit,
     val back: () -> Unit,
+    /** The phone remote's screen (ui/remote). */
+    val remote: () -> Unit = {},
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -174,6 +179,7 @@ fun ItemScreen(id: Long, nav: ItemNav) {
                     title = { Text(details.data?.let { titleFor(it) } ?: "", maxLines = 1, overflow = TextOverflow.Ellipsis) },
                     navigationIcon = { IconButton(onClick = nav.back) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } },
                     actions = {
+                        CastButton(onRemote = nav.remote)
                         // A film with more than one copy (SD and HD, say): pick which one to play.
                         if ((details.data?.item?.versions?.size ?: 0) > 1) {
                             Box {
@@ -409,6 +415,14 @@ private fun PlayButtons(d: ItemDetails, nav: ItemNav) {
                 Spacer(Modifier.width(6.dp))
                 Text("Play ${next.episodeLabel ?: next.title}")
             }
+        }
+    }
+    // Playing on another device (the phone remote): Play goes there.
+    castingTo()?.let { target ->
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
+            Icon(Icons.Filled.CastConnected, contentDescription = null, tint = Palette.Accent, modifier = Modifier.size(16.dp))
+            Spacer(Modifier.width(6.dp))
+            Text("Plays on ${target.name}", style = MaterialTheme.typography.bodySmall, color = Palette.Accent)
         }
     }
 }

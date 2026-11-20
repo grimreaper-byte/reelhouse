@@ -12,7 +12,13 @@ import app.reelhouse.android.data.downloads.DownloadManager
 import app.reelhouse.android.data.downloads.DownloadStore
 import app.reelhouse.android.data.downloads.FileDownloader
 import app.reelhouse.android.data.downloads.downloadsToRemove
+import app.reelhouse.android.data.remote.RemoteControl
+import app.reelhouse.android.data.remote.RemoteReceiver
 import app.reelhouse.android.data.update.AppUpdater
+import app.reelhouse.android.ui.common.isRemoteDevice
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -39,6 +45,17 @@ class AppContainer(app: Application) {
     val prefs = Prefs(app)
     val deviceName: String = deviceName()
 
+    /** Driven with a remote (a Fire TV, a TV box): a device the phone remote controls, not one that controls. */
+    val tvBox: Boolean = isRemoteDevice(app)
+
+    /** Whether a phone may control this device (Settings; on by default on a TV box only). */
+    val remoteTargetOn = MutableStateFlow(prefs.remoteTarget ?: tvBox)
+
+    fun setRemoteTarget(on: Boolean) {
+        prefs.remoteTarget = on
+        remoteTargetOn.value = on
+    }
+
     /** A message for the pairing screen, e.g. why this device was signed out. */
     val notice = MutableStateFlow<String?>(null)
 
@@ -51,7 +68,19 @@ class AppContainer(app: Application) {
     val http: OkHttpClient = Http.client(::tokenFor)
     val api: ReelhouseApi = ReelhouseApi(http, base = { connection.baseUrl }, onUnauthorized = ::signedOutByServer)
     val connection: ConnectionManager = ConnectionManager(app, store, api, RoutePlanner(GoTunnels), scope)
-    val live = LiveUpdates(http, connection, scope)
+    // The live stream says what this device is to the phone remote: a phone hears about the devices it can control,
+    // and a device a phone may control takes its commands.
+    private val liveQuery: StateFlow<String> = remoteTargetOn
+        .map { on ->
+            listOfNotNull(
+                "controller=1".takeIf { !tvBox },
+                (if (tvBox) "target=tv" else "target=phone").takeIf { on },
+            ).joinToString("&").let { if (it.isEmpty()) "" else "?$it" }
+        }
+        .stateIn(scope, SharingStarted.Eagerly, "")
+    val live = LiveUpdates(http, connection, scope, liveQuery)
+    val remote = RemoteControl(api, live, connection, scope)
+    val remoteReceiver = RemoteReceiver(api, scope)
     val downloadStore = DownloadStore(File(app.getExternalFilesDir(null) ?: app.filesDir, "downloads"))
     val fileDownloader = FileDownloader(http)
     val downloads = DownloadManager(app, downloadStore, prefs, connection, store)
@@ -80,6 +109,7 @@ class AppContainer(app: Application) {
         scope.launch {
             live.events.collect { e ->
                 when (e) {
+                    is ServerEvent.RemoteCommandReceived -> if (remoteTargetOn.value) remoteReceiver.received(e.command)
                     is ServerEvent.DefaultsChanged -> connection.serverDefaultsChanged(e.defaults)
                     ServerEvent.Resync, ServerEvent.LiveTvChanged -> connection.refreshServerDefaults()
                     is ServerEvent.RequestsChanged -> connection.requestsChanged(e.count)
@@ -87,6 +117,7 @@ class AppContainer(app: Application) {
                 }
             }
         }
+        if (!tvBox) remote.start()
         downloads.schedule() // carries on with anything queued before the app stopped
     }
 

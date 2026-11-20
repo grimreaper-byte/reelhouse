@@ -1,5 +1,6 @@
 package app.reelhouse.android.ui.player
 
+import app.reelhouse.android.data.remote.RemoteCommand
 import android.content.Context
 import android.net.Uri
 import android.util.Log
@@ -154,8 +155,12 @@ class PlayerViewModel(private val c: AppContainer, context: Context, itemId: Lon
         }
     }
 
+    /** A phone's commands while this player is open (the phone remote; ui/Root.kt passes them on). */
+    private val remoteHandler: (RemoteCommand) -> String? = ::onRemoteCommand
+
     init {
         player.addListener(listener)
+        c.remoteReceiver.player = remoteHandler
         Log.i(TAG, "this phone plays: ${DeviceCaps.current.video.joinToString()} | ${DeviceCaps.current.audio.joinToString()}")
         viewModelScope.launch {
             runCatching { remoteDefault = c.api.me().defaults.remoteQuality }
@@ -667,7 +672,40 @@ class PlayerViewModel(private val c: AppContainer, context: Context, itemId: Lon
         player.pause()
     }
 
+    /**
+     * Does a phone's command (the phone remote): null when done, else what went wrong. Reports at once, so the phone
+     * shows the change rather than waiting for the next report.
+     */
+    private fun onRemoteCommand(cmd: RemoteCommand): String? {
+        if (info == null && cmd.type != "next" && cmd.type != "previous") return "Nothing is playing yet"
+        when (cmd.type) {
+            "pause" -> player.pause()
+            "resume" -> player.play()
+            "seek" -> player.seekTo(((cmd.position ?: return "No position").coerceAtLeast(0.0) * 1000).toLong())
+            "skip" -> player.seekTo(((position() + (cmd.seconds ?: return "No skip")).coerceAtLeast(0.0) * 1000).toLong())
+            "next", "previous" -> {
+                val id = cmd.itemId ?: return "No episode to go to"
+                countdownJob?.cancel()
+                _ui.update { it.copy(upNext = null) }
+                startJob?.cancel()
+                startJob = viewModelScope.launch { open(id, 0.0) }
+                return null
+            }
+            else -> return "This device doesn't know that one yet"
+        }
+        report(if (player.playWhenReady) PlayState.Playing else PlayState.Paused)
+        return null
+    }
+
+    /** What plays here and where it's got to, for carrying on on another device; the player here stops. */
+    fun handOver(): Pair<Long, Double>? {
+        if (_ui.value.item == null) return null
+        player.pause()
+        return itemId to position()
+    }
+
     override fun onCleared() {
+        if (c.remoteReceiver.player === remoteHandler) c.remoteReceiver.player = null
         if (!endedReported) report(PlayState.Stopped)
         info?.sessionId?.let { sid -> c.scope.launch { runCatching { c.api.endSession(sid) } } }
         player.removeListener(listener)

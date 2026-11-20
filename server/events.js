@@ -14,9 +14,10 @@ export const libraryVersion = () => `${boot}.${counter}`;
 
 /**
  * Open an event stream on an Express response. `currentUser()` is re-checked before each event,
- * so a signed-out session or revoked library access stops receiving updates.
+ * so a signed-out session or revoked library access stops receiving updates. Returns the client, for sendTo;
+ * `onClose(client)` is called once it has gone (closed, or dropped for a signed-out session).
  */
-export function openEventStream(req, res, currentUser) {
+export function openEventStream(req, res, currentUser, { onClose = null } = {}) {
   res.writeHead(200, {
     'Content-Type': 'text/event-stream; charset=utf-8',
     // no-transform keeps the compression middleware from buffering the stream.
@@ -24,27 +25,51 @@ export function openEventStream(req, res, currentUser) {
     'X-Accel-Buffering': 'no', // nginx: don't buffer
   });
   res.write(`retry: 5000\nevent: hello\ndata: ${JSON.stringify({ version: libraryVersion() })}\n\n`);
-  const client = { res, currentUser };
+  const client = { res, currentUser, onClose };
   clients.add(client);
   const ping = setInterval(() => res.write(': ping\n\n'), PING_MS);
   ping.unref();
-  req.on('close', () => {
-    clearInterval(ping);
-    clients.delete(client);
-  });
+  client.ping = ping;
+  req.on('close', () => drop(client));
+  return client;
+}
+
+function drop(client, end = false) {
+  if (!clients.delete(client)) return;
+  clearInterval(client.ping);
+  if (end) client.res.end();
+  client.onClose?.(client);
 }
 
 function send(type, data, allowed) {
   for (const client of clients) {
     const user = client.currentUser();
     if (!user) {
-      client.res.end();
-      clients.delete(client);
+      drop(client, true);
       continue;
     }
     if (allowed && !allowed(user)) continue;
     client.res.write(`event: ${type}\ndata: ${JSON.stringify(data)}\n\n`);
   }
+}
+
+/** One event for one open stream (the phone remote's commands, server/remote.js); false when it has gone. */
+export function sendTo(client, type, data) {
+  if (!clients.has(client)) return false;
+  if (!client.currentUser()) {
+    drop(client, true);
+    return false;
+  }
+  client.res.write(`event: ${type}\ndata: ${JSON.stringify(data)}\n\n`);
+  return true;
+}
+
+/** Whether a stream is still open (and its sign-in still valid). */
+export function streamOpen(client) {
+  if (!clients.has(client)) return false;
+  if (client.currentUser()) return true;
+  drop(client, true);
+  return false;
 }
 
 /** A library's items changed: { added, updated, removed } counts when known. */
