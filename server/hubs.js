@@ -1,6 +1,7 @@
 // Home's "Watched by Others" row: what other people on the server have been watching.
 import { all, placeholders } from './db.js';
 import { serializeMany } from './items.js';
+import { ratingSql } from './ratings.js';
 
 const OTHERS_DAYS = 60;
 const OTHERS_LIMIT = 24;
@@ -17,6 +18,7 @@ export function watchedByOthers(user, libIds) {
        FROM user_state us JOIN users u ON u.id = us.user_id JOIN items i ON i.id = us.item_id
       WHERE us.user_id != ? AND u.share_watching = 1 AND (us.watched = 1 OR us.position >= 30)
         AND i.type IN ('movie', 'episode') AND i.library_id IN (${placeholders(libIds)}) AND us.updated_at > ?
+        AND ${ratingSql(user)}
       ORDER BY us.updated_at DESC LIMIT 3000`,
     user.id,
     ...libIds,

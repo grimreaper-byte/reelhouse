@@ -25,12 +25,94 @@ class PlayerLogicTest {
     }
 
     @Test
-    fun `subtitles start off, a file's default track isn't shown and its forced ones still are`() {
+    fun `subtitles start off, Media3 follows neither a file's default flag nor its forced one`() {
         val params = subtitlesOffAtFirst(TrackSelectionParameters.Builder().setPreferredAudioLanguage("en").build())
-        assertEquals(C.SELECTION_FLAG_DEFAULT, params.ignoredTextSelectionFlags)
-        assertEquals(0, params.ignoredTextSelectionFlags and C.SELECTION_FLAG_FORCED)
+        assertEquals(C.SELECTION_FLAG_DEFAULT or C.SELECTION_FLAG_FORCED, params.ignoredTextSelectionFlags)
         assertEquals(listOf("en"), params.preferredAudioLanguages) // the rest is kept
         assertTrue(params.disabledTrackTypes.isEmpty())
+    }
+
+    @Test
+    fun `a lone track flagged forced is an ordinary one, so subtitles stay off`() {
+        // As The Big Bang Theory's: its only, full English track flagged forced (and default), named "English".
+        val lone = TextTrackFacts(language = "en", label = "English", forced = true, isDefault = true)
+        assertFalse(believedForced(lone, listOf(lone)))
+        assertEquals(-1, subtitleToShow(listOf(lone), audioLanguage = "en"))
+        val french = TextTrackFacts(language = "fr", label = "Français", forced = false)
+        assertEquals("another language doesn't make it forced", -1, subtitleToShow(listOf(lone, french), audioLanguage = "en"))
+    }
+
+    @Test
+    fun `forced parts beside a full track show for the audio's language, or when marked the default`() {
+        val full = TextTrackFacts(language = "en", label = "English", forced = false)
+        val parts = TextTrackFacts(language = "en", label = null, forced = true)
+        assertTrue(believedForced(parts, listOf(full, parts)))
+        assertFalse(believedForced(full, listOf(full, parts)))
+        assertEquals(1, subtitleToShow(listOf(full, parts), audioLanguage = "en"))
+        assertEquals("English parts aren't for French sound", -1, subtitleToShow(listOf(full, parts), audioLanguage = "fr"))
+        assertEquals(1, subtitleToShow(listOf(full, parts.copy(isDefault = true)), audioLanguage = null))
+        assertEquals("nothing forced: off", -1, subtitleToShow(listOf(full), audioLanguage = "en"))
+    }
+
+    @Test
+    fun `a title that says so is believed, and so is the server's flag on the tracks it hands over`() {
+        for (title in listOf("English (Forced)", "Foreign parts", "Signs & Songs", "Non-English parts")) {
+            val t = TextTrackFacts(language = "en", label = title, forced = true)
+            assertEquals(title, 0, subtitleToShow(listOf(t), audioLanguage = "en"))
+        }
+        val handed = TextTrackFacts(language = "en", label = "English", forced = true, fromServer = true)
+        assertEquals(0, subtitleToShow(listOf(handed), audioLanguage = "en"))
+        val unflagged = TextTrackFacts(language = "en", label = "English", forced = false, fromServer = true)
+        assertEquals(-1, subtitleToShow(listOf(unflagged), audioLanguage = "en"))
+    }
+
+    // Settings → Languages: how subtitles start, with the preferred language's codes (as the server sends them).
+    private val en = listOf("en", "eng")
+    private val fr = listOf("fr", "fre", "fra")
+    private val full = TextTrackFacts(language = "en", label = "English", forced = false, isDefault = true)
+    private val sdh = TextTrackFacts(language = "en", label = "English", forced = false, sdh = true)
+    private val parts = TextTrackFacts(language = "en", label = "English (forced)", forced = true)
+    private val french = TextTrackFacts(language = "fr", label = "Français", forced = false)
+    private val all = listOf(sdh, full, parts, french)
+
+    @Test
+    fun `off shows nothing, forced parts included`() {
+        assertEquals(-1, subtitleToShow(all, "en", SubtitlePrefs("off", en)))
+    }
+
+    @Test
+    fun `always shows the preferred language's full track, before SDH and never a forced one`() {
+        assertEquals(1, subtitleToShow(all, "en", SubtitlePrefs("always", en)))
+        assertEquals(3, subtitleToShow(all, "en", SubtitlePrefs("always", fr)))
+        assertEquals("SDH when it's the only full one", 0, subtitleToShow(listOf(sdh, parts), "en", SubtitlePrefs("always", en)))
+        assertEquals("none in it: the forced parts, as usual", 2, subtitleToShow(all, "en", SubtitlePrefs("always", listOf("de", "ger", "deu"))))
+    }
+
+    @Test
+    fun `foreign shows the preferred language only while the sound is in another one`() {
+        assertEquals("French sound: English subtitles", 1, subtitleToShow(all, "fr", SubtitlePrefs("foreign", en)))
+        assertEquals("English sound: the forced parts", 2, subtitleToShow(all, "en", SubtitlePrefs("foreign", en)))
+        assertEquals("a region is the same language", 2, subtitleToShow(all, "en-us", SubtitlePrefs("foreign", en)))
+        assertEquals("sound in an unknown language: as forced", -1, subtitleToShow(all, null, SubtitlePrefs("foreign", en)))
+        assertEquals(-1, subtitleToShow(all, "und", SubtitlePrefs("foreign", en)))
+    }
+
+    @Test
+    fun `older servers say nothing, so forced parts only`() {
+        assertEquals(2, subtitleToShow(all, "en"))
+        assertTrue(inCodes("ENG", en) && inCodes("en-GB", en) && !inCodes(null, en) && !inCodes("fre", en))
+        assertTrue(sdhTitle("English (SDH)") && sdhTitle("Hearing Impaired") && !sdhTitle("English") && !sdhTitle(null))
+    }
+
+    @Test
+    fun `Android's caption setting is followed unless subtitles start off`() {
+        val start = TrackSelectionParameters.Builder().setPreferredTextLanguage("en").setPreferredTextRoleFlags(C.ROLE_FLAG_CAPTION).build()
+        val off = followCaptionSetting(start, follow = false, captionLanguages = listOf("en"), captionRoles = C.ROLE_FLAG_CAPTION)
+        assertTrue(off.preferredTextLanguages.isEmpty())
+        assertEquals(0, off.preferredTextRoleFlags)
+        val on = followCaptionSetting(off, follow = true, captionLanguages = listOf("en"), captionRoles = C.ROLE_FLAG_CAPTION)
+        assertEquals(listOf("en"), on.preferredTextLanguages)
+        assertEquals(C.ROLE_FLAG_CAPTION, on.preferredTextRoleFlags)
     }
 
     private fun item(position: Double, duration: Double?, watched: Boolean = false) =

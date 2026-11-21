@@ -2,7 +2,9 @@
 // same network listed, commands down that one stream, the answers back to the phone, and what each is playing.
 import { test, before, after, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
+import crypto from 'node:crypto';
 import fs from 'node:fs';
+import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 
@@ -16,10 +18,17 @@ const { setTunnelSecret } = await import('../server/remote/tunnel-identity.js');
 const { setPeerStatusForTests } = await import('../server/remote/apptunnel.js');
 const { publicIp } = await import('../server/remote/net.js');
 const { networkOf, networkOfIp, clearRemote } = await import('../server/remote.js');
-const { clearStreams } = await import('../server/activity.js');
+const { clearStreams, reportStream } = await import('../server/activity.js');
+
+/** A sign-in's id, as the server names it (server/auth.js: the token hash's first 16). */
+const sessionOf = (token) => crypto.createHash('sha256').update(token).digest('hex').slice(0, 16);
 
 let server;
 let base;
+let tvhServer;
+const CH_ONE = '1'.repeat(32);
+const CH_TWO = '2'.repeat(32);
+const CH_RADIO = '7'.repeat(32);
 const SECRET = 'tunnel-secret-for-tests';
 const H = { 'content-type': 'application/json', 'x-requested-with': 'reelhouse' };
 const streams = [];
@@ -124,9 +133,33 @@ before(async () => {
     run(`INSERT INTO items (id, library_id, type, title, sort_title, show_id, season_number, episode_number, file_path, duration, added_at, updated_at)
          VALUES (?, 2, 'episode', ?, ?, 10, 1, ?, ?, 1500, ?, ?)`, id, `Episode ${n}`, `episode ${n}`, n, `${file}.${n}`, t, t);
   }
+  // Rated films, for shared devices: what both people may see (kid is limited to 12, server/ratings.js).
+  for (const [id, title, rating] of [[2, 'R Film', 'R'], [3, 'PG Film', 'PG']]) {
+    run(`INSERT INTO items (id, library_id, type, title, sort_title, content_rating, file_path, duration, added_at, updated_at)
+         VALUES (?, 1, 'movie', ?, ?, ?, ?, 6000, ?, ?)`, id, title, title.toLowerCase(), rating, `${file}.${id}`, t, t);
+  }
   const pw = await hashPassword('a long password');
-  run(`INSERT INTO users (id, username, password_hash, is_admin, library_access, created_at) VALUES
-       (1, 'dave', ?, 1, NULL, ?), (2, 'sam', ?, 0, NULL, ?)`, pw, t, pw, t);
+  run(`INSERT INTO users (id, username, password_hash, is_admin, library_access, max_age, created_at) VALUES
+       (1, 'dave', ?, 1, NULL, NULL, ?), (2, 'sam', ?, 0, NULL, NULL, ?), (3, 'kid', ?, 0, NULL, 12, ?)`, pw, t, pw, t, pw, t);
+  // A Tvheadend with two TV channels and a radio station, for channels sent from the phone.
+  tvhServer = http.createServer((req, res) => {
+    const json = (data) => res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify(data));
+    const url = new URL(req.url, 'http://x');
+    req.resume();
+    req.on('end', () => {
+      if (url.pathname === '/api/channel/grid') {
+        return json({ entries: [
+          { uuid: CH_ONE, enabled: true, name: 'One', number: 1, tags: ['t'] },
+          { uuid: CH_TWO, enabled: true, name: 'Two', number: 2, tags: ['t'] },
+          { uuid: CH_RADIO, enabled: true, name: 'Radio One', number: 701, tags: ['r'] },
+        ] });
+      }
+      if (url.pathname === '/api/channeltag/grid') return json({ entries: [{ uuid: 't', name: 'TV channels' }, { uuid: 'r', name: 'Radio channels' }] });
+      return res.writeHead(403).end();
+    });
+  }).listen(0, '127.0.0.1');
+  await new Promise((r) => tvhServer.once('listening', r));
+  updateSettings({ liveTv: { enabled: true, url: `http://127.0.0.1:${tvhServer.address().port}/` } });
   run(`INSERT INTO tunnel_peers (id, user_id, name, public_key, preshared_key, address, created_at)
        VALUES ('p1', 1, 'Phone', 'PHONEKEY', 'x', '10.78.0.2', ?), ('p2', 1, 'Fire TV', 'TVKEY', 'x', '10.78.0.3', ?)`, t, t);
   updateSettings({ trustProxy: true });
@@ -148,10 +181,13 @@ beforeEach(async () => {
   clearStreams();
 });
 
-after(() => {
+after(async () => {
   for (const s of streams.splice(0)) s.close();
+  // The streams' ends tell the phones that could see them, which reads their sign-ins: before the database closes.
+  await new Promise((r) => setTimeout(r, 50));
   server?.closeAllConnections?.();
   server?.close();
+  tvhServer?.close();
   closeDb();
   fs.rmSync(dataDir, { recursive: true, force: true });
 });
@@ -269,7 +305,7 @@ test('what a device plays comes from its progress reports, and its owner’s pho
   assert.equal(heard.targetId, target.id);
   assert.deepEqual({ ...heard.state, age: 0 }, {
     itemId: 11, title: 'Episode 1', show: 'A Show', season: 1, episode: 1, position: 100, duration: 1500,
-    state: 'playing', live: false, age: 0,
+    state: 'playing', live: false, channel: null, radio: false, programme: null, age: 0,
   });
   await report('paused', 130);
   assert.equal((await phoneStream.next('remote-state')).state.state, 'paused');
@@ -317,4 +353,166 @@ test('a phone can only send so many commands a second', async () => {
   const statuses = await Promise.all(Array.from({ length: 30 }, () => command(phone, target.id, { type: 'pause' })));
   assert.ok(statuses.filter((s) => s.status === 202).length <= 20);
   assert.ok(statuses.some((s) => s.status === 429));
+});
+
+// ---------- phase 2 (0.26.0): what a device offers, channels, shared devices ----------
+
+test('a device says what it offers; the phone hears it, picks from it, and nothing else', async () => {
+  const phone = await signIn('dave', 'Pixel');
+  const tv = await signIn('dave', 'Fire TV');
+  const tvStream = await listen(tv, 'target=tv');
+  const phoneStream = await listen(phone, 'controller=1');
+  const [target] = await targets(phone);
+  assert.equal(target.controls, null, 'nothing reported yet');
+  const offer = {
+    audio: [{ id: 'a1', label: 'English · AC3 · 5.1' }, { id: 'a2', label: 'French' }], audioId: 'a1',
+    subtitles: [{ id: 's3', label: 'English' }], subtitleId: null, volume: 80, muted: false, canPause: true,
+  };
+  assert.equal((await call('POST', '/api/remote/status', { token: tv, body: offer })).status, 200);
+  const heard = await phoneStream.next('remote-state');
+  assert.equal(heard.targetId, target.id);
+  assert.deepEqual(heard.controls, offer);
+  assert.deepEqual((await targets(phone))[0].controls, offer);
+  assert.equal((await call('POST', '/api/remote/status', { token: phone, body: offer })).status, 404, 'the phone isn’t a device here');
+
+  const sent = async (body) => {
+    const r = await command(phone, target.id, body);
+    assert.equal(r.status, 202, JSON.stringify(r.data));
+    return tvStream.next('remote');
+  };
+  const audio = await sent({ type: 'audio', track: 'a2' });
+  assert.deepEqual([audio.type, audio.track], ['audio', 'a2']);
+  assert.equal((await sent({ type: 'subtitle', track: null })).track, null, 'subtitles off');
+  assert.equal((await sent({ type: 'volume', level: 35.4 })).level, 35);
+  assert.equal((await sent({ type: 'mute', muted: true })).muted, true);
+  assert.equal((await command(phone, target.id, { type: 'audio', track: 'a9' })).status, 409, 'not one it offered');
+  assert.equal((await command(phone, target.id, { type: 'subtitle', track: 'a1' })).status, 409, 'an audio id isn’t a subtitle');
+  assert.equal((await command(phone, target.id, { type: 'volume', level: 150 })).status, 400);
+
+  // Long lists and labels are cut down; an empty report (nothing playing) clears it.
+  const many = Array.from({ length: 50 }, (_, i) => ({ id: `a${i}`, label: 'x'.repeat(200) }));
+  await call('POST', '/api/remote/status', { token: tv, body: { audio: many, volume: null } });
+  const cut = (await phoneStream.next('remote-state')).controls;
+  assert.equal(cut.audio.length, 30);
+  assert.equal(cut.audio[0].label.length, 80);
+  assert.equal(cut.volume, null);
+  assert.equal((await command(phone, target.id, { type: 'volume', level: 20 })).status, 409, 'its volume can’t be changed from here');
+  await call('POST', '/api/remote/status', { token: tv, body: {} });
+  assert.equal((await phoneStream.next('remote-state')).controls, null);
+});
+
+test('a browser’s tabs each say what they offer for themselves', async () => {
+  const phone = await signIn('dave', 'Pixel');
+  const browser = await signIn('dave', 'Firefox');
+  const first = await listen(browser, 'target=web');
+  const second = await listen(browser, 'target=web');
+  const firstId = first.of('remote-hello')[0].targetId;
+  const secondId = second.of('remote-hello')[0].targetId;
+  await call('POST', '/api/remote/status', { token: browser, body: { targetId: firstId, volume: 10 } });
+  await call('POST', '/api/remote/status', { token: browser, body: { targetId: secondId, volume: 90 } });
+  assert.equal((await targets(phone))[0].controls.volume, 90, 'the tab listed (the last) shows its own');
+});
+
+test('channels: sent from the phone, checked, and next/previous change channel while one plays', async () => {
+  const phone = await signIn('dave', 'Pixel');
+  const tv = await signIn('dave', 'Fire TV');
+  const tvStream = await listen(tv, 'target=tv');
+  const [target] = await targets(phone);
+  const played = await command(phone, target.id, { type: 'play', channel: CH_ONE });
+  assert.equal(played.status, 202, JSON.stringify(played.data));
+  const cmd = await tvStream.next('remote');
+  assert.deepEqual([cmd.type, cmd.channel, cmd.radio, cmd.name], ['play', CH_ONE, false, 'One']);
+  assert.equal((await command(phone, target.id, { type: 'play', channel: 'f'.repeat(32) })).status, 404);
+
+  // The TV plays One (as the live TV route records it: its sign-in, the channel, what's on).
+  reportStream('live-1', {
+    userId: 1, username: 'dave', sessionId: sessionOf(tv), itemId: `live:${CH_ONE}`, title: 'One', channelUuid: CH_ONE,
+    radio: false, mode: 'live', programme: 'The News', state: 'playing', position: 5,
+  });
+  const state = (await targets(phone))[0].state;
+  assert.deepEqual([state.live, state.channel, state.radio, state.programme], [true, CH_ONE, false, 'The News']);
+  assert.equal(state.itemId, null, 'a channel isn’t an item (its stream says live:<uuid>)');
+  assert.equal((await command(phone, target.id, { type: 'next' })).status, 202);
+  const up = await tvStream.next('remote');
+  assert.deepEqual([up.type, up.channel, up.zap], ['play', CH_TWO, true], 'channel up: Two');
+  assert.equal((await command(phone, target.id, { type: 'previous' })).status, 202);
+  assert.equal((await tvStream.next('remote')).channel, CH_TWO, 'down from One goes round to Two: radio isn’t among TV channels');
+
+  updateSettings({ liveTv: { enabled: false } });
+  try {
+    assert.equal((await command(phone, target.id, { type: 'play', channel: CH_ONE })).status, 403, 'Live TV off');
+  } finally {
+    updateSettings({ liveTv: { enabled: true } });
+  }
+});
+
+test('a device shared with anyone at home: listed to others there, plays only what both may see, answers the sender', async () => {
+  const davesPhone = await signIn('dave', 'Pixel');
+  const samsPhone = await signIn('sam', 'Galaxy');
+  const kidsPhone = await signIn('kid', 'Tablet');
+  const davesTv = await signIn('dave', 'Living room TV');
+  const davesKodi = await signIn('dave', 'Bedroom Kodi');
+  const tvStream = await listen(davesTv, 'target=tv&shared=1');
+  await listen(davesKodi, 'target=kodi');
+  const samsStream = await listen(samsPhone, 'controller=1');
+  const davesStream = await listen(davesPhone, 'controller=1');
+
+  const seen = await targets(samsPhone);
+  assert.deepEqual(seen.map((t) => [t.name, t.owner]), [['Living room TV', 'dave']], 'only the shared one, with whose it is');
+  assert.deepEqual((await targets(davesPhone)).map((t) => [t.name, t.owner]).sort(), [['Bedroom Kodi', null], ['Living room TV', null]]);
+  assert.deepEqual(await targets(samsPhone, { ip: '198.51.100.7' }), [], 'not from another network');
+
+  const tvId = seen[0].id;
+  const sent = await command(samsPhone, tvId, { type: 'play', itemId: 1, start: 0 });
+  assert.equal(sent.status, 202);
+  const cmd = await tvStream.next('remote');
+  assert.equal(cmd.from, "sam's Galaxy", 'the TV says whose phone');
+  // The TV (dave's sign-in) answers; it goes to Sam's phone, not Dave's.
+  assert.equal((await call('POST', `/api/remote/commands/${cmd.id}/done`, { token: davesTv, body: { ok: true } })).status, 200);
+  assert.equal((await samsStream.next('remote-done')).id, cmd.id);
+  assert.equal(davesStream.of('remote-done').length, 0);
+
+  // A limited account (12) can't send an R film, nor one with no rating, to the shared TV; a PG one is fine.
+  assert.equal((await command(kidsPhone, tvId, { type: 'play', itemId: 2 })).status, 404);
+  assert.equal((await command(kidsPhone, tvId, { type: 'play', itemId: 1 })).status, 404);
+  assert.equal((await command(kidsPhone, tvId, { type: 'play', itemId: 3 })).status, 202);
+  // Not shared: nobody else gets it, even knowing its id.
+  const kodiId = (await targets(davesPhone)).find((t) => t.name === 'Bedroom Kodi').id;
+  assert.equal((await command(samsPhone, kodiId, { type: 'pause' })).status, 404);
+
+  // The other way round: a device of the limited account's, shared: Sam can't play the R film there either.
+  const kidsTv = await signIn('kid', 'Kids TV');
+  await listen(kidsTv, 'target=tv&shared=1');
+  const kidsTvId = (await targets(samsPhone)).find((t) => t.name === 'Kids TV').id;
+  assert.equal((await command(samsPhone, kidsTvId, { type: 'play', itemId: 2 })).status, 404);
+  assert.equal((await command(samsPhone, kidsTvId, { type: 'play', itemId: 3 })).status, 202);
+
+  // What the shared TV plays reaches Sam's phone too.
+  await call('POST', '/api/progress', { token: davesTv, body: { itemId: 1, playId: 'shared-1', position: 10, duration: 6000, state: 'playing', mode: 'direct' } });
+  assert.equal((await samsStream.next('remote-state')).state.itemId, 1);
+  await call('POST', '/api/progress', { token: davesTv, body: { itemId: 1, playId: 'shared-1', position: 12, duration: 6000, state: 'stopped', mode: 'direct' } });
+});
+
+test('a shared device playing what someone may not see: they see that it plays, not what', async () => {
+  const davesTv = await signIn('dave', 'Den TV');
+  const kidsPhone = await signIn('kid', 'Kids Tablet');
+  const samsPhone = await signIn('sam', 'Sam Phone');
+  await listen(davesTv, 'target=tv&shared=1');
+  const kidsStream = await listen(kidsPhone, 'controller=1');
+  const samsStream = await listen(samsPhone, 'controller=1');
+  // Dave's TV plays the R film: Sam (no limit) sees which; the kid (limited to 12) only that something plays.
+  await call('POST', '/api/progress', { token: davesTv, body: { itemId: 2, playId: 'den-1', position: 10, duration: 6000, state: 'playing', mode: 'direct' } });
+  // Both hear it at the same moment (each stream is new here, so its first remote-state is this one).
+  await until(() => samsStream.of('remote-state').length > 0 && kidsStream.of('remote-state').length > 0);
+  const toSam = samsStream.of('remote-state').at(-1);
+  assert.equal(toSam.state.title, 'R Film');
+  const toKid = kidsStream.of('remote-state').at(-1);
+  assert.equal(toKid.state.state, 'playing');
+  assert.equal(toKid.state.title, null, 'the title isn’t sent');
+  assert.equal(toKid.state.itemId, null);
+  const listed = (await targets(kidsPhone)).find((t) => t.name === 'Den TV');
+  assert.equal(listed.state.title, null, 'nor listed');
+  assert.equal(listed.state.state, 'playing');
+  assert.equal((await targets(samsPhone)).find((t) => t.name === 'Den TV').state.title, 'R Film');
+  await call('POST', '/api/progress', { token: davesTv, body: { itemId: 2, playId: 'den-1', position: 12, duration: 6000, state: 'stopped', mode: 'direct' } });
 });

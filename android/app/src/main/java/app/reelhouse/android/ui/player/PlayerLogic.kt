@@ -16,12 +16,97 @@ import java.util.Locale
 fun chooseQuality(atHome: Boolean, picked: String?, remoteDefault: String): String = picked ?: if (atHome) "original" else remoteDefault
 
 /**
- * Subtitles start off. Media3 would show the subtitle track a file marks as its default; only those it marks as
- * forced (the parts in another language) still show by themselves, and those in the language of Android's caption
- * setting when that's on. A pick in the player carries on to the next episode (PlayerViewModel's subtitleWish).
+ * Subtitles start as Settings → Languages says ([subtitleToShow]). Media3 would show the subtitle track a file marks
+ * as its default, and one it marks as forced (the parts in another language); it's told to follow neither, and only
+ * those in the language of Android's caption setting (when that's on) still come on by themselves, unless subtitles
+ * start off altogether ([followCaptionSetting]). The film player puts the chosen track on itself: forced ones only
+ * when they're believed, as some files flag their only, full track forced. A pick in the player carries on to the
+ * next episode (PlayerViewModel's subtitleWish).
  */
 fun subtitlesOffAtFirst(params: TrackSelectionParameters): TrackSelectionParameters =
-    params.buildUpon().setIgnoredTextSelectionFlags(C.SELECTION_FLAG_DEFAULT).build()
+    params.buildUpon().setIgnoredTextSelectionFlags(C.SELECTION_FLAG_DEFAULT or C.SELECTION_FLAG_FORCED).build()
+
+/**
+ * Whether Media3 may turn on subtitles in the language of Android's caption setting ([captionLanguages] and
+ * [captionRoles], as the player started with them): not when Reelhouse says subtitles start off, forced ones too.
+ */
+fun followCaptionSetting(
+    params: TrackSelectionParameters,
+    follow: Boolean,
+    captionLanguages: List<String>,
+    captionRoles: Int,
+): TrackSelectionParameters = params.buildUpon()
+    .setPreferredTextLanguages(*(if (follow) captionLanguages else emptyList()).toTypedArray())
+    .setPreferredTextRoleFlags(if (follow) captionRoles else 0)
+    .build()
+
+/** A subtitle track as the player has it, for [subtitleToShow]. */
+data class TextTrackFacts(
+    val language: String?,
+    val label: String?,
+    /** Flagged forced: by the file, or by the server for the tracks it hands over. */
+    val forced: Boolean,
+    val isDefault: Boolean = false,
+    /** Handed over by the server, which already decided whether its forced flag is believed. */
+    val fromServer: Boolean = false,
+    /** For the deaf and hard of hearing (sound effects too): after a language's full track. */
+    val sdh: Boolean = false,
+)
+
+/** How subtitles start (Settings → Languages): the server's mode and every code of the preferred language. */
+data class SubtitlePrefs(val mode: String = "forced", val codes: List<String> = emptyList())
+
+// As the server's (server/media/forced.js): a title that says the track is only some parts.
+private val FORCED_TITLE = Regex("forced|foreign|signs|songs|parts|non[ -]?english|narrative", RegexOption.IGNORE_CASE)
+
+// A title that says a track is for the deaf and hard of hearing.
+private val SDH_TITLE = Regex("""\bsdh\b|hearing[ -]impaired|\bcc\b""", RegexOption.IGNORE_CASE)
+
+/** Whether a track's title says it's for the deaf and hard of hearing. */
+fun sdhTitle(title: String?): Boolean = SDH_TITLE.containsMatchIn(title.orEmpty())
+
+/** A language as the server's codes list it: lower case, no region ("en-US" → "en"). */
+fun plainLanguage(code: String?): String = code.orEmpty().trim().lowercase(Locale.ROOT).split('-', '_').first()
+
+/** Whether a track's language is one of the server's codes for a language. */
+fun inCodes(code: String?, codes: List<String>): Boolean = plainLanguage(code).let { it.isNotEmpty() && it in codes }
+
+/**
+ * Whether a track flagged forced really is forced subtitles (only the parts in another language), as the server
+ * decides it: its title says so, or an ordinary track in the same language sits beside it. A release of The Big Bang
+ * Theory flags its only, full English track forced, which would otherwise come on for every episode.
+ */
+fun believedForced(track: TextTrackFacts, all: List<TextTrackFacts>): Boolean {
+    if (!track.forced) return false
+    if (track.fromServer || FORCED_TITLE.containsMatchIn(track.label.orEmpty())) return true
+    return all.any { it !== track && !it.forced && it.language == track.language }
+}
+
+/** The track to turn on in a language (its place), a full one before SDH and never a forced one; -1 for none. */
+fun preferredSubtitle(tracks: List<TextTrackFacts>, codes: List<String>): Int {
+    val same = tracks.withIndex().filter { inCodes(it.value.language, codes) && !believedForced(it.value, tracks) }
+    return (same.firstOrNull { !it.value.sdh } ?: same.firstOrNull())?.index ?: -1
+}
+
+/**
+ * The track to show when nothing was picked or carried on (its place in [tracks]), or -1 for none, as the web app
+ * and the Kodi add-on choose: none for "off"; for "always", or "foreign" while the sound is in another language than
+ * the preferred one, a track in that language; else (and for "forced") a believed forced one in the sound's
+ * language, or one marked as the default.
+ */
+fun subtitleToShow(tracks: List<TextTrackFacts>, audioLanguage: String?, prefs: SubtitlePrefs = SubtitlePrefs()): Int {
+    if (prefs.mode == "off") return -1
+    val audio = plainLanguage(audioLanguage)
+    val known = audio.isNotEmpty() && audio != "und"
+    if (prefs.mode == "always" || (prefs.mode == "foreign" && known && !inCodes(audio, prefs.codes))) {
+        val k = preferredSubtitle(tracks, prefs.codes)
+        if (k >= 0) return k
+    }
+    val forced = tracks.withIndex().filter { believedForced(it.value, tracks) }
+    val pick = forced.firstOrNull { known && plainLanguage(it.value.language) == audio }
+        ?: forced.firstOrNull { it.value.isDefault }
+    return pick?.index ?: -1
+}
 
 /**
  * Where to start: the resume point, unless it's within the last 30 s. A watched item that's being watched again

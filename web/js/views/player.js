@@ -1,10 +1,12 @@
 import { h, icon, clear, setChildren, formatTime, languageName, codecLabel, channelsLabel, episodeLabel, imgUrl } from '../dom.js';
 import { api } from '../api.js';
-import { browserCaps } from '../caps.js';
+import { browserCaps, VOLUME_SETTABLE } from '../caps.js';
 import { back, navigate } from '../router.js';
-import { preferredQuality, savePreferredQuality, getPrefs, setPrefs } from '../state.js';
+import { preferredQuality, savePreferredQuality, getPrefs, setPrefs, state } from '../state.js';
+import { chooseSubtitle, preferredSubtitle } from '../subtitle-choice.js';
 import { toast } from '../components.js';
-import { playerOpened, playerClosed } from '../remote-target.js';
+import { playerOpened, playerClosed, controlsChanged } from '../remote-target.js';
+import { toggleFullscreen, playerLeft } from '../fullscreen.js';
 import { loadHls } from '../hls-loader.js';
 import { usableChapters, chapterIndex, nextChapter, previousChapter, chapterTitle, chapterLabel } from '../chapters.js';
 
@@ -56,16 +58,6 @@ const clampMs = (value, max) => {
   return Number.isFinite(n) ? Math.max(-max, Math.min(max, n)) : 0;
 };
 
-// iOS keeps the volume under the hardware buttons: setting it from a page is silently ignored.
-const VOLUME_SETTABLE = (() => {
-  try {
-    const v = document.createElement('video');
-    v.volume = 0.5;
-    return v.volume === 0.5;
-  } catch {
-    return false;
-  }
-})();
 
 const formatOffset = (ms) => (ms ? `${ms > 0 ? '+' : '−'}${Math.abs(ms)} ms` : '0 ms');
 
@@ -281,6 +273,7 @@ class Player {
       this.volumeRange.value = String(v.muted ? 0 : v.volume);
       this.volumeLabel.textContent = String(v.muted ? 0 : Math.round(v.volume * 100));
       setPrefs({ volume: v.volume, muted: v.muted });
+      controlsChanged();
     });
     // A tap outside the (touch-opened) volume slider closes it, without also acting on the video.
     on(document, 'pointerdown', (e) => {
@@ -445,6 +438,7 @@ class Player {
     }
     this.applySubtitle();
     this.refreshPanel();
+    controlsChanged(); // the phone remote: this stream's audio and subtitle tracks
     try {
       await this.video.play();
       this.markStarted('playing');
@@ -612,14 +606,9 @@ class Player {
     if (!this.video.muted && this.video.volume === 0) this.video.volume = 0.5;
   }
 
-  async toggleFullscreen() {
-    try {
-      if (document.fullscreenElement) await document.exitFullscreen();
-      else if (this.root.requestFullscreen) await this.root.requestFullscreen();
-      else if (this.video.webkitEnterFullscreen) this.video.webkitEnterFullscreen();
-    } catch {
-      this.video.webkitEnterFullscreen?.();
-    }
+  /** The whole page full screen (fullscreen.js), so the next episode keeps it. */
+  toggleFullscreen() {
+    return toggleFullscreen(this.video);
   }
 
   async togglePip() {
@@ -654,10 +643,13 @@ class Player {
     navigate(`/play/${this.info.next.id}`, { replace: true });
   }
 
-  /** The episode the player goes on to starts with the subtitles showing now (a burned-in one's language too). */
+  /**
+   * The episode the player goes on to starts with the subtitles showing now (a burned-in one's language too); with
+   * them off, it starts with them off, forced ones too (turned off is meant to stay off).
+   */
   carrySubtitles(id) {
     const shown = this.currentSubtitleTrack();
-    carriedSubtitles = { id, shown: shown && !shown.forced ? { language: shown.language || null } : null };
+    carriedSubtitles = { id, off: !shown && !!this.subsTurnedOff, shown: shown && !shown.forced ? { language: shown.language || null } : null };
   }
 
   // ---------- progress & UI updates ----------
@@ -881,34 +873,34 @@ class Player {
     this.rememberItemPrefs({ audio: a.index });
     this.refreshPanel();
     this.restartWithSameTime();
+    controlsChanged();
   }
 
   /**
-   * Subtitles start off, except a file's own forced ones (the parts in another language) for the audio playing.
-   * Going on to the next or previous episode, the subtitles that were showing carry on.
+   * Subtitles start off, except a file's own forced ones (the parts in another language) for the audio playing; the
+   * server says which tracks really are forced (server/media/forced.js). Going on to the next or previous episode, the
+   * subtitles that were showing carry on, and subtitles turned off stay off.
    */
   pickDefaultSubtitle() {
     const tracks = this.info?.subtitleTracks || [];
-    const carried = carriedSubtitles?.id === this.item.id ? carriedSubtitles.shown : null;
+    const from = carriedSubtitles?.id === this.item.id ? carriedSubtitles : null;
+    const carried = from?.shown || null;
     carriedSubtitles = null;
-    const text = tracks.filter((t) => t.kind === 'text');
-    let pick = null;
-    if (carried) {
-      const lang = carried.language;
-      pick = text.find((t) => t.language === lang && !t.forced) || text.find((t) => t.language === lang) ||
-        (lang ? null : text.find((t) => !t.forced)) || null;
-    }
-    if (!pick) {
-      // A file's forced subtitles (the parts in another language): those for the audio playing.
-      const audio = (this.info?.audioTracks || []).find((a) => a.index === this.currentAudioIndex());
-      const forced = text.filter((t) => t.forced);
-      pick = forced.find((t) => audio?.language && t.language === audio.language) || forced.find((t) => t.isDefault) || null;
-    }
+    // Turned off in the episode before: off here too, and on to the next.
+    if (from?.off) this.subsTurnedOff = true;
+    // Else what the episode before showed, or as Settings → Languages says (subtitle-choice.js).
+    const audio = (this.info?.audioTracks || []).find((a) => a.index === this.currentAudioIndex());
+    const pick = chooseSubtitle(tracks, {
+      audioLanguage: audio?.language,
+      carried: from?.off ? { off: true } : carried,
+      subtitles: state.me?.defaults?.subtitles,
+    });
     this.subtitle = pick;
     this.prefs.subtitleOffsetMs = (pick && this.itemPrefs.subDelay?.[pick.id]) || 0;
   }
 
   selectSubtitle(track) {
+    this.subsTurnedOff = !track; // chosen: Off stays off for the episodes after this one
     this.prefs.subtitleOffsetMs = (track && this.itemPrefs.subDelay?.[track.id]) || 0;
     // Image subtitles (PGS/VobSub) must be burned into the video by the server.
     if (track?.kind === 'image') {
@@ -924,13 +916,57 @@ class Player {
     if (wasBurning) this.restartWithSameTime();
     else this.applySubtitle();
     this.refreshPanel();
+    controlsChanged();
+  }
+
+  // ---------- the phone remote (remote-target.js) ----------
+
+  /** What the phone may change here: the audio and subtitle tracks (as the Audio & subtitles panel offers), volume. */
+  remoteControls() {
+    const audio = (this.info?.audioTracks || []).map((a) => ({ id: `a${a.index}`, label: audioLabel(a) }));
+    const subtitles = (this.info?.subtitleTracks || []).filter((t) => t.kind !== 'unsupported')
+      .map((t) => ({ id: String(t.id), label: trackLabel(t) }));
+    const audioIndex = this.currentAudioIndex();
+    const sub = this.currentSubtitleTrack();
+    return {
+      audio,
+      audioId: audioIndex != null ? `a${audioIndex}` : audio[0]?.id ?? null,
+      subtitles,
+      subtitleId: sub ? String(sub.id) : null,
+      volume: VOLUME_SETTABLE ? Math.round(this.video.volume * 100) : null,
+      muted: this.video.muted,
+      canPause: true,
+    };
+  }
+
+  /** The phone picked an audio track ([id] from remoteControls); false when there's no such track. */
+  remoteAudio(id) {
+    const a = (this.info?.audioTracks || []).find((t) => `a${t.index}` === id);
+    if (!a) return false;
+    this.selectAudio(a);
+    return true;
+  }
+
+  /** The phone picked subtitles ([id] from remoteControls, or null for none); false when there's no such track. */
+  remoteSubtitle(id) {
+    if (id == null) {
+      this.selectSubtitle(null);
+      return true;
+    }
+    const t = (this.info?.subtitleTracks || []).find((s) => String(s.id) === id && s.kind !== 'unsupported');
+    if (!t) return false;
+    this.selectSubtitle(t);
+    return true;
   }
 
   cycleSubtitles() {
     const tracks = this.textTracks();
     if (!tracks.length) return;
-    const i = this.subtitle ? tracks.findIndex((t) => t.id === this.subtitle.id) : -1;
-    const next = i + 1 < tracks.length ? tracks[i + 1] : null;
+    // From off, the preferred language's first (Settings → Languages), then the others in the list's order.
+    const preferred = preferredSubtitle(tracks, state.me?.defaults?.subtitles?.codes);
+    const order = preferred ? [preferred, ...tracks.filter((t) => t.id !== preferred.id)] : tracks;
+    const i = this.subtitle ? order.findIndex((t) => t.id === this.subtitle.id) : -1;
+    const next = i + 1 < order.length ? order[i + 1] : null;
     this.selectSubtitle(next);
     this.osd(next ? `Subtitles: ${trackLabel(next)}` : 'Subtitles off');
   }
@@ -1243,7 +1279,7 @@ class Player {
     for (const fn of this.unbinders || []) fn();
     if (this.info?.sessionId) api.del(`/api/hls/${this.info.sessionId}`, { keepalive: true }).catch(() => {});
     this.teardownMedia();
-    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    playerLeft(); // full screen ends, unless the next episode is taking this player's place
     if ('mediaSession' in navigator) navigator.mediaSession.metadata = null;
   }
 }

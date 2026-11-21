@@ -2,6 +2,7 @@
 // change, so new files, removed files and freshly fetched posters show up without a reload.
 import crypto from 'node:crypto';
 import { canAccessLibrary } from './auth.js';
+import { appDefaults } from './settings.js';
 
 const PING_MS = 25000; // keeps proxies and NAT from dropping an idle stream
 const METADATA_EVERY_MS = 15000; // while posters are being fetched, update pages at most this often
@@ -24,7 +25,8 @@ export function openEventStream(req, res, currentUser, { onClose = null } = {}) 
     'Cache-Control': 'no-cache, no-transform',
     'X-Accel-Buffering': 'no', // nginx: don't buffer
   });
-  res.write(`retry: 5000\nevent: hello\ndata: ${JSON.stringify({ version: libraryVersion() })}\n\n`);
+  // The server-wide choices players follow come along (appDefaults), so one that connects or reconnects has them.
+  res.write(`retry: 5000\nevent: hello\ndata: ${JSON.stringify({ version: libraryVersion(), defaults: appDefaults() })}\n\n`);
   const client = { res, currentUser, onClose };
   clients.add(client);
   const ping = setInterval(() => res.write(': ping\n\n'), PING_MS);
@@ -41,6 +43,7 @@ function drop(client, end = false) {
   client.onClose?.(client);
 }
 
+/** [data] can be a function of the user, for an event whose contents differ from person to person. */
 function send(type, data, allowed) {
   for (const client of clients) {
     const user = client.currentUser();
@@ -49,7 +52,7 @@ function send(type, data, allowed) {
       continue;
     }
     if (allowed && !allowed(user)) continue;
-    client.res.write(`event: ${type}\ndata: ${JSON.stringify(data)}\n\n`);
+    client.res.write(`event: ${type}\ndata: ${JSON.stringify(typeof data === 'function' ? data(user) : data)}\n\n`);
   }
 }
 
@@ -78,6 +81,16 @@ export function libraryChanged(libraryId, changes = {}) {
   const data = { libraryId, version: libraryVersion(), ...changes };
   // A deleted library is gone from everyone's access list, but every page should drop it; a new order is for everyone.
   send('library', data, changes.deleted || changes.order ? null : (user) => canAccessLibrary(user, libraryId));
+}
+
+/**
+ * What someone can see changed (an admin changed their library access or content rating limit): only their pages and
+ * apps hear of it, as for a deleted library, which every one of them already takes as "look at everything again"
+ * (the web reloads its sidebar and page, the Android app its screens, Kodi syncs its whole library).
+ */
+export function accessChanged(userId) {
+  counter++;
+  send('library', { libraryId: null, deleted: true, access: true, version: libraryVersion() }, (user) => user.id === userId);
 }
 
 /** Files new to a library being read (the top bar's "Adding …"), for those who can open it; see scanner/index.js. */
@@ -110,11 +123,12 @@ export function liveTvChanged(userId = null) {
 }
 
 /**
- * The list of requested films changed, or Requests was turned on or off (server/requests.js requestsAccess:
- * { enabled, count, available }): everyone's Requests page and the sidebar's row update.
+ * The list of requested films changed, or Requests was turned on or off: everyone's Requests page and the sidebar's
+ * row update. [accessFor](user) is what each person is told (server/requests.js requestsAccess: { enabled, count,
+ * available }; off for an account with a content rating limit).
  */
-export function requestsChanged(access) {
-  send('requests', access);
+export function requestsChanged(accessFor) {
+  send('requests', accessFor);
 }
 
 /** The server-wide choices apps follow changed (see appDefaults in settings.js); everyone hears about it. */

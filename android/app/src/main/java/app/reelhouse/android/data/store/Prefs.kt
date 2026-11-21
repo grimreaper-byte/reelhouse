@@ -38,6 +38,11 @@ class Prefs(context: Context) {
         get() = if (sp.contains("remote.target")) sp.getBoolean("remote.target", false) else null
         set(value) = sp.edit().apply { if (value == null) remove("remote.target") else putBoolean("remote.target", value) }.apply()
 
+    /** Whether anyone at home (other accounts' phones on the same network) may use this device too; off unless set. */
+    var remoteShared: Boolean
+        get() = sp.getBoolean("remote.shared", false)
+        set(value) = sp.edit().putBoolean("remote.shared", value).apply()
+
     /** Download only over Wi-Fi (or another unmetered network). */
     var wifiOnlyDownloads: Boolean
         get() = sp.getBoolean("downloads.wifiOnly", true)

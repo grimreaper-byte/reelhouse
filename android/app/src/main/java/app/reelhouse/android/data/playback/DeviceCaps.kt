@@ -16,6 +16,11 @@ data class Caps(
     val audio: List<String>,
     /** Media3 undoes Matroska header compression, but not every encoding: let the server convert those few files. */
     val mkvContentEncoding: Boolean = false,
+    /**
+     * Media3 switches between a file's sound tracks itself, so another than the file's default (a preferred
+     * language's, Settings → Languages) plays the file as it is; the server says which in its answer (audioIndex).
+     */
+    val audioTracks: Boolean = true,
     val mse: Boolean = true,
     val nativeHls: Boolean = true,
 )

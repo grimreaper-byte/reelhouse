@@ -58,12 +58,20 @@ fun targetIcon(kind: String): ImageVector = when (kind) {
     else -> Icons.Filled.Tv // a TV box, Kodi
 }
 
-/** "Playing · A Show · S1 · E3" or "Paused · A Film", for a device's line in the list. */
+/**
+ * "Playing · A Show · S1 · E3", "Paused · A Film" or "Playing · One · The News", for a device's line in the list; just
+ * "Playing" for someone else's device playing what this account can't see (the server leaves out what).
+ */
 fun stateLine(state: RemoteState?): String? {
     state ?: return null
-    val what = state.showLine ?: state.title ?: return null
-    return (if (state.paused) "Paused · " else "Playing · ") + what
+    val what = (if (state.live) listOfNotNull(state.title, state.programme).joinToString(" · ").ifEmpty { null } else null)
+        ?: state.showLine ?: state.title
+    return (if (state.paused) "Paused" else "Playing") + (what?.let { " · $it" } ?: "")
 }
+
+/** A device's line in the Play on list: what it plays, and whose account it plays as when it's someone else's. */
+fun targetLine(t: RemoteTarget): String? =
+    listOfNotNull(stateLine(t.state), t.owner?.let { "plays as $it" }).joinToString(" · ").ifEmpty { null }
 
 /**
  * The Cast button for the top bars (phones and tablets): there while one of the person's devices is on this network,
@@ -106,7 +114,7 @@ fun PlayOnSheet(onDismiss: () -> Unit, onRemote: () -> Unit, onPicked: ((RemoteT
                 onDismiss()
             }
             for (t in targets) {
-                TargetRow(targetIcon(t.kind), t.name, stateLine(t.state), selected = active?.id == t.id) {
+                TargetRow(targetIcon(t.kind), t.label, targetLine(t), selected = active?.id == t.id) {
                     c.remote.connect(t)
                     onDismiss()
                     when {
@@ -136,7 +144,8 @@ fun PlayOnSheet(onDismiss: () -> Unit, onRemote: () -> Unit, onPicked: ((RemoteT
                 )
             }
             Text(
-                "Lists your devices with Reelhouse open on the same network as this phone.",
+                "Lists your devices with Reelhouse open on the same network as this phone, and others' that they share " +
+                    "with anyone at home (what plays there counts on their account).",
                 style = MaterialTheme.typography.bodySmall,
                 color = Palette.TextFaint,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
@@ -183,7 +192,7 @@ fun MiniController(onOpen: () -> Unit, modifier: Modifier = Modifier) {
             Column(Modifier.weight(1f)) {
                 Text(state.title ?: "Playing", maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.SemiBold)
                 Text(
-                    listOfNotNull(state.showLine, "on ${target.name}").joinToString(" · "),
+                    listOfNotNull(state.secondLine, "on ${target.name}").joinToString(" · "),
                     style = MaterialTheme.typography.bodySmall,
                     color = Palette.TextDim,
                     maxLines = 1,

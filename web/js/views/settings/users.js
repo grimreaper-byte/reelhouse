@@ -7,7 +7,7 @@ import { pairingDialog } from './pairing.js';
 import { avatarContent } from '../../avatar.js';
 
 export async function usersTab(ctx) {
-  const [{ users }, { libraries }] = await Promise.all([
+  const [{ users, ratingChoices = [] }, { libraries }] = await Promise.all([
     api.get('/api/users', { signal: ctx.signal }),
     api.get('/api/libraries', { signal: ctx.signal }),
   ]);
@@ -20,9 +20,10 @@ export async function usersTab(ctx) {
         h('div.avatar', { style: { cursor: 'default' } }, avatarContent(u)),
         h('div.grow',
           h('div.title', u.username, u.id === state.me.user.id ? ' (you)' : '', u.isAdmin ? h('span.status.ok', { style: { marginLeft: '8px' } }, 'Admin') : null),
-          h('div.sub', u.isAdmin || !u.libraryAccess
+          h('div.sub', (u.isAdmin || !u.libraryAccess
             ? 'All libraries'
-            : `Libraries: ${u.libraryAccess.map(libName).filter(Boolean).join(', ') || 'none'}`),
+            : `Libraries: ${u.libraryAccess.map(libName).filter(Boolean).join(', ') || 'none'}`)
+            + (u.contentLimitLabel ? ` · rated up to ${u.contentLimitLabel}${u.contentLimit.allowUnrated ? ', and unrated' : ''}` : '')),
           h('div.sub', `Created ${timeAgo(u.createdAt)} · ${u.sessions} signed-in device${u.sessions === 1 ? '' : 's'}`
             + (u.streamLimit ? ` · plays on ${u.streamLimit === 1 ? '1 device' : `${u.streamLimit} devices`} at a time` : '')),
         ),
@@ -41,7 +42,7 @@ export async function usersTab(ctx) {
             }
           },
         }, icon('link', 18)),
-        h('button.btn.btn-icon', { 'aria-label': `Edit ${u.username}`, onClick: () => userEditor(u, libraries) }, icon('edit', 18)),
+        h('button.btn.btn-icon', { 'aria-label': `Edit ${u.username}`, onClick: () => userEditor(u, libraries, ratingChoices) }, icon('edit', 18)),
         u.id !== state.me.user.id && h('button.btn.btn-icon.btn-danger', {
           'aria-label': `Delete ${u.username}`,
           onClick: async () => {
@@ -56,7 +57,7 @@ export async function usersTab(ctx) {
         }, icon('trash', 18)),
       ))),
       h('div.panel-actions', { style: { marginTop: '16px' } },
-        h('button.btn.btn-primary', { onClick: () => userEditor(null, libraries) }, icon('plus', 18), 'Add user')),
+        h('button.btn.btn-primary', { onClick: () => userEditor(null, libraries, ratingChoices) }, icon('plus', 18), 'Add user')),
     ),
   );
 }
@@ -64,7 +65,7 @@ export async function usersTab(ctx) {
 const STREAM_LIMITS = [null, 1, 2, 3, 4, 5, 6, 8, 10];
 const DEFAULT_STREAM_LIMIT = 2; // as the server's, for a new user
 
-function userEditor(user, libraries) {
+function userEditor(user, libraries, ratingChoices = []) {
   const username = h('input.input', { id: 'u-name', value: user?.username || '', autocomplete: 'off' });
   const password = h('input.input', { id: 'u-pass', type: 'password', autocomplete: 'new-password', placeholder: user ? 'Leave empty to keep the current password' : '' });
   const isAdminBox = h('input', { type: 'checkbox', checked: !!user?.isAdmin });
@@ -85,10 +86,32 @@ function userEditor(user, libraries) {
   const liveTvBox = h('input', { type: 'checkbox', checked: user ? user.liveTv : true });
   const recordBox = h('input', { type: 'checkbox', checked: user ? user.liveTvRecord : false });
   const seriesBox = h('input', { type: 'checkbox', checked: user ? user.liveTvSeries : false });
+  // A content rating limit (server/ratings.js): the server's choices are its metadata country's ratings, each kept as
+  // an age. One set under another country's ratings stays among the choices, so saving never changes it unasked.
+  const limit = user?.contentLimit || null;
+  const ratings = limit && !ratingChoices.some((c) => c.maxAge === limit.maxAge)
+    ? [...ratingChoices, { maxAge: limit.maxAge, label: `Age ${limit.maxAge}` }].sort((a, b) => a.maxAge - b.maxAge)
+    : ratingChoices;
+  const ratingSelect = h('select.select', { id: 'u-rating' },
+    h('option', { value: '', selected: !limit }, 'No limit'),
+    ratings.map((c) => h('option', { value: c.maxAge, selected: limit?.maxAge === c.maxAge }, `Up to ${c.label}`)));
+  const unratedBox = h('input', { type: 'checkbox', checked: !!limit?.allowUnrated });
+  const ratingWarning = h('div.callout', { style: { margin: '10px 0 0' } },
+    h('strong', 'Check what this account can see.'), ' ',
+    'Ratings come from TMDB, for the country of your metadata language (Settings → Metadata) or the US rating when it has none, ',
+    'or from your own .nfo files (without a TMDB key, only those). TMDB’s ratings are added by its users: some are missing and some are wrong. ',
+    'Titles without a rating stay hidden unless you tick the box above. Live TV and recordings have no ratings, so use the Live TV switches below. ',
+    'Titles added before Reelhouse 0.26.0 get the US rating where your country has none when their metadata is refreshed (Settings → Metadata → Refresh all).');
   const sync = () => {
     const disabled = allLibs.checked || isAdminBox.checked;
     libList.style.opacity = disabled ? '0.5' : '1';
     for (const l of libBoxes) l.box.disabled = disabled;
+    // Admins have no limit.
+    ratingSelect.disabled = isAdminBox.checked;
+    if (isAdminBox.checked) ratingSelect.value = '';
+    unratedBox.disabled = isAdminBox.checked || ratingSelect.value === '';
+    if (ratingSelect.value === '') unratedBox.checked = false;
+    ratingWarning.hidden = ratingSelect.value === '';
     liveTvBox.disabled = isAdminBox.checked;
     recordBox.disabled = isAdminBox.checked || !liveTvBox.checked;
     if (isAdminBox.checked) {
@@ -105,6 +128,7 @@ function userEditor(user, libraries) {
   recordBox.addEventListener('change', sync);
   allLibs.addEventListener('change', sync);
   isAdminBox.addEventListener('change', sync);
+  ratingSelect.addEventListener('change', sync);
   sync();
 
   modal({
@@ -116,6 +140,12 @@ function userEditor(user, libraries) {
       h('div.field-label', { style: { margin: '16px 0 8px' } }, 'Library access'),
       h('label.check', allLibs, h('span', 'All libraries (including ones added later)')),
       libList,
+      h('div.field', { style: { marginTop: '16px' } },
+        h('label', { for: 'u-rating' }, 'Content rating'),
+        ratingSelect,
+        h('div.hint', 'Films and shows rated above this are hidden from this person, and can’t be played, in the web app, the Reelhouse app and Kodi. A show’s episodes go by the show’s rating. With a limit, Requests and the films not on this server (on people’s pages) are hidden too.'),
+        h('label.check', { style: { marginTop: '8px' } }, unratedBox, h('span', 'Also show titles without a rating', h('small', 'Home videos, recordings, and anything TMDB or your .nfo files give no rating for.'))),
+        ratingWarning),
       h('div.field', { style: { marginTop: '16px' } },
         h('label', { for: 'u-streams' }, 'Devices playing at once'),
         streams,
@@ -150,6 +180,8 @@ function userEditor(user, libraries) {
             liveTv: liveTvBox.checked,
             liveTvRecord: recordBox.checked,
             liveTvSeries: seriesBox.checked,
+            maxAge: isAdminBox.checked || ratingSelect.value === '' ? null : Number(ratingSelect.value),
+            allowUnrated: unratedBox.checked,
           };
           if (password.value) body.password = password.value;
           if (user) await api.patch(`/api/users/${user.id}`, body);

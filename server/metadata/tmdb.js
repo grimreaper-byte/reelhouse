@@ -43,6 +43,8 @@ export async function testApiKey() {
 
 const yearOf = (date) => (date && /^\d{4}/.test(date) ? Number(date.slice(0, 4)) : null);
 const country = () => (getSetting('metadataLanguage') || 'en-US').split('-')[1] || 'US';
+/** The country of the metadata language (GB for en-GB): whose content ratings are asked for first. */
+export const metadataCountry = () => country().toUpperCase();
 const img = (p) => (p ? `tmdb:${p}` : null);
 const isLocal = (ref) => typeof ref === 'string' && ref.startsWith('file:');
 
@@ -144,9 +146,11 @@ async function applyMovie(item, tmdbId) {
   const m = await tmdb(`/movie/${tmdbId}`, { append_to_response: 'credits,release_dates' });
   if (!m) return false;
   const preferLocal = getSetting('preferLocalArtwork');
-  const cert = m.release_dates?.results
-    ?.find((r) => r.iso_3166_1 === country())
+  // The rating for the metadata language's country, else the US one (TMDB often has none for other countries).
+  const certIn = (code) => m.release_dates?.results
+    ?.find((r) => r.iso_3166_1 === code)
     ?.release_dates?.find((d) => d.certification)?.certification;
+  const cert = certIn(country()) || certIn('US');
   // Values from the item's .nfo (if any) win over TMDB's.
   setFields(item.id, withNfo({
     tmdb_id: m.id,
@@ -176,7 +180,9 @@ async function applyShow(item, tmdbId) {
   const s = await tmdb(`/tv/${tmdbId}`, { append_to_response: 'credits,content_ratings,external_ids' });
   if (!s) return false;
   const preferLocal = getSetting('preferLocalArtwork');
-  const rating = s.content_ratings?.results?.find((r) => r.iso_3166_1 === country())?.rating;
+  // As for films: the metadata language's country's rating, else the US one.
+  const ratingIn = (code) => s.content_ratings?.results?.find((r) => r.iso_3166_1 === code && r.rating)?.rating;
+  const rating = ratingIn(country()) || ratingIn('US');
   setFields(item.id, withNfo({
     tmdb_id: s.id,
     imdb_id: s.external_ids?.imdb_id || item.imdb_id,

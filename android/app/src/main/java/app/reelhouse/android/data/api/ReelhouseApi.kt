@@ -44,6 +44,7 @@ import app.reelhouse.android.data.model.TunnelSettings
 import app.reelhouse.android.data.model.User
 import app.reelhouse.android.data.model.UserResponse
 import app.reelhouse.android.data.remote.RemoteCommandSent
+import app.reelhouse.android.data.remote.RemoteControls
 import app.reelhouse.android.data.remote.RemoteTarget
 import app.reelhouse.android.data.remote.RemoteTargetsResponse
 import kotlinx.coroutines.Dispatchers
@@ -311,15 +312,17 @@ class ReelhouseApi(
     suspend fun remoteTargets(): List<RemoteTarget> = get("/api/remote/targets", RemoteTargetsResponse.serializer()).targets
 
     /** Sends one of them a command; the id comes back in its answer (ServerEvent.RemoteDone). */
-    suspend fun remoteCommand(targetId: String, type: String, itemId: Long?, start: Double?, position: Double?, seconds: Double?): String {
+    suspend fun remoteCommand(targetId: String, command: JsonObject): String {
         val b = base() ?: throw OfflineException()
-        return call("POST", joinUrl(b, "/api/remote/targets/${enc(targetId)}/commands"), buildJsonObject {
-            put("type", type)
-            itemId?.let { put("itemId", it) }
-            start?.let { put("start", it) }
-            position?.let { put("position", it) }
-            seconds?.let { put("seconds", it) }
-        }, RemoteCommandSent.serializer(), 15_000, signedIn = true).commandId
+        return call("POST", joinUrl(b, "/api/remote/targets/${enc(targetId)}/commands"), command, RemoteCommandSent.serializer(), 15_000, signedIn = true)
+            .commandId
+    }
+
+    /** What this device offers a phone (its tracks and volume; null: nothing plays), server/remote.js reportControls. */
+    suspend fun remoteStatus(controls: RemoteControls?) {
+        val b = base() ?: throw OfflineException()
+        val body = controls?.let { AppJson.encodeToJsonElement(RemoteControls.serializer(), it).jsonObject } ?: JsonObject(emptyMap())
+        call("POST", joinUrl(b, "/api/remote/status"), body, JsonObject.serializer(), 15_000, signedIn = true)
     }
 
     /** This device's answer to a phone's command (null [problem]: done). */

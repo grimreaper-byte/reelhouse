@@ -68,7 +68,24 @@ data class SignInResponse(
 )
 
 @Serializable
-data class Defaults(val remoteQuality: String = "original", val allowDownloads: Boolean = true)
+data class Defaults(
+    val remoteQuality: String = "original",
+    val allowDownloads: Boolean = true,
+    /** Settings → Languages (servers from 0.26.0): the sound track and subtitles films and episodes start with. */
+    val audio: AudioDefaults = AudioDefaults(),
+    val subtitles: SubtitleDefaults = SubtitleDefaults(),
+)
+
+/** The preferred audio language (null: the file's default track), with every code a file may use for it. */
+@Serializable
+data class AudioDefaults(val language: String? = null, val codes: List<String> = emptyList())
+
+/**
+ * How subtitles start: off (forced ones too) | forced (only a file's forced ones, the default and older servers' way)
+ * | foreign (the preferred language's while the sound is in another) | always; and that language's codes.
+ */
+@Serializable
+data class SubtitleDefaults(val mode: String = "forced", val language: String? = null, val codes: List<String> = emptyList())
 
 /** GET /api/me */
 /** The Android app Reelhouse offers at /android/<fileName>. */

@@ -37,6 +37,7 @@ test('stream opens with a hello carrying the current version, uncompressed', () 
   assert.match(c.res.headers['Cache-Control'], /no-transform/);
   const [hello] = c.res.chunks.join('').match(/event: hello\ndata: (.*)\n/).slice(1).map(JSON.parse);
   assert.ok(hello.version);
+  assert.equal(hello.defaults.subtitles.mode, 'forced', 'what players follow comes along (Settings → Languages)');
   c.close();
 });
 

@@ -9,6 +9,7 @@ import { requestsChanged } from './events.js';
 import { movieSummary, search, tmdbConfigured } from './metadata/tmdb.js';
 import { getSetting } from './settings.js';
 import { logger } from './lib/log.js';
+import { limitOf } from './ratings.js';
 
 const log = logger('requests');
 
@@ -44,12 +45,18 @@ const limitMessage = ({ max }) => `You already have ${max} request${max === 1 ? 
  * and whether films can be found to ask for (TMDB is set up). Off, it's nothing and no count, so apps that don't know
  * the switch hide it too.
  */
-export const requestsAccess = () => (requestsOn()
+export const requestsAccess = (user = null) => (requestsOn() && requestsFor(user)
   ? { enabled: true, count: requestCount(), available: true }
   : { enabled: false, count: 0, available: false });
 
-/** Tells everyone's pages and apps (the sidebar's row and count, an open Requests page). */
-export const announceRequests = () => requestsChanged(requestsAccess());
+/**
+ * Whether Requests is there for [user]: not for an account with a content rating limit (server/ratings.js), as
+ * finding films to ask for and the list of what others asked for show TMDB's films, which can't be checked.
+ */
+export const requestsFor = (user) => !limitOf(user);
+
+/** Tells everyone's pages and apps (the sidebar's row and count, an open Requests page), each their own. */
+export const announceRequests = () => requestsChanged((user) => requestsAccess(user));
 
 /** The film with this TMDB id in a library this user can open (its main copy's item id), or null. */
 export function itemForFilm(user, tmdbId) {

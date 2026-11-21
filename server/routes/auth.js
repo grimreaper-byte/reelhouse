@@ -14,10 +14,12 @@ import { cleanupPeers, peerLastHandshake, syncPeers, refreshTunnelStatus } from 
 import { createPairing, redeemPairing, pairingStatus, cancelPairing, currentTunnelSettings, isWireGuardKey } from '../pairing.js';
 import { logger } from '../lib/log.js';
 import { saveAvatar, removeAvatar, avatarPath, AvatarError, MAX_AVATAR_BYTES } from '../avatars.js';
-import { liveTvChanged } from '../events.js';
+import { liveTvChanged, accessChanged } from '../events.js';
 import { liveTvFor } from '../livetv/guide.js';
 import { endSeriesOf } from '../livetv/recordings.js';
-import { requestsAccess } from '../requests.js';
+import { requestsAccess, announceRequests } from '../requests.js';
+import { validLimit, ratingChoices, limitLabel } from '../ratings.js';
+import { metadataCountry } from '../metadata/tmdb.js';
 
 const log = logger('auth');
 
@@ -189,7 +191,7 @@ router.get('/me', requireUser, async (req, res) => {
     liveTv,
     // Requests: whether an admin has it on, how many films are asked for, and whether films can be asked for (TMDB is
     // set up). See server/requests.js.
-    requests: requestsAccess(),
+    requests: requestsAccess(req.user),
     // The Android app on offer at /android/, so the app can offer its own update.
     androidApp: app && { versionName: app.versionName, versionCode: app.versionCode, size: app.size, fileName: app.fileName },
   });
@@ -250,11 +252,17 @@ router.post('/me/password', requireUser, async (req, res) => {
 
 // ---------- user management (admin) ----------
 
-const publicUser = (u) => ({ ...u, sessions: get('SELECT COUNT(*) AS n FROM sessions WHERE user_id = ?', u.id).n });
+const publicUser = (u) => ({
+  ...u,
+  sessions: get('SELECT COUNT(*) AS n FROM sessions WHERE user_id = ?', u.id).n,
+  // Their content rating limit in the metadata country's ratings ("12A and 12"), for the users list.
+  contentLimitLabel: limitLabel(u.contentLimit, metadataCountry()),
+});
 
 router.get('/users', requireAdmin, (req, res) => {
   const ids = all('SELECT id FROM users ORDER BY is_admin DESC, username COLLATE NOCASE').map((r) => r.id);
-  res.json({ users: ids.map((id) => publicUser(loadUser(id))) });
+  // The limits an admin can choose, in the ratings of the metadata language's country (server/ratings.js).
+  res.json({ users: ids.map((id) => publicUser(loadUser(id))), ratingChoices: ratingChoices(metadataCountry()) });
 });
 
 /** How many devices a new account may play on at once unless an admin chooses otherwise (as the database's default). */
@@ -277,7 +285,7 @@ function validAccess(libraryAccess) {
 router.post('/users', requireAdmin, async (req, res) => {
   const {
     username, password, isAdmin = false, libraryAccess = null, streamLimit = DEFAULT_STREAM_LIMIT, liveTv = true, liveTvRecord = false,
-    liveTvSeries = false,
+    liveTvSeries = false, maxAge = null, allowUnrated = false,
   } = req.body || {};
   const err = validateUsername(username) || validatePassword(password);
   if (err) return res.status(400).json({ error: err });
@@ -286,14 +294,17 @@ router.post('/users', requireAdmin, async (req, res) => {
   }
   let access;
   let limit;
+  let rated;
   try {
     access = validAccess(libraryAccess);
     limit = validStreamLimit(streamLimit);
+    rated = validLimit(isAdmin ? null : maxAge, allowUnrated);
   } catch (e) {
     return res.status(400).json({ error: e.message });
   }
   const r = run(
-    'INSERT INTO users (username, password_hash, is_admin, library_access, stream_limit, live_tv, live_tv_record, live_tv_series, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    `INSERT INTO users (username, password_hash, is_admin, library_access, stream_limit, live_tv, live_tv_record, live_tv_series,
+       max_age, allow_unrated, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     username.trim(),
     await hashPassword(password),
     isAdmin ? 1 : 0,
@@ -302,6 +313,8 @@ router.post('/users', requireAdmin, async (req, res) => {
     liveTv ? 1 : 0,
     liveTv && liveTvRecord ? 1 : 0,
     liveTv && liveTvRecord && liveTvSeries ? 1 : 0,
+    rated.maxAge,
+    rated.maxAge != null && rated.allowUnrated ? 1 : 0,
     Date.now(),
   );
   res.json({ user: publicUser(loadUser(Number(r.lastInsertRowid))) });
@@ -312,13 +325,18 @@ const adminCount = () => get('SELECT COUNT(*) AS n FROM users WHERE is_admin = 1
 router.patch('/users/:id', requireAdmin, async (req, res) => {
   const user = loadUser(Number(req.params.id));
   if (!user) return res.status(404).json({ error: 'No such user' });
-  const { password, isAdmin, libraryAccess, username, streamLimit, liveTv, liveTvRecord, liveTvSeries } = req.body || {};
+  const { password, isAdmin, libraryAccess, username, streamLimit, liveTv, liveTvRecord, liveTvSeries, maxAge, allowUnrated } = req.body || {};
   let limit;
+  let rated;
   try {
     if (streamLimit !== undefined) limit = validStreamLimit(streamLimit);
+    if (maxAge !== undefined) rated = validLimit(maxAge, allowUnrated);
   } catch (e) {
     return res.status(400).json({ error: e.message });
   }
+  // What they can see changes (a content rating limit, library access, becoming or no longer an admin): their pages and
+  // apps look again, and Kodi syncs its library again (titles they can no longer see go from it).
+  let accessMoved = false;
   if (username !== undefined && username.trim() !== user.username) {
     const err = validateUsername(username);
     if (err) return res.status(400).json({ error: err });
@@ -339,13 +357,23 @@ router.patch('/users/:id', requireAdmin, async (req, res) => {
       return res.status(400).json({ error: 'There must be at least one admin' });
     }
     run('UPDATE users SET is_admin = ? WHERE id = ?', isAdmin ? 1 : 0, user.id);
+    // An admin has no limit; one made an admin loses theirs, so it doesn't come back if they stop being one.
+    if (isAdmin) run('UPDATE users SET max_age = NULL, allow_unrated = 0 WHERE id = ?', user.id);
+    if (!!isAdmin !== user.isAdmin) accessMoved = true;
   }
   if (libraryAccess !== undefined) {
     try {
-      run('UPDATE users SET library_access = ? WHERE id = ?', validAccess(libraryAccess), user.id);
+      const access = validAccess(libraryAccess);
+      run('UPDATE users SET library_access = ? WHERE id = ?', access, user.id);
+      if (access !== (user.libraryAccess ? JSON.stringify(user.libraryAccess) : null)) accessMoved = true;
     } catch (e) {
       return res.status(400).json({ error: e.message });
     }
+  }
+  if (rated && !(isAdmin ?? user.isAdmin)) {
+    run('UPDATE users SET max_age = ?, allow_unrated = ? WHERE id = ?', rated.maxAge, rated.maxAge != null && rated.allowUnrated ? 1 : 0, user.id);
+    const was = user.contentLimit;
+    if ((was?.maxAge ?? null) !== rated.maxAge || (!!was?.allowUnrated) !== (rated.maxAge != null && rated.allowUnrated)) accessMoved = true;
   }
   if (streamLimit !== undefined) run('UPDATE users SET stream_limit = ? WHERE id = ?', limit, user.id);
   if (liveTv !== undefined || liveTvRecord !== undefined || liveTvSeries !== undefined) {
@@ -356,6 +384,10 @@ router.patch('/users/:id', requireAdmin, async (req, res) => {
     run('UPDATE users SET live_tv = ?, live_tv_record = ?, live_tv_series = ? WHERE id = ?', watch ? 1 : 0, record ? 1 : 0, series ? 1 : 0, user.id);
     // Their open pages show or hide Live TV.
     liveTvChanged(user.id);
+  }
+  if (accessMoved) {
+    accessChanged(user.id);
+    announceRequests(); // Requests comes or goes with a content rating limit
   }
   res.json({ user: publicUser(loadUser(user.id)) });
 });

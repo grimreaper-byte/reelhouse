@@ -129,7 +129,8 @@ export function sessionToken(req) {
 
 export function loadUser(id) {
   const u = get(
-    'SELECT id, username, is_admin, library_access, share_watching, avatar_at, stream_limit, live_tv, live_tv_record, live_tv_series, created_at FROM users WHERE id = ?',
+    `SELECT id, username, is_admin, library_access, share_watching, avatar_at, stream_limit, live_tv, live_tv_record, live_tv_series,
+            max_age, allow_unrated, created_at FROM users WHERE id = ?`,
     id,
   );
   return u ? toUser(u) : null;
@@ -151,6 +152,8 @@ function toUser(row) {
     liveTv: !!row.is_admin || !!row.live_tv,
     liveTvRecord: !!row.is_admin || (!!row.live_tv && !!row.live_tv_record),
     liveTvSeries: !!row.is_admin || (!!row.live_tv && !!row.live_tv_record && !!row.live_tv_series),
+    // A content rating limit an admin set (server/ratings.js): { maxAge, allowUnrated }, or null. Never for an admin.
+    contentLimit: !row.is_admin && row.max_age != null ? { maxAge: row.max_age, allowUnrated: !!row.allow_unrated } : null,
     createdAt: row.created_at,
   };
 }

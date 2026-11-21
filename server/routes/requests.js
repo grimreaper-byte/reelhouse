@@ -3,7 +3,7 @@ import { Router } from 'express';
 import { requireAdmin, requireUser } from '../auth.js';
 import { tmdbConfigured } from '../metadata/tmdb.js';
 import {
-  addRequest, fulfilRequests, listRequests, removeAllRequests, removeRequest, requestLimit, requestsOn, searchFilms,
+  addRequest, fulfilRequests, listRequests, removeAllRequests, removeRequest, requestLimit, requestsFor, requestsOn, searchFilms,
 } from '../requests.js';
 
 const router = Router();
@@ -11,11 +11,13 @@ const router = Router();
 // Off (no TMDB API key yet, or turned off by an admin in Settings → General): none of it answers, for anyone, and it
 // says which. The requests are kept.
 router.use('/requests', requireUser, (req, res, next) => {
-  if (requestsOn()) return next();
+  if (requestsOn() && requestsFor(req.user)) return next();
   if (!tmdbConfigured()) {
     const error = 'Requests needs a TMDB API key, which an admin adds in Settings → Metadata';
     return res.status(403).json({ error, off: true, needsKey: true });
   }
+  // An account with a content rating limit: TMDB's films can't be checked against it.
+  if (requestsOn()) return res.status(403).json({ error: 'Requests aren’t available for this account', off: true });
   res.status(403).json({ error: 'Requests are turned off on this server', off: true });
 });
 

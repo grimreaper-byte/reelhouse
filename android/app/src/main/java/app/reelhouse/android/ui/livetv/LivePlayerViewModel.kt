@@ -28,6 +28,9 @@ import app.reelhouse.android.data.playback.AvSync
 import app.reelhouse.android.data.playback.PictureTiming
 import app.reelhouse.android.data.playback.Quality
 import app.reelhouse.android.data.playback.TimedRenderersFactory
+import app.reelhouse.android.data.remote.RemoteCommand
+import app.reelhouse.android.data.remote.RemoteControls
+import app.reelhouse.android.data.remote.RemoteVolume
 import app.reelhouse.android.ui.common.errorText
 import app.reelhouse.android.ui.player.PlayerViewModel
 import app.reelhouse.android.ui.player.chooseQuality
@@ -120,6 +123,10 @@ class LivePlayerViewModel(private val c: AppContainer, context: Context, channel
             }
         }
 
+        override fun onVolumeChanged(volume: Float) {
+            offerControls()
+        }
+
         override fun onPlayerError(error: PlaybackException) {
             Log.w(TAG, "live: ${error.errorCodeName}", error)
             // Paused for longer than the stream keeps: on from live.
@@ -138,8 +145,15 @@ class LivePlayerViewModel(private val c: AppContainer, context: Context, channel
         }
     }
 
+    /** A phone's commands while this channel plays (the phone remote; ui/Root.kt passes them on). */
+    private val remoteHandler: (RemoteCommand) -> String? = ::onRemoteCommand
+
+    /** The volume as the phone remote sets it (muting keeps the level). */
+    private val volume = RemoteVolume({ player.volume }, { player.volume = it })
+
     init {
         player.addListener(listener)
+        c.remoteReceiver.player = remoteHandler
         begin()
         // The heartbeat that keeps the stream going on the server and the activity list current.
         viewModelScope.launch {
@@ -234,6 +248,7 @@ class LivePlayerViewModel(private val c: AppContainer, context: Context, channel
                 player.setMediaItem(MediaItem.Builder().setUri(url).setMimeType(MimeTypes.APPLICATION_M3U8).build())
                 player.prepare()
                 player.playWhenReady = true
+                offerControls()
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -256,10 +271,41 @@ class LivePlayerViewModel(private val c: AppContainer, context: Context, channel
     /** The next (1) or previous (-1) channel of the same kind. */
     fun zap(step: Int) {
         val target = zapTarget(channels, channelUuid, _ui.value.radio, step) ?: return
+        goTo(target)
+    }
+
+    private fun goTo(target: Channel) {
         channelUuid = target.uuid
         restarts = 0
         _ui.update { it.copy(channel = target, radio = target.radio, now = null, next = null) }
         start()
+    }
+
+    /** A phone's command (the phone remote): what went wrong, or null when it's done. */
+    private fun onRemoteCommand(cmd: RemoteCommand): String? {
+        when (cmd.type) {
+            "pause" -> player.pause()
+            "resume" -> player.play()
+            "play" -> {
+                // Channel up/down from the phone (zap): another channel in this player.
+                val uuid = cmd.channel ?: return "Films play in the film player"
+                val target = channels.firstOrNull { it.uuid == uuid } ?: return "That channel isn't here"
+                if (target.uuid != channelUuid) goTo(target)
+            }
+            "seek", "skip" -> return "A channel can't be wound on or back from the phone"
+            "volume" -> volume.setLevel(cmd.level ?: return "No volume")
+            "mute" -> volume.setMuted(cmd.muted == true)
+            else -> return "This device doesn't know that one yet"
+        }
+        report(if (player.playWhenReady) "playing" else "paused")
+        offerControls()
+        return null
+    }
+
+    /** What the phone may change while a channel plays here: the volume, and pausing (a few minutes are kept). */
+    private fun offerControls() {
+        if (c.remoteReceiver.player !== remoteHandler) return
+        c.remoteReceiver.offer(RemoteControls(volume = volume.level(), muted = volume.muted, canPause = true))
     }
 
     fun togglePlay() {
@@ -310,6 +356,10 @@ class LivePlayerViewModel(private val c: AppContainer, context: Context, channel
     }
 
     override fun onCleared() {
+        if (c.remoteReceiver.player === remoteHandler) {
+            c.remoteReceiver.player = null
+            c.remoteReceiver.offer(null) // nothing for the phone to change now
+        }
         report("stopped") // frees the tuner straight away
         stopEarlier()
         player.removeListener(listener)

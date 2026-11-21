@@ -3,6 +3,7 @@
 import { all, placeholders } from './db.js';
 import { allowedLibraryIds } from './auth.js';
 import { serializeMany } from './items.js';
+import { limitOf, ratingSql } from './ratings.js';
 import { getSetting } from './settings.js';
 import { sortTitle } from './scanner/parse.js';
 import { tmdbConfigured, castMemberId, findPersonId, personCredits } from './metadata/tmdb.js';
@@ -131,14 +132,14 @@ export async function personPage(user, name, from = null) {
     `SELECT i.*, json_extract(c.value, '$.role') AS cast_role, json_extract(c.value, '$.profile') AS cast_profile,
             json_extract(c.value, '$.tmdbId') AS cast_tmdb
        FROM items i, json_each(i.cast_json) c
-      WHERE i.type IN ('movie', 'show') AND ${inLibs} AND i.version_of IS NULL AND json_extract(c.value, '$.name') = ?
+      WHERE i.type IN ('movie', 'show') AND ${inLibs} AND i.version_of IS NULL AND ${ratingSql(user)} AND json_extract(c.value, '$.name') = ?
       GROUP BY i.id`,
     ...libIds,
     name,
   );
   const directed = all(
     `SELECT i.* FROM items i, json_each(i.directors) d
-      WHERE i.type IN ('movie', 'show') AND ${inLibs} AND i.version_of IS NULL AND d.value = ?
+      WHERE i.type IN ('movie', 'show') AND ${inLibs} AND i.version_of IS NULL AND ${ratingSql(user)} AND d.value = ?
       GROUP BY i.id`,
     ...libIds,
     name,
@@ -177,7 +178,7 @@ export async function personPage(user, name, from = null) {
           else if (!missing.has(id)) missing.set(id, c.role);
         }
         if (missing.size) {
-          for (const r of all(`SELECT * FROM items WHERE id IN (${placeholders([...missing.keys()])})`, ...missing.keys())) {
+          for (const r of all(`SELECT * FROM items i WHERE i.id IN (${placeholders([...missing.keys()])}) AND ${ratingSql(user)}`, ...missing.keys())) {
             found.set(r.id, { row: r, role: missing.get(r.id) });
           }
         }
@@ -201,6 +202,13 @@ export async function personPage(user, name, from = null) {
       log.warn(`Couldn't get ${name}'s films from TMDB: ${err.message}`);
       others.status = 'failed';
     }
+  }
+
+  // An account with a content rating limit doesn't get the films that aren't on the server: TMDB's list has no
+  // ratings to check them by. (Apps show nothing for 'off', as without a TMDB key.)
+  if (limitOf(user)) {
+    others.status = 'off';
+    others.items = [];
   }
 
   const entries = [...found.values()].sort((a, b) => (b.row.year || 0) - (a.row.year || 0)

@@ -5,12 +5,14 @@
 // and its buttons change between radio stations.
 import { h, icon, clear, setChildren } from '../dom.js';
 import { api } from '../api.js';
-import { browserCaps } from '../caps.js';
+import { browserCaps, VOLUME_SETTABLE } from '../caps.js';
 import { back } from '../router.js';
 import { preferredQuality, savePreferredQuality, getPrefs, setPrefs } from '../state.js';
 import { toast } from '../components.js';
 import { loadHls } from '../hls-loader.js';
 import { channelLogo } from './livetv.js';
+import { playerOpened, playerClosed, controlsChanged } from '../remote-target.js';
+import { toggleFullscreen, playerLeft } from '../fullscreen.js';
 
 const REPORT_EVERY_MS = 10000;
 const HIDE_CONTROLS_MS = 3000;
@@ -46,9 +48,21 @@ class LivePlayer {
     this.startSeq = 0;
     this.destroyed = false;
     this.panel = null;
+    this.newStart();
     this.build();
     this.bind();
+    playerOpened(this);
     void this.start();
+  }
+
+  /**
+   * How the next start goes, for the phone remote: 'playing', 'blocked' (the browser wants a press of Play) or
+   * 'failed'. Each channel (a change of channel too) gets a new one.
+   */
+  newStart() {
+    this.started = new Promise((resolve) => {
+      this.markStarted = resolve;
+    });
   }
 
   build() {
@@ -133,6 +147,7 @@ class LivePlayer {
       (this.unbinders ||= []).push(() => el.removeEventListener(ev, fn, opts));
     };
     on(v, 'playing', () => {
+      this.markStarted('playing');
       this.setSpinner(false);
       this.hideMessage();
       this.updatePlayState();
@@ -150,6 +165,7 @@ class LivePlayer {
       this.muteBtn.replaceChildren(icon(v.muted || v.volume === 0 ? 'mute' : 'volume', 22));
       this.volumeRange.value = String(v.muted ? 0 : v.volume);
       setPrefs({ volume: v.volume, muted: v.muted });
+      controlsChanged();
     });
     on(this.root, 'pointermove', () => this.poke());
     on(this.root, 'click', (e) => {
@@ -212,6 +228,7 @@ class LivePlayer {
     } catch (err) {
       if (stale()) return;
       this.info = null;
+      this.markStarted('failed');
       this.showMessage('Can’t play this channel', err.message, [{ label: 'Try again', primary: true, onClick: () => this.start() }]);
       return;
     }
@@ -235,14 +252,24 @@ class LivePlayer {
       this.showMessage('Unsupported browser', 'This browser can’t play live streams.', []);
       return;
     }
+    controlsChanged();
     try {
       await this.video.play();
     } catch (err) {
       if (err.name === 'NotAllowedError') {
         this.setSpinner(false);
-        this.centerEl.replaceChildren(h('button.big-play', { 'aria-label': 'Play', onClick: () => this.togglePlay() }, icon('play', 36)));
+        this.showBigPlay();
+        this.markStarted('blocked');
       }
     }
+  }
+
+  showBigPlay() {
+    this.centerEl.replaceChildren(h('button.big-play', { 'aria-label': 'Play', onClick: () => this.togglePlay() }, icon('play', 36)));
+  }
+
+  hideBigPlay() {
+    if (this.centerEl.querySelector('.big-play')) clear(this.centerEl);
   }
 
   attachHls(Hls, url) {
@@ -276,6 +303,7 @@ class LivePlayer {
       this.restarts++;
       void this.start();
     } else {
+      this.markStarted('failed');
       this.showMessage(this.radio ? 'Radio stopped' : 'Live TV stopped', 'The stream failed repeatedly.', [{ label: 'Try again', primary: true, onClick: () => { this.restarts = 0; this.start(); } }]);
     }
   }
@@ -305,6 +333,20 @@ class LivePlayer {
     const i = list.findIndex((c) => c.uuid === this.channel.uuid);
     const next = list[(i + step + list.length) % list.length];
     if (!next || next.uuid === this.channel.uuid) return;
+    this.goTo(next);
+  }
+
+  /** Another channel here (the phone remote's channel up/down); false when it isn't in the list. */
+  switchTo(uuid) {
+    const next = this.channels.find((c) => c.uuid === uuid);
+    if (!next) return false;
+    if (next.uuid !== this.channel.uuid) this.goTo(next);
+    return true;
+  }
+
+  goTo(next) {
+    if (!!next.radio !== this.radio) this.setRadio(!!next.radio);
+    this.newStart();
     this.channel = next;
     history.replaceState(history.state, '', this.radio ? `/radio/listen/${next.uuid}` : `/livetv/watch/${next.uuid}`);
     this.info = { ...this.info, now: null, next: null };
@@ -352,14 +394,9 @@ class LivePlayer {
     if (!this.video.muted && this.video.volume === 0) this.video.volume = 0.5;
   }
 
-  async toggleFullscreen() {
-    try {
-      if (document.fullscreenElement) await document.exitFullscreen();
-      else if (this.root.requestFullscreen) await this.root.requestFullscreen();
-      else this.video.webkitEnterFullscreen?.();
-    } catch {
-      this.video.webkitEnterFullscreen?.();
-    }
+  /** The whole page full screen (fullscreen.js), so a film or channel the phone sends here keeps it. */
+  toggleFullscreen() {
+    return toggleFullscreen(this.video);
   }
 
   async togglePip() {
@@ -435,6 +472,28 @@ class LivePlayer {
     api.post('/api/livetv/progress', { playId: this.info.playId, state }, { keepalive }).catch(() => {});
   }
 
+  /** A progress report now (after the phone remote changed something). */
+  reportNow() {
+    this.report(this.video.paused ? 'paused' : 'playing');
+  }
+
+  /** The phone remote's Stop: leave the player (which stops the channel). */
+  stop() {
+    this.video.pause();
+    back(this.home());
+  }
+
+  /** What the phone may change here: the volume (a channel's sound and subtitles aren't offered in the browser). */
+  remoteControls() {
+    return {
+      audio: [],
+      subtitles: [],
+      volume: VOLUME_SETTABLE ? Math.round(this.video.volume * 100) : null,
+      muted: this.video.muted,
+      canPause: true,
+    };
+  }
+
   setSpinner(on) {
     if (on) {
       if (!this.centerEl.querySelector('.spinner') && !this.centerEl.querySelector('.big-play')) this.centerEl.replaceChildren(h('div.spinner'));
@@ -493,6 +552,7 @@ class LivePlayer {
   destroy() {
     if (this.destroyed) return;
     this.destroyed = true;
+    playerClosed(this);
     // Stopping frees Tvheadend's tuner straight away.
     this.report('stopped', { keepalive: true });
     clearInterval(this.reportTimer);
@@ -503,7 +563,7 @@ class LivePlayer {
     clearTimeout(this.healthyTimer);
     for (const fn of this.unbinders || []) fn();
     this.teardownMedia();
-    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    playerLeft();
     document.title = 'Reelhouse';
   }
 }

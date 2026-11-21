@@ -60,6 +60,14 @@
           <default>true</default>
           <control type="toggle"/>
         </setting>
+        <setting id="remote_shared" type="boolean" label="30144" help="30145">
+          <level>0</level>
+          <default>false</default>
+          <dependencies>
+            <dependency type="enable" setting="remote_control">true</dependency>
+          </dependencies>
+          <control type="toggle"/>
+        </setting>
         <setting id="action_timeshift" type="action" label="30138" help="30139">
           <level>0</level>
           <data>InstallAddon(inputstream.ffmpegdirect)</data>

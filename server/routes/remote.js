@@ -2,7 +2,7 @@
 // answers. The devices themselves listen on GET /api/events (?target=…).
 import { Router } from 'express';
 import { requireUser } from '../auth.js';
-import { claim, commandDone, listTargets, sendCommand } from '../remote.js';
+import { claim, commandDone, listTargets, reportControls, sendCommand } from '../remote.js';
 
 const router = Router();
 
@@ -26,6 +26,12 @@ router.post('/remote/targets/:id/commands', requireUser, async (req, res) => {
 // A web tab took the focus: it becomes the one its browser is listed as.
 router.post('/remote/targets/:id/claim', requireUser, (req, res) => {
   if (!claim(req, req.params.id)) return res.status(404).json({ error: 'Not found' });
+  res.json({ ok: true });
+});
+
+// A device says what it offers the phone (audio and subtitle tracks, volume, pausing), or that nothing plays.
+router.post('/remote/status', requireUser, (req, res) => {
+  if (!reportControls(req, req.body || {})) return res.status(404).json({ error: 'Not a device the phone can control' });
   res.json({ ok: true });
 });
 

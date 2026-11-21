@@ -18,6 +18,7 @@ import app.reelhouse.android.data.update.AppUpdater
 import app.reelhouse.android.ui.common.isRemoteDevice
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
@@ -56,6 +57,14 @@ class AppContainer(app: Application) {
         remoteTargetOn.value = on
     }
 
+    /** Whether anyone at home may use this device from their phone too (Settings; off unless switched on). */
+    val remoteSharedOn = MutableStateFlow(prefs.remoteShared)
+
+    fun setRemoteShared(on: Boolean) {
+        prefs.remoteShared = on
+        remoteSharedOn.value = on
+    }
+
     /** A message for the pairing screen, e.g. why this device was signed out. */
     val notice = MutableStateFlow<String?>(null)
 
@@ -69,18 +78,17 @@ class AppContainer(app: Application) {
     val api: ReelhouseApi = ReelhouseApi(http, base = { connection.baseUrl }, onUnauthorized = ::signedOutByServer)
     val connection: ConnectionManager = ConnectionManager(app, store, api, RoutePlanner(GoTunnels), scope)
     // The live stream says what this device is to the phone remote: a phone hears about the devices it can control,
-    // and a device a phone may control takes its commands.
-    private val liveQuery: StateFlow<String> = remoteTargetOn
-        .map { on ->
-            listOfNotNull(
-                "controller=1".takeIf { !tvBox },
-                (if (tvBox) "target=tv" else "target=phone").takeIf { on },
-            ).joinToString("&").let { if (it.isEmpty()) "" else "?$it" }
-        }
-        .stateIn(scope, SharingStarted.Eagerly, "")
+    // and a device a phone may control takes its commands (shared with anyone at home when that's on too).
+    private val liveQuery: StateFlow<String> = combine(remoteTargetOn, remoteSharedOn) { on, shared ->
+        listOfNotNull(
+            "controller=1".takeIf { !tvBox },
+            (if (tvBox) "target=tv" else "target=phone").takeIf { on },
+            "shared=1".takeIf { on && shared },
+        ).joinToString("&").let { if (it.isEmpty()) "" else "?$it" }
+    }.stateIn(scope, SharingStarted.Eagerly, "")
     val live = LiveUpdates(http, connection, scope, liveQuery)
     val remote = RemoteControl(api, live, connection, scope)
-    val remoteReceiver = RemoteReceiver(api, scope)
+    val remoteReceiver = RemoteReceiver(api, scope, isTarget = { remoteTargetOn.value })
     val downloadStore = DownloadStore(File(app.getExternalFilesDir(null) ?: app.filesDir, "downloads"))
     val fileDownloader = FileDownloader(http)
     val downloads = DownloadManager(app, downloadStore, prefs, connection, store)
@@ -110,6 +118,7 @@ class AppContainer(app: Application) {
             live.events.collect { e ->
                 when (e) {
                     is ServerEvent.RemoteCommandReceived -> if (remoteTargetOn.value) remoteReceiver.received(e.command)
+                    ServerEvent.RemoteHello -> if (remoteTargetOn.value) remoteReceiver.hello()
                     is ServerEvent.DefaultsChanged -> connection.serverDefaultsChanged(e.defaults)
                     ServerEvent.Resync, ServerEvent.LiveTvChanged -> connection.refreshServerDefaults()
                     is ServerEvent.RequestsChanged -> connection.requestsChanged(e.count)

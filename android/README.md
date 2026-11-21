@@ -26,8 +26,11 @@ Status: milestones 1–5 are done. You can:
 - choose a picture for your account in Settings (since 0.1.7): checked on the phone, shown as it
   will look, then sent; HEIC photos are converted on the phone;
 - mark things watched;
-- play, with resume, audio, subtitle and quality choices, and the next episode; subtitles start off, but for a file's
-  forced ones, and the next episode keeps the ones you chose (since 0.13.2);
+- play, with resume, audio, subtitle and quality choices, and the next episode; the sound track and subtitles start
+  as the server's **Settings → Languages** says (since 0.16.0, with server 0.26.0: a preferred audio language,
+  played from the file as it is, and subtitles off, forced only, in a preferred language when the sound is in another,
+  or always; forced ones only where their flag can be believed, as the main README says; with Off, Android's caption
+  setting doesn't turn them on either), and the next episode keeps the ones you chose, Off included (since 0.13.2);
 - download movies, episodes and whole seasons to watch offline, when Reelhouse allows downloads;
 - install it from your Reelhouse, and update it from there too;
 - watch Live TV and listen to Radio from Tvheadend, when Reelhouse has it and your account may (since 0.2.0): the
@@ -114,10 +117,17 @@ A bar along the bottom shows what's playing; touch it for the remote (pause, bac
 previous and next episode, Stop, Disconnect), with the film's cover (an episode's show's) behind it. In the app's own
 player the Cast button hands what's playing over at the current position. Downloads always play on the phone.
 
+Since 0.16.0 (with Reelhouse 0.26.0): a channel tapped in the guide plays on the device picked (the guide says "Plays
+on …"), and the remote then has channel up and down; **Audio & subtitles** picks the device's sound track and
+subtitles; a volume slider and mute set its volume, and the phone's volume buttons do too while the remote is open.
+Other people's devices they share with anyone at home are listed too ("Living room TV · dave's"): they play as that
+person's account, and only what both of you may watch.
+
 On a TV box the app takes a phone's commands while it's open (**Settings → Phone remote**, on by default there). On a
-phone or tablet that switch is off until you turn it on. The top bar's connection status is a coloured dot after the
-name (green at home, amber through the tunnel or the web address, red offline); touch it, or see Settings, for the
-words.
+phone or tablet that switch is off until you turn it on. **Let others at home use it**, under it, lets other accounts'
+phones on the same network use the device too (off until you turn it on). The top bar's connection status is a
+coloured dot after the name (green at home, amber through the tunnel or the web address, red offline); touch it, or
+see Settings, for the words.
 
 ## On a Fire TV or Android TV box
 

@@ -6,7 +6,7 @@
 import { refresh } from './router.js';
 import { state } from './state.js';
 import { toast } from './components.js';
-import { remoteTargetOn, remoteHello, remoteGone, remoteCommand } from './remote-target.js';
+import { eventsUrl, remoteHello, remoteGone, remoteCommand } from './remote-target.js';
 
 const SETTLE_MS = 1200; // coalesce bursts of events into one refresh
 const BUSY_RETRY_MS = 2000;
@@ -73,7 +73,7 @@ function connect() {
   if (source || document.hidden) return;
   clearTimeout(retryTimer);
   // While a phone may control this browser, the stream also brings its commands (remote-target.js).
-  source = new EventSource(remoteTargetOn() ? '/api/events?target=web' : '/api/events');
+  source = new EventSource(eventsUrl());
   source.addEventListener('hello', (e) => {
     // (Re)connected: streams may have started or stopped while this tab wasn't listening.
     void activity?.refresh();

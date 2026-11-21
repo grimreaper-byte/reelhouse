@@ -286,6 +286,7 @@ private fun SettingSwitch(): SwitchColors = SwitchDefaults.colors(uncheckedThumb
 private fun RemoteSection() {
     val c = LocalContext.current.container
     val on by c.remoteTargetOn.collectAsState()
+    val shared by c.remoteSharedOn.collectAsState()
     Section("Phone remote")
     Row(
         Modifier.fillMaxWidth().toggleable(on, null, TextRing, role = Role.Switch) { c.setRemoteTarget(it) }.padding(vertical = 8.dp),
@@ -294,13 +295,31 @@ private fun RemoteSection() {
         Column(Modifier.weight(1f)) {
             Text("Let your phone control this device")
             Text(
-                "The Reelhouse app on your phone can play things here and pause, skip or stop them, while Reelhouse is " +
-                    "open here and the phone is on the same network.",
+                "The Reelhouse app on your phone can play films, episodes and channels here, pause, skip or stop them, " +
+                    "and change their sound, subtitles and volume, while Reelhouse is open here and the phone is on the " +
+                    "same network.",
                 style = MaterialTheme.typography.bodySmall,
                 color = Palette.TextDim,
             )
         }
         Switch(checked = on, onCheckedChange = null, colors = SettingSwitch())
+    }
+    // Anyone at home: other accounts' phones too (it plays as this account, only what both may watch).
+    Row(
+        Modifier.fillMaxWidth().toggleable(on && shared, null, TextRing, enabled = on, role = Role.Switch) { c.setRemoteShared(it) }.padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text("Let others at home use it", color = if (on) Palette.Text else Palette.TextFaint)
+            Text(
+                "Other people with an account on this Reelhouse can play things here from their phones too, and see " +
+                    "what's playing, when they're on the same network. It plays as your account, and only what both of " +
+                    "you may watch.",
+                style = MaterialTheme.typography.bodySmall,
+                color = Palette.TextDim,
+            )
+        }
+        Switch(checked = on && shared, onCheckedChange = null, enabled = on, colors = SettingSwitch())
     }
     if (!c.tvBox) {
         Text(

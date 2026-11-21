@@ -6,7 +6,7 @@ import { render } from '../../router.js';
 import { AVATAR_TYPES, prepareAvatar, avatarContent } from '../../avatar.js';
 import { panel, textField, actionButton, checkField } from './form.js';
 import { pairingDialog } from './pairing.js';
-import { remoteTargetOn, setRemoteTargetOn } from '../../remote-target.js';
+import { remoteTargetOn, setRemoteTargetOn, remoteSharedOn, setRemoteSharedOn } from '../../remote-target.js';
 
 export async function accountTab(ctx) {
   const user = state.me.user;
@@ -124,15 +124,30 @@ function sharingPanel(user) {
 
 // The phone remote (remote-target.js): kept in this browser, as each browser is a device of its own.
 function remotePanel() {
+  const shared = checkField('Let anyone at home play on this browser', remoteSharedOn(), {
+    hint: 'Other people with an account here can play things on this browser from their phones too, and see what’s '
+      + 'playing on it, while they’re on the same network. It plays as you (your watch history), and only what both of '
+      + 'you may watch.',
+    onChange: (on) => {
+      setRemoteSharedOn(on);
+      toast(on ? 'Anyone at home can now play on this browser' : 'Only your phone can play on this browser now');
+    },
+  });
+  const sync = (on) => {
+    shared.input.disabled = !on;
+  };
   const allow = checkField('Let my phone control this browser', remoteTargetOn(), {
-    hint: 'The Reelhouse app on your phone can play things here and pause, skip or stop them, while this page is open '
-      + 'and your phone is on the same network. Only for this browser.',
+    hint: 'The Reelhouse app on your phone can play films, episodes and channels here, and pause, skip, stop them or '
+      + 'change their sound, subtitles and volume, while this page is open and your phone is on the same network. '
+      + 'Only for this browser.',
     onChange: (on) => {
       setRemoteTargetOn(on);
+      sync(on);
       toast(on ? 'Your phone can control this browser' : 'Your phone can no longer control this browser');
     },
   });
-  return panel('Phone remote', 'Use the Reelhouse app on your phone as a remote for what plays here.', allow.el);
+  sync(remoteTargetOn());
+  return panel('Phone remote', 'Use the Reelhouse app on your phone as a remote for what plays here.', allow.el, shared.el);
 }
 
 // Apps (the Kodi add-on, the Reelhouse app) signed in to this account with their own long-lived sign-in.

@@ -61,6 +61,7 @@ class Player(xbmc.Player):
         self.report('stopped')
         self.current = None
         self.report_live('stopped')  # frees the tuner straight away
+        remote.report_controls(self)  # nothing for the phone to change now
 
     def onPlayBackStarted(self):
         # Moving on in a playlist (the remote's Next and Previous), this is all Kodi says: never that the item it left
@@ -93,6 +94,11 @@ class Player(xbmc.Player):
             self.current = None
             self.subtitles_seen = None
             self.start_live(playing)
+        remote.report_controls(self)  # what the phone may change: this one's sound and subtitles, the volume
+
+    def onAVChange(self):
+        # Another audio or subtitle stream (from Kodi's own menus too): the phone shows it.
+        remote.report_controls(self)
 
     def start_subtitles(self, info):
         """Subtitles start off (subtitles.py), unless Kodi moved on from an episode that had them on: from the one
@@ -171,11 +177,13 @@ class Player(xbmc.Player):
         self.report('ended')
         self.current = None
         self.report_live('stopped')
+        remote.report_controls(self)
 
     def onPlayBackError(self):
         self.current = None
         self.subtitles_seen = None
         self.report_live('stopped')
+        remote.report_controls(self)
 
     def _time(self):
         try:
@@ -318,6 +326,8 @@ class Service(xbmc.Monitor):
                 self.wake.set()
         elif method == 'VideoLibrary.OnUpdate':
             self.on_library_update(data)
+        elif method == 'Application.OnVolumeChanged':
+            remote.report_controls(self.player)  # the phone's volume slider follows Kodi's
 
     def onSettingsChanged(self):
         self.rejected = False
@@ -394,11 +404,13 @@ class Service(xbmc.Monitor):
                 api.report_progress(*args, timeout=timeout)
             elif kind == 'live':
                 api.post('/api/livetv/progress', {'playId': args[0], 'state': args[1]}, timeout=timeout)
+            elif kind == 'controls':
+                api.post('/api/remote/status', args[0], timeout=timeout)
             else:
                 api.set_watched(*args, timeout=timeout)
         except ApiError as err:
-            if kind == 'live':
-                return True  # a heartbeat is only worth sending now; an ended session answers 404
+            if kind in ('live', 'controls'):
+                return True  # only worth sending now (an ended session answers 404; a new stream asks again)
             if err.status is None:
                 if not self.unsent:
                     utils.log('Reelhouse is unreachable; keeping updates to send later ({})'.format(err), xbmc.LOGWARNING)
@@ -537,6 +549,8 @@ class Service(xbmc.Monitor):
                     if self.abortRequested() or generation != self.live_generation:
                         return
                     if event == 'hello':
+                        # The sound track and subtitles to start with (Settings → Languages; newer servers).
+                        subtitles.set_defaults((data or {}).get('defaults'))
                         self.outbox.put(None)  # sends what couldn't be sent while Reelhouse was out of reach
                         # Back after a gap: new media and watched marks from other devices may have been missed.
                         # (A sync only fetches details for what changed, so this is cheap.)
@@ -552,8 +566,14 @@ class Service(xbmc.Monitor):
                         self.changed()
                     elif event == 'livetv':
                         self.changed()  # e.g. channels in Continue Watching turned on or off
+                    elif event == 'defaults':
+                        subtitles.set_defaults(data)  # an admin changed Settings → Languages
                     elif event == 'remote':
                         remote.handle(self.player, data)  # the phone remote: one at a time, in order
+                    elif event == 'remote-hello':
+                        # A new stream as a target: Reelhouse hears again what Kodi offers the phone.
+                        remote.forget_controls()
+                        remote.report_controls(self.player)
             except ApiError as err:
                 if err.status == 401:
                     self.on_rejected()

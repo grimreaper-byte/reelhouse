@@ -10,6 +10,7 @@ import { remoteTab } from './settings/remote.js';
 import { androidTab } from './settings/android.js';
 import { kodiTab } from './settings/kodi.js';
 import { liveTvTab } from './settings/livetv.js';
+import { languagesTab } from './settings/languages.js';
 import { activityTab } from './settings/activity.js';
 
 const TABS = [
@@ -20,6 +21,7 @@ const TABS = [
   { id: 'android', label: 'Android app', admin: true, view: androidTab },
   { id: 'kodi', label: 'Kodi add-on', admin: true, view: kodiTab },
   { id: 'livetv', label: 'Live TV', admin: true, view: liveTvTab },
+  { id: 'languages', label: 'Languages', admin: true, view: languagesTab },
   { id: 'transcoder', label: 'Transcoder', admin: true, view: transcoderTab },
   { id: 'metadata', label: 'Metadata', admin: true, view: metadataTab },
   { id: 'activity', label: 'Activity & logs', admin: true, view: activityTab },

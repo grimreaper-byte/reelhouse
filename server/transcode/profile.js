@@ -87,7 +87,9 @@ export function decide(media, caps = {}, opts = {}) {
     reasons.push(`${video.codec}${detail} video`);
   }
   if (audio && !(caps.audio || []).includes(audio.codec)) reasons.push(`${audio.codec} audio`);
-  if (audio && defaultAudio && audio.index !== defaultAudio.index) reasons.push('alternate audio track');
+  // A browser plays only a file's default sound track; a player that switches between them itself (caps.audioTracks:
+  // the Android app) plays the file as it is and picks the track it's told (audioIndex in the answer).
+  if (audio && defaultAudio && audio.index !== defaultAudio.index && !caps.audioTracks) reasons.push('alternate audio track');
   const encoded = mkvEncodedPlayed(media, video, audio);
   if (encoded && !caps.mkvContentEncoding && (caps.containers || []).includes(media.container)) {
     reasons.push(`MKV ${encoded.encoding === 'header-stripping' ? 'header compression' : encoded.encoding}`);

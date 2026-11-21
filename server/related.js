@@ -4,6 +4,7 @@
 import { all, get, placeholders, parseJson } from './db.js';
 import { allowedLibraryIds } from './auth.js';
 import { serializeMany } from './items.js';
+import { ratingSql } from './ratings.js';
 
 const ROW_LIMIT = 20;
 const MIN_SCORE = 2;
@@ -49,9 +50,10 @@ export function similarity(a, b) {
 // Parsed candidates per (type, libraries), rebuilt when the library changes.
 const cache = new Map();
 
-function candidates(type, libIds) {
-  const key = `${type}:${libIds.join(',')}`;
-  const where = `type = ? AND library_id IN (${placeholders(libIds)}) AND version_of IS NULL`;
+function candidates(type, libIds, user) {
+  const rated = ratingSql(user, 'items'); // the same for everyone with the same limit
+  const key = `${type}:${libIds.join(',')}:${rated}`;
+  const where = `type = ? AND library_id IN (${placeholders(libIds)}) AND version_of IS NULL AND ${rated}`;
   const { n, t } = get(`SELECT COUNT(*) AS n, MAX(updated_at) AS t FROM items WHERE ${where}`, type, ...libIds);
   const stamp = `${n}:${t}`;
   const hit = cache.get(key);
@@ -82,7 +84,7 @@ export function relatedFor(user, item) {
   if (!libIds.length) return result;
 
   const me = features(item);
-  const ranked = candidates(item.type, libIds)
+  const ranked = candidates(item.type, libIds, user)
     .filter((c) => c.id !== item.id)
     .map((c) => ({ c, score: similarity(me, c) }))
     .filter((s) => s.score >= MIN_SCORE)
@@ -96,7 +98,7 @@ export function relatedFor(user, item) {
       `SELECT i.*, json_extract(c.value, '$.role') AS cast_role
          FROM items i, json_each(i.cast_json) c
         WHERE i.type IN ('movie', 'show') AND i.id != ? AND i.library_id IN (${placeholders(libIds)})
-          AND json_extract(c.value, '$.name') = ?
+          AND ${ratingSql(user)} AND json_extract(c.value, '$.name') = ?
         GROUP BY i.id
         ORDER BY i.type = ? DESC, i.year DESC
         LIMIT ${ROW_LIMIT}`,

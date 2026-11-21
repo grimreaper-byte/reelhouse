@@ -24,6 +24,20 @@ test('a report that arrives after the stop does not bring the stream back', () =
   assert.equal(streamCount(), 1);
 });
 
+test('a stream that went quiet comes back when its player reports again (a long pause, then Play)', () => {
+  startStream('nap', film(), 1_000);
+  reportStream('nap', { ...film(), position: 50, state: 'paused' }, 2_000);
+  sweepStreams(2_000 + QUIET_PAUSED_MS + 1); // paused for longer than a paused stream is kept: gone
+  assert.equal(streamCount(), 0);
+  const back = reportStream('nap', { ...film(), position: 51, state: 'playing' }, 2_000 + QUIET_PAUSED_MS + 60_000);
+  assert.ok(back, 'listed again (the activity monitor, the phone remote)');
+  assert.equal(streamCount(), 1);
+  // A late report after a stop stays out only for a while: much later, the same id starts a stream again.
+  reportStream('nap', { ...film(), position: 60, state: 'stopped' }, 2_000 + QUIET_PAUSED_MS + 70_000);
+  assert.equal(reportStream('nap', { ...film(), position: 60, state: 'paused' }, 2_000 + QUIET_PAUSED_MS + 70_100), null);
+  assert.ok(reportStream('nap', { ...film(), position: 61, state: 'playing' }, 2_000 + QUIET_PAUSED_MS + 70_000 + 11 * 60_000));
+});
+
 test('a direct stream is logged with who started it, on what, and when it stops, where', () => {
   startStream('p1', film(), 1_000);
   assert.equal(lastLog(), 'User "admin" started "My Movie" on Pixel 8 (192.168.0.20) (direct play)');

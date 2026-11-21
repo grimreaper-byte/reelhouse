@@ -45,9 +45,25 @@ class ChoiceTests(unittest.TestCase):
 
     def test_what_is_carried_on(self):
         self.assertEqual(subtitles.shown(kodi(True, FRENCH)), {'language': 'fre'})
-        self.assertIsNone(subtitles.shown(kodi(False, FRENCH)))
+        self.assertEqual(subtitles.shown(kodi(False, FRENCH)), {'off': True}, 'off though there are forced ones: off')
+        self.assertIsNone(subtitles.shown(kodi(False, subs=(ENGLISH, FRENCH))), 'off, with nothing forced: nothing')
         self.assertIsNone(subtitles.shown(kodi(True, ENGLISH_FORCED)))  # forced ones show by themselves
         self.assertIsNone(subtitles.shown(None))
+
+    def test_turned_off_stays_off_forced_ones_too(self):
+        self.assertIsNone(subtitles.choose(kodi(False), {'off': True}))
+        self.assertIsNone(subtitles.choose(kodi(True, ENGLISH_FORCED), {'off': True}))
+
+    def test_a_lone_track_flagged_forced_is_an_ordinary_one(self):
+        # As The Big Bang Theory's: its only, full English track flagged forced (and default), named "English".
+        lone = {'index': 0, 'language': 'eng', 'name': 'English', 'isforced': True}
+        self.assertFalse(subtitles.believed_forced(lone, [lone]))
+        self.assertIsNone(subtitles.choose(kodi(True, lone, subs=(lone,))), 'starts off')
+        self.assertEqual(subtitles.shown(kodi(True, lone, subs=(lone,))), {'language': 'eng'}, 'put on: carried on')
+        self.assertIsNone(subtitles.shown(kodi(False, subs=(lone,))), 'off: nothing forced to keep off')
+        named = dict(lone, name='English (Forced)')
+        self.assertTrue(subtitles.believed_forced(named, [named]), 'a name that says so is believed')
+        self.assertTrue(subtitles.believed_forced(ENGLISH_FORCED, [ENGLISH, ENGLISH_FORCED]))
 
     def test_kodi_19_without_forced_marks(self):
         old = [dict((k, v) for k, v in s.items() if k != 'isforced') for s in (ENGLISH, FRENCH)]
@@ -56,6 +72,62 @@ class ChoiceTests(unittest.TestCase):
     def test_nothing_to_choose_from(self):
         self.assertIsNone(subtitles.choose(kodi(True, subs=())))
         self.assertIsNone(subtitles.choose({}))
+
+
+EN = ['en', 'eng']
+FR = ['fr', 'fre', 'fra']
+ENGLISH_SDH = {'index': 3, 'language': 'eng', 'name': 'English', 'isforced': False, 'isimpaired': True}
+
+
+def languages(mode='forced', codes=EN, audio=None):
+    subtitles.set_defaults({'subtitles': {'mode': mode, 'language': codes[0], 'codes': codes},
+                            'audio': {'language': audio[0], 'codes': audio} if audio else {'language': None, 'codes': []}})
+
+
+class LanguageTests(unittest.TestCase):
+    """Settings → Languages: the server's subtitle mode and preferred languages (the service hands them over)."""
+
+    def tearDown(self):
+        subtitles.set_defaults(None)
+
+    def test_without_word_from_the_server_forced_only(self):
+        subtitles.set_defaults(None)
+        self.assertEqual(subtitles.choose(kodi(False)), 1)
+        subtitles.set_defaults({'version': 3})  # an older server's hello: nothing about languages
+        self.assertEqual(subtitles.choose(kodi(False)), 1)
+
+    def test_off_forced_ones_too(self):
+        languages('off')
+        self.assertIsNone(subtitles.choose(kodi(True, ENGLISH_FORCED)))
+        self.assertEqual(subtitles.choose(kodi(False), {'language': 'fre'}), 2, 'the episode before carries on')
+
+    def test_always_the_preferred_languages_full_track_before_sdh(self):
+        languages('always')
+        self.assertEqual(subtitles.choose(kodi(False, subs=(ENGLISH_SDH, ENGLISH, ENGLISH_FORCED, FRENCH))), 0)
+        self.assertEqual(subtitles.choose(kodi(False, subs=(ENGLISH_SDH, ENGLISH_FORCED))), 3, 'SDH if it is the only one')
+        languages('always', FR)
+        self.assertEqual(subtitles.choose(kodi(False)), 2)
+        languages('always', ['de', 'ger', 'deu'])
+        self.assertEqual(subtitles.choose(kodi(False)), 1, 'none in it: the forced ones, as usual')
+        self.assertIsNone(subtitles.choose(kodi(False), {'off': True}), 'off carried on stays off')
+
+    def test_foreign_only_while_the_sound_is_in_another_language(self):
+        languages('foreign')
+        self.assertEqual(subtitles.choose(kodi(False, audio='fre')), 0, 'French sound: English subtitles')
+        self.assertEqual(subtitles.choose(kodi(False, audio='eng')), 1, 'English sound: the forced parts')
+        self.assertNotEqual(subtitles.choose(kodi(False, audio='en-US')), 0, 'a region is the same language: not foreign')
+        self.assertIsNone(subtitles.choose(kodi(False, audio='')), 'unknown sound: as forced (none for it)')
+        self.assertIsNone(subtitles.choose(kodi(False, audio='und')))
+
+    def test_the_preferred_sound_track(self):
+        streams = [{'index': 0, 'language': 'eng'}, {'index': 1, 'language': 'fre'}]
+        st = dict(kodi(False), audiostreams=streams)
+        self.assertIsNone(subtitles.choose_audio(st), 'none preferred: Kodi’s')
+        languages(audio=FR)
+        self.assertEqual(subtitles.choose_audio(st), 1)
+        self.assertIsNone(subtitles.choose_audio(dict(st, currentaudiostream=streams[1])), 'already playing it')
+        languages(audio=['de', 'ger', 'deu'])
+        self.assertIsNone(subtitles.choose_audio(st), 'none in it')
 
 
 class StartTests(unittest.TestCase):
@@ -85,6 +157,18 @@ class StartTests(unittest.TestCase):
         kodistubs.RPC_RESULTS['Player.GetProperties'] = kodi(True, FRENCH)
         self.assertEqual(subtitles.start({'language': 'fre'}), 2)
         self.assertEqual(self.sets(), [])
+
+    def test_the_sound_switches_first_and_the_subtitles_follow_it(self):
+        streams = [{'index': 0, 'language': 'eng'}, {'index': 1, 'language': 'fre'}]
+        kodistubs.RPC_RESULTS['Player.GetProperties'] = dict(kodi(False), audiostreams=streams)
+        languages('foreign', EN, audio=FR)
+        try:
+            self.assertEqual(subtitles.start(), 0)  # French sound now: the English subtitles
+        finally:
+            subtitles.set_defaults(None)
+        self.assertEqual([(m, p) for m, p in kodistubs.RPC if m in ('Player.SetAudioStream', 'Player.SetSubtitle')],
+                         [('Player.SetAudioStream', {'playerid': 1, 'stream': 1}),
+                          ('Player.SetSubtitle', {'playerid': 1, 'subtitle': 0, 'enable': True})])
 
     def test_kodi_with_nothing_playing(self):
         kodistubs.RPC_RESULTS['Player.GetProperties'] = None

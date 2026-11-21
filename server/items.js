@@ -2,6 +2,7 @@
 import { all, get, run, tx, placeholders, parseJson } from './db.js';
 import { allowedLibraryIds } from './auth.js';
 import { stateItemId } from './versions.js';
+import { allows, limitOf } from './ratings.js';
 
 const imageUrl = (row, kind) => `/api/images/${row.id}/${kind}?v=${row.updated_at}`;
 
@@ -137,11 +138,24 @@ export function serializeMany(userId, rows, opts = {}) {
 
 // ---------- access ----------
 
+/**
+ * An item someone may open: in a library they can see, and within their content rating limit if they have one (a
+ * season or episode goes by its show's rating). Its row, or null as for one that doesn't exist.
+ */
 export function getAccessibleItem(user, id) {
   const row = get('SELECT * FROM items WHERE id = ?', Number(id));
   if (!row) return null;
   if (!allowedLibraryIds(user).includes(row.library_id)) return null;
+  if (!ratingAllowsRow(user, row)) return null;
   return row;
+}
+
+/** Whether [row] is within [user]'s content rating limit (server/ratings.js); always so without one. */
+export function ratingAllowsRow(user, row) {
+  const limit = limitOf(user);
+  if (!limit) return true;
+  const rating = row.show_id ? get('SELECT content_rating FROM items WHERE id = ?', row.show_id)?.content_rating : row.content_rating;
+  return allows(limit, rating);
 }
 
 // ---------- watched state ----------

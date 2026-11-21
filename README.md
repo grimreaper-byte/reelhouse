@@ -25,6 +25,8 @@ Everything runs on your own computer: no cloud accounts, no subscriptions, no pa
   Others" row on Home with what everyone else has been watching (anyone can keep theirs private), and a picture
   of their choosing for their account (checked before it's kept)
 - Admins choose how many devices each person can play on at once (2 unless they choose otherwise, or no limit)
+- **[Content ratings](#content-ratings)** for accounts, a child's say: an admin limits what someone sees and plays to
+  a rating such as PG or 12A, everywhere (ratings come from TMDB, so check them)
 - See what's being watched: a count in the top bar for admins, the details in Settings → Activity & logs, and a log
   of who started and stopped what, on which device
 - Subtitles (embedded and `.srt`/`.ass`/`.vtt` files), multiple audio tracks, chapters (buttons to skip between them), and audio/subtitle sync
@@ -36,8 +38,9 @@ Everything runs on your own computer: no cloud accounts, no subscriptions, no pa
   from your own Reelhouse, on phones, tablets and TV boxes such as a Fire TV (driven with its remote)
 - A **Kodi add-on** that puts your movies and shows into Kodi's own library, with watched status and resume points
   kept in sync both ways
-- **[The app as a remote](#phone-remote)**: play a film or episode from your phone on Reelhouse open in a browser, in
-  Kodi, or on the app on a TV box on the same network, and pause, skip or stop it from the phone
+- **[The app as a remote](#phone-remote)**: play a film, an episode or a live channel from your phone on Reelhouse
+  open in a browser, in Kodi, or on the app on a TV box on the same network, and pause, skip, stop it or change its
+  sound, subtitles and volume from the phone; a shared living-room TV can be used by everyone at home
 - **Live TV** from [Tvheadend](#live-tv-tvheadend): a TV guide, live channels in the browser and the Android app, and
   recordings scheduled from the guide, one at a time or a whole series, for the accounts you allow, each person seeing
   their own on a Manage Recordings page, and, if you like, the channels they've watched in Continue Watching
@@ -224,6 +227,32 @@ artwork from local files or frames of the video.
 If something is matched wrong, open it and choose **⋯ → Fix match**. To use a different poster or background, use
 the pencil button on the same page (admins only; see **Changing artwork** below).
 
+## Content ratings
+
+Since 0.26.0 an admin can give an account a content rating limit: in **Settings → Users**, edit the person and choose
+a **Content rating**. Films and shows rated above it are hidden from them everywhere (Home, the libraries, search,
+people's pages, related titles) and can't be opened or played, in the web app, the Reelhouse app and Kodi, whose
+library drops them at its next sync. A show's seasons and episodes go by the show's rating. The choices are your
+metadata country's ratings (en-GB: U, PG, 12A and 12, 15; en-US: G and TV-Y up to R and TV-MA; elsewhere ages). Behind
+each is an age, so other countries' ratings compare too: PG-13 counts as 13, a UK 15 as 15, TV-MA as 17.
+
+> [!WARNING]
+> **Ratings come from TMDB, and some are missing or wrong.** Reelhouse uses the rating TMDB has for your metadata
+> language's country (Settings → Metadata: en-GB gives the BBFC's), or the US one when there's none, unless an .nfo
+> file next to the title gives its own (`<mpaa>`). TMDB's ratings are added by its users. Without a TMDB key only .nfo
+> files give ratings. Look through what a limited account can see before relying on it; the Users page says this too.
+
+- **Titles without a rating** (home videos, recordings, anything with no rating from TMDB or an .nfo file) are hidden
+  from a limited account, unless **Also show titles without a rating** is ticked for it.
+- **Requests**, and the films that aren't on the server on people's pages, are hidden from a limited account: they
+  come from TMDB with no rating to check.
+- **Live TV and recordings** have no ratings: use the account's Live TV switches on the same page.
+- **Admins** are never limited.
+- **Titles added before 0.26.0** get the US rating where your country has none when their metadata is refreshed
+  (**Settings → Metadata → Refresh all**).
+- **A change takes effect straight away:** the person's open pages and apps reload, and Kodi syncs its library again.
+  Downloads already on a phone stay there; delete them on the phone if need be.
+
 ## Remote access
 
 Open **Settings → Remote access**. First make your home reachable, then pick a way in: the Reelhouse app tunnel,
@@ -369,10 +398,26 @@ your home network**: Original unless you change it (since 0.22.0), so nothing is
 as it is. If your upload can't keep up with your files, pick something lower there. The **Audio & subtitles** button
 lists every audio track and subtitle. Image-based subtitles (PGS/VobSub) are burned into the picture.
 
-**Subtitles start off** in the web app, the Android app and Kodi alike (since 0.24.0), even when a file marks one of
-its subtitle tracks as the default. Only a file's forced subtitles (the parts in another language) show by
-themselves, those for the audio that's playing. Going on to the next or previous episode keeps the subtitles that
-were showing; anything else you start begins with them off again.
+**Languages** (since 0.26.0): admins choose in **Settings → Languages** the sound track and subtitles films and
+episodes start with, for everyone, in the web app, the Android app and Kodi alike:
+
+- **Preferred audio language:** a film or episode with a sound track in that language plays it, the others their
+  default track; the default is always the file's default track. A browser can only play a file's default sound
+  track, so for a browser a file whose default is in another language is converted, with the picture copied as it is
+  (light work); the Android app and Kodi switch tracks themselves. Kodi remembers the track each file last played
+  with, and keeps it when no language is preferred.
+- **When a film or episode starts:** *Off, forced ones too* (turned on in the player when wanted); *Only a file's
+  forced subtitles* (the default, as since 0.24.0); *In the preferred language when the sound is in another
+  language*; *Always in the preferred language*. A file's own default subtitle track never comes on by itself.
+- **Preferred subtitle language** (the metadata language's unless set): used by the last two when a file has
+  subtitles in it (a full track before one for the deaf and hard of hearing; in a browser, text ones only), and first
+  when someone turns subtitles on with C in the web player.
+
+Forced subtitles are those for the parts in another language, shown for the sound that's playing. A file's forced
+flag counts only when the track's name says so (Forced, Foreign, Signs & Songs…) or a full track in the same language
+sits beside it: some releases flag their only, full track as forced, which would otherwise come on for every episode.
+Going on to the next or previous episode keeps the subtitles that were showing, and subtitles turned off stay off,
+forced ones too, whatever the setting. Live TV channels play as they come and start without subtitles.
 
 **What's being watched:** admins see a TV in the top bar (next to the account button) with the number of streams
 playing right now on its screen, from browsers, the Android app and Kodi alike. It updates by itself, and clicking it
@@ -528,7 +573,8 @@ Tvheadend's web port (9981).
 **Requests** in the sidebar (web app and Android app) is where anyone can ask for a movie that isn't on the server.
 Search for it (a year after the title narrows it down, e.g. "Heat 1995"): each film found on TMDB either opens
 (it's already on the server), says who has already asked for it, or has a **Request** button. Below the search is
-every request, newest first, with its poster, who asked and when; the sidebar shows how many there are.
+every request, newest first, with its poster, who asked and when; the sidebar shows how many there are. Accounts
+with a [content rating](#content-ratings) limit don't have Requests.
 
 You can remove your own requests; admins can remove anyone's, or all of them at once. A request also goes by itself
 once its movie is in a library the person who asked can open (checked after each library scan, matched by its TMDB
@@ -577,22 +623,38 @@ episodes on your other devices and control them, like casting. A **Cast** button
 and film pages when one of them is about: pick the device, and **Play** goes there; a bar along the bottom and a
 remote screen show what's playing, with pause, skips, a seek bar, next and previous episode, and Stop. In the phone's
 own player, the Cast button carries on over there from where you are, and the remote screen shows the film's cover
-behind it. (The app's top bar now shows how it's connected as a coloured dot after the name, which makes room for the
+behind it. (The app's top bar shows how it's connected as a coloured dot after the name, which makes room for the
 button; Settings still says it in words.)
+
+Since 0.26.0 (with app 0.16.0 and Kodi add-on 0.16.0):
+
+- **Live TV and radio:** with a device picked, a channel tapped in the app's guide (which then says "Plays on …")
+  plays there. The remote screen shows the channel and what's on, with channel up and down, pause (where the device
+  can pause live TV) and Stop.
+- **Sound, subtitles and volume:** **Audio & subtitles** on the remote screen lists the device's own sound tracks and
+  subtitles to pick from, and a volume slider with mute sets its volume. While the remote screen is open, the phone's
+  volume buttons turn the device up and down.
+- **A shared TV:** a device can be shared with anyone at home (off unless switched on there: the web app's **Settings
+  → Your account → Phone remote → Let anyone at home play on this browser**, Kodi's **Let anyone at home use Kodi from
+  their phone**, the app's **Settings → Let others at home use it**). Then everyone with an account here sees it on
+  the same network, marked with whose it is. It plays as the device's own account (its watch history), and only what
+  both of you may watch, so a [content rating](#content-ratings) limit still holds. Others see what it's playing only
+  when their own account may see it; otherwise just that something is playing.
 
 What it can play on:
 
-- **A browser** with Reelhouse open, while the page is showing (one per browser: the tab you used last). Browsers
-  only start a video by themselves on a page you've already clicked in; otherwise the phone says to press Play there.
-  To keep a browser out of it: **Settings → Your account → Phone remote**.
-- **Kodi** with the Reelhouse add-on (0.15.0 or newer), while Kodi is running. Off in the add-on's settings with
-  **Let your phone control Kodi**.
+- **A browser** with Reelhouse open, while the page is showing (one per browser: the tab you used last). Browsers only
+  start a video by themselves on a page you've already clicked in; otherwise the phone says to press Play there. To
+  keep a browser out of it: **Settings → Your account → Phone remote**. A phone can't set the volume of a browser on
+  an iPhone or iPad (iOS keeps it under the buttons).
+- **Kodi** with the Reelhouse add-on (0.15.0 or newer; 0.16.0 for channels, sound, subtitles and volume), while Kodi
+  is running. Off in the add-on's settings with **Let your phone control Kodi**.
 - **The Reelhouse app on a Fire TV or TV box**, while Reelhouse is open on it. On phones and tablets this is off until
   switched on in the app's **Settings → Let your phone control this device**.
 
-Only your own devices are listed, and only those on the **same network** as the phone: at home together, or both at
-a friend's house through the app tunnel. Reelhouse checks this again for every command. The phone tells Reelhouse,
-and Reelhouse passes it on to the device; nothing goes anywhere else. Live TV channels can't be sent yet.
+Only your own devices and shared ones are listed, and only those on the **same network** as the phone: at home
+together, or both at a friend's house through the app tunnel. Reelhouse checks this again for every command. The phone
+tells Reelhouse, and Reelhouse passes it on to the device; nothing goes anywhere else.
 
 ## Updating
 

@@ -20,14 +20,16 @@ import { watchedByOthers } from '../hubs.js';
 import { channelsToContinue } from '../livetv/recent-channels.js';
 import { addLibraryPaths, mergeLibraries, sameNamedLibrary } from '../libraries.js';
 import { versionsOf, versionOut, regroupVersions } from '../versions.js';
+import { ratingSql } from '../ratings.js';
 
 const router = Router();
 
 // ---------- libraries ----------
 
-function libraryOut(lib, admin) {
+/** A library for pages and apps; [user]'s count leaves out what their content rating limit hides. */
+function libraryOut(lib, admin, user = null) {
   const counts = get(
-    `SELECT COUNT(*) AS n FROM items WHERE library_id = ? AND type = ? AND version_of IS NULL`,
+    `SELECT COUNT(*) AS n FROM items i WHERE i.library_id = ? AND i.type = ? AND i.version_of IS NULL AND ${ratingSql(user)}`,
     lib.id,
     lib.type === 'movie' ? 'movie' : 'show',
   );
@@ -43,7 +45,7 @@ function librariesFor(user) {
 }
 
 router.get('/libraries', requireUser, (req, res) => {
-  res.json({ libraries: librariesFor(req.user).map((l) => libraryOut(l, req.user.isAdmin)) });
+  res.json({ libraries: librariesFor(req.user).map((l) => libraryOut(l, req.user.isAdmin, req.user)) });
 });
 
 // Settings → Libraries' order, { ids } first to last; kept in the database. Open pages and apps hear of it, so the
@@ -208,7 +210,7 @@ router.get('/libraries/:id/items', requireUser, (req, res) => {
   const type = lib.type === 'movie' ? 'movie' : 'show';
   const sortCol = SORTS[req.query.sort] || SORTS.title;
   const dir = req.query.order === 'desc' ? 'DESC' : 'ASC';
-  const where = ['i.library_id = ?', 'i.type = ?', 'i.version_of IS NULL'];
+  const where = ['i.library_id = ?', 'i.type = ?', 'i.version_of IS NULL', ratingSql(req.user)];
   const params = [req.user.id, libId, type];
   if (req.query.genre) {
     where.push(`EXISTS (SELECT 1 FROM json_each(i.genres) g WHERE g.value = ?)`);
@@ -233,7 +235,7 @@ router.get('/libraries/:id/items', requireUser, (req, res) => {
       ORDER BY ${sortCol} IS NULL, ${sortCol} ${dir}, i.sort_title ASC`,
     ...params,
   );
-  res.json({ library: libraryOut(lib, req.user.isAdmin), items: serializeMany(req.user.id, rows) });
+  res.json({ library: libraryOut(lib, req.user.isAdmin, req.user), items: serializeMany(req.user.id, rows) });
 });
 
 router.get('/libraries/:id/genres', requireUser, (req, res) => {
@@ -242,6 +244,7 @@ router.get('/libraries/:id/genres', requireUser, (req, res) => {
   const rows = all(
     `SELECT g.value AS genre, COUNT(*) AS n FROM items i, json_each(i.genres) g
       WHERE i.library_id = ? AND i.type IN ('movie', 'show') AND i.genres IS NOT NULL AND i.version_of IS NULL
+        AND ${ratingSql(req.user)}
       GROUP BY g.value ORDER BY g.value`,
     libId,
   );
@@ -255,7 +258,7 @@ function continueWatching(user, libIds) {
   const inProgress = all(
     `SELECT i.*, us.updated_at AS _ts FROM user_state us JOIN items i ON i.id = us.item_id
       WHERE us.user_id = ? AND us.position >= 30 AND i.type IN ('movie', 'episode')
-        AND i.library_id IN (${placeholders(libIds)})
+        AND i.library_id IN (${placeholders(libIds)}) AND ${ratingSql(user)}
       ORDER BY us.updated_at DESC LIMIT 30`,
     user.id,
     ...libIds,
@@ -264,7 +267,7 @@ function continueWatching(user, libIds) {
   const recentShows = all(
     `SELECT e.show_id AS show_id, MAX(us.updated_at) AS ts FROM user_state us JOIN items e ON e.id = us.item_id
       WHERE us.user_id = ? AND e.type = 'episode' AND us.watched = 1 AND us.updated_at > ?
-        AND e.library_id IN (${placeholders(libIds)})
+        AND e.library_id IN (${placeholders(libIds)}) AND ${ratingSql(user, 'e')}
       GROUP BY e.show_id ORDER BY ts DESC LIMIT 20`,
     user.id,
     Date.now() - 90 * 24 * 3600 * 1000,
@@ -304,11 +307,12 @@ function withShowInfo(serialized, rows) {
 
 function recentlyAdded(user, lib) {
   if (lib.type === 'movie') {
-    const rows = all(`SELECT * FROM items WHERE library_id = ? AND type = 'movie' AND version_of IS NULL ORDER BY added_at DESC LIMIT 24`, lib.id);
+    const rows = all(`SELECT * FROM items i WHERE i.library_id = ? AND i.type = 'movie' AND i.version_of IS NULL AND ${ratingSql(user)}
+      ORDER BY i.added_at DESC LIMIT 24`, lib.id);
     return serializeMany(user.id, rows);
   }
   // Group recent episodes by season: one card per season, or the episode itself if it's alone.
-  const eps = all(`SELECT * FROM items WHERE library_id = ? AND type = 'episode' ORDER BY added_at DESC LIMIT 300`, lib.id);
+  const eps = all(`SELECT * FROM items i WHERE i.library_id = ? AND i.type = 'episode' AND ${ratingSql(user)} ORDER BY i.added_at DESC LIMIT 300`, lib.id);
   const groups = new Map();
   for (const e of eps) {
     let g = groups.get(e.parent_id);
@@ -351,7 +355,7 @@ router.get('/hubs/home', requireUser, async (req, res) => {
   }
   const others = watchedByOthers(req.user, libIds);
   if (others.length) hubs.push({ id: 'others', title: 'Watched by Others', style: 'poster', items: others });
-  res.json({ hubs, libraries: libs.map((l) => libraryOut(l, false)) });
+  res.json({ hubs, libraries: libs.map((l) => libraryOut(l, false, req.user)) });
 });
 
 // ---------- item details ----------
@@ -478,8 +482,9 @@ router.get('/search', requireUser, (req, res) => {
   const like = `%${q.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
   const prefix = `${q.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
   const rows = all(
-    `SELECT * FROM items
+    `SELECT * FROM items i
       WHERE library_id IN (${placeholders(libIds)}) AND type IN ('movie', 'show', 'episode') AND version_of IS NULL
+        AND ${ratingSql(req.user)}
         AND (title LIKE ? ESCAPE '\\' OR original_title LIKE ? ESCAPE '\\')
       ORDER BY CASE WHEN title LIKE ? ESCAPE '\\' THEN 0 ELSE 1 END, sort_title
       LIMIT 150`,
@@ -489,8 +494,9 @@ router.get('/search', requireUser, (req, res) => {
     prefix,
   );
   const people = all(
-    `SELECT * FROM items
+    `SELECT * FROM items i
       WHERE library_id IN (${placeholders(libIds)}) AND type IN ('movie', 'show') AND version_of IS NULL
+        AND ${ratingSql(req.user)}
         AND (cast_json LIKE ? ESCAPE '\\' OR directors LIKE ? ESCAPE '\\')
       ORDER BY year DESC LIMIT 40`,
     ...libIds,

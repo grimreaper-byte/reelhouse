@@ -151,7 +151,7 @@ export async function metadataTab(ctx) {
     api.get('/api/libraries', { signal: ctx.signal }),
   ]);
   const key = textField('TMDB API key', s.tmdbApiKey, { secret: true, hint: 'Either the "API Key" or the "API Read Access Token" from your TMDB account settings.' });
-  const lang = textField('Metadata language', s.metadataLanguage, { placeholder: 'en-US', hint: 'Language and region code, e.g. en-US, de-DE, fr-FR, es-MX.' });
+  const lang = textField('Metadata language', s.metadataLanguage, { placeholder: 'en-US', hint: 'Language and region code, e.g. en-US, de-DE, fr-FR, es-MX. The region also picks whose content ratings titles get (en-GB: the UK’s), or the US rating where there’s none.' });
   const local = checkField('Prefer local artwork', s.preferLocalArtwork, { hint: 'Use poster.jpg / fanart.jpg next to your files instead of downloaded images.' });
   return h('div',
     h('h2', 'Metadata'),

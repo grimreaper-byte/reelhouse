@@ -1,6 +1,9 @@
 package app.reelhouse.android.ui.player
 
 import app.reelhouse.android.data.remote.RemoteCommand
+import app.reelhouse.android.data.remote.RemoteControls
+import app.reelhouse.android.data.remote.RemoteTrack
+import app.reelhouse.android.data.remote.RemoteVolume
 import android.content.Context
 import android.net.Uri
 import android.util.Log
@@ -17,6 +20,7 @@ import androidx.media3.common.Player
 import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.common.Tracks
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.common.util.Util
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
@@ -37,6 +41,7 @@ import app.reelhouse.android.data.playback.PlaybackInfo
 import app.reelhouse.android.data.playback.PictureTiming
 import app.reelhouse.android.data.playback.PlaybackRequest
 import app.reelhouse.android.data.playback.Quality
+import app.reelhouse.android.data.playback.SubtitleTrack
 import app.reelhouse.android.data.playback.TimedRenderersFactory
 import app.reelhouse.android.ui.common.errorText
 import kotlinx.coroutines.CancellationException
@@ -92,6 +97,10 @@ class PlayerViewModel(private val c: AppContainer, context: Context, itemId: Lon
         .build()
         .apply { trackSelectionParameters = subtitlesOffAtFirst(trackSelectionParameters) }
 
+    // Android's caption setting as the player started with it: followed unless Reelhouse says subtitles start off.
+    private val captionLanguages = player.trackSelectionParameters.preferredTextLanguages
+    private val captionRoles = player.trackSelectionParameters.preferredTextRoleFlags
+
     private val _ui = MutableStateFlow(Ui(syncMs = syncMs, pictureDelayMs = pictureDelayMs()))
 
     private fun pictureDelayMs() = (timing.compensationUs / 1000).toInt()
@@ -116,11 +125,20 @@ class PlayerViewModel(private val c: AppContainer, context: Context, itemId: Lon
     /**
      * The subtitles picked in this player (language and label), applied again whenever the tracks change: after a
      * restart for another quality or audio track, and for the next episode. Null: nothing picked, so subtitles are
-     * off but for a file's forced ones ([subtitlesOffAtFirst]).
+     * as Settings → Languages says ([pickTracks]). Off carries on too, forced ones included.
      */
     private var subtitleWish: SubtitleWish? = null
 
     private data class SubtitleWish(val off: Boolean, val language: String?, val label: String?)
+
+    /**
+     * A file was just handed to the player: once its tracks are known, the sound track and subtitles Settings →
+     * Languages says go on ([pickTracks]).
+     */
+    private var forcedPending = false
+
+    /** A sound track picked in the player (its menu, or a phone) for this item: kept over the server's choice. */
+    private var audioPicked = false
 
     private val listener = object : Player.Listener {
         override fun onPlaybackStateChanged(state: Int) {
@@ -143,7 +161,16 @@ class PlayerViewModel(private val c: AppContainer, context: Context, itemId: Lon
         override fun onTracksChanged(tracks: Tracks) {
             Log.d(TAG, "text tracks: " + tracks.groups.filter { it.type == C.TRACK_TYPE_TEXT }.joinToString { "${it.getTrackFormat(0).id}/${it.getTrackFormat(0).language}" })
             applySubtitleWish()
+            if (forcedPending && !tracks.isEmpty) {
+                forcedPending = false
+                pickTracks()
+            }
             _ui.update { it.copy(tracks = it.tracks + 1) }
+            offerControls()
+        }
+
+        override fun onVolumeChanged(volume: Float) {
+            offerControls()
         }
 
         override fun onPlayerError(error: PlaybackException) {
@@ -157,6 +184,9 @@ class PlayerViewModel(private val c: AppContainer, context: Context, itemId: Lon
 
     /** A phone's commands while this player is open (the phone remote; ui/Root.kt passes them on). */
     private val remoteHandler: (RemoteCommand) -> String? = ::onRemoteCommand
+
+    /** The volume as the phone remote sets it (Media3's player volume; muting keeps the level). */
+    private val volume = RemoteVolume({ player.volume }, { player.volume = it })
 
     init {
         player.addListener(listener)
@@ -200,12 +230,16 @@ class PlayerViewModel(private val c: AppContainer, context: Context, itemId: Lon
     // ---------- starting ----------
 
     private suspend fun open(id: Long, startAt: Double) {
-        // On to another item (the next episode): the server can stop converting the previous one now, rather than
-        // count it against its limit for a while longer.
+        // On to another item (the next or previous episode) before this one finished: it stopped here, as the web
+        // player and Kodi say. Else the server would list it as playing for a couple of minutes more (the activity
+        // monitor, and the phone remote, which fell back to it after Stop).
+        if (info != null && !endedReported) report(PlayState.Stopped)
+        // The server can stop converting the previous one now, rather than count it against its limit a while longer.
         info?.sessionId?.takeIf { id != itemId }?.let { sid -> c.scope.launch { runCatching { c.api.endSession(sid) } } }
         itemId = id
         info = null
         audioIndex = null
+        audioPicked = false
         burnSubtitle = null
         forced = false
         retries = 0
@@ -266,6 +300,8 @@ class PlayerViewModel(private val c: AppContainer, context: Context, itemId: Lon
                 .build()
         }
         Log.i(TAG, "playing item ${d.itemId} from the download, from ${at.toInt()} s")
+        forcedPending = true
+        followLanguages()
         player.setMediaItem(MediaItem.Builder().setUri(Uri.fromFile(File(d.file))).setSubtitleConfigurations(subtitles).build(), (at * 1000).toLong())
         watchPicture(expected = d.item.videoResolution != null)
         player.prepare()
@@ -329,6 +365,8 @@ class PlayerViewModel(private val c: AppContainer, context: Context, itemId: Lon
         }
         info = res
         Log.i(TAG, "playing item $itemId ${res.mode} at ${res.quality}${if (res.reasons.isEmpty()) "" else " (${res.reasons.joinToString()})"} from ${at.toInt()} s")
+        forcedPending = true
+        followLanguages()
         player.setMediaItem(mediaItem(base, res), (at * 1000).toLong())
         watchPicture(expected = !res.converted && res.video != null)
         player.prepare()
@@ -498,6 +536,7 @@ class PlayerViewModel(private val c: AppContainer, context: Context, itemId: Lon
             val playable = g.isTrackSupported(0)
             Choice(formatLabel(f, k), selected = g.isSelected, note = if (playable) null else "converted") {
                 if (playable) {
+                    audioPicked = true
                     select(g)
                 } else {
                     audioIndex = i.audioTracks.getOrNull(k)?.index
@@ -582,9 +621,13 @@ class PlayerViewModel(private val c: AppContainer, context: Context, itemId: Lon
     /** A subtitle track's name: the server's (language, title, forced, file) when it came from the server's list. */
     private fun textTrackLabel(g: Tracks.Group, k: Int): String {
         val f = g.getTrackFormat(0)
-        val id = f.id
-        val fromServer = info?.subtitleTracks?.firstOrNull { s -> id != null && (id == s.id || id.endsWith(":${s.id}")) }
-        return fromServer?.let(::subtitleLabel) ?: f.label ?: formatLabel(f, k)
+        return serverTrack(f)?.let(::subtitleLabel) ?: f.label ?: formatLabel(f, k)
+    }
+
+    /** The server's entry for a subtitle track it handed over (a sidecar file, or one converted to WebVTT). */
+    private fun serverTrack(f: Format): SubtitleTrack? {
+        val id = f.id ?: return null
+        return info?.subtitleTracks?.firstOrNull { s -> id == s.id || id.endsWith(":${s.id}") }
     }
 
     /** Re-applies the picked subtitles to the current tracks (see [subtitleWish]). */
@@ -603,6 +646,70 @@ class PlayerViewModel(private val c: AppContainer, context: Context, itemId: Lon
             ?: texts.firstOrNull { it.getTrackFormat(0).language == wish.language && wish.language != null }
             ?: return
         select(match)
+    }
+
+    /** Settings → Languages as the server last said it (older servers and offline: today's behaviour). */
+    private fun languageDefaults() = c.connection.serverDefaults.value
+
+    private fun subtitlePrefs(): SubtitlePrefs =
+        languageDefaults()?.subtitles?.let { SubtitlePrefs(it.mode, it.codes) } ?: SubtitlePrefs()
+
+    /** Before a file is handed to the player: Android's caption setting may turn subtitles on, unless they start off. */
+    private fun followLanguages() {
+        player.trackSelectionParameters = followCaptionSetting(
+            player.trackSelectionParameters, subtitlePrefs().mode != "off", captionLanguages, captionRoles,
+        )
+    }
+
+    /**
+     * Once a file's tracks are known, with nothing picked in the player: its sound track as the server chose it (the
+     * preferred language's: Media3 starts a file played as it is on its default one; a download, with no server
+     * answer, by the language's codes), then its subtitles as Settings → Languages says ([subtitleToShow]). Media3
+     * is told not to follow a file's default or forced flags ([subtitlesOffAtFirst]); forced ones go on only when
+     * they're believed, and the tracks the server hands over carry its own decision.
+     */
+    private fun pickTracks() {
+        val i = info ?: return
+        val audioGroups = player.currentTracks.groups.filter { it.type == C.TRACK_TYPE_AUDIO }
+        val codes = languageDefaults()?.audio?.codes.orEmpty()
+        val inPreferred = { g: Tracks.Group -> inCodes(g.getTrackFormat(0).language, codes) }
+        val wanted = when {
+            i.converted -> null // the server converts the track it chose
+            i.mode != MODE_DOWNLOAD -> audioGroups.getOrNull(i.audioTracks.indexOfFirst { it.index == i.audioIndex })
+            codes.isEmpty() || audioGroups.any { it.isSelected && inPreferred(it) } -> null
+            else -> audioGroups.firstOrNull(inPreferred)
+        }
+        if (!audioPicked && wanted != null && !wanted.isSelected && wanted.isTrackSupported(0)) {
+            Log.i(TAG, "sound track: ${wanted.getTrackFormat(0).language}")
+            select(wanted)
+        }
+        val audioLanguage = wanted?.getTrackFormat(0)?.language
+            ?: i.audioTracks.firstOrNull { it.index == i.audioIndex }?.language?.let(Util::normalizeLanguageCode)
+            ?: audioGroups.firstOrNull { it.isSelected }?.getTrackFormat(0)?.language
+        pickSubtitles(audioLanguage)
+    }
+
+    private fun pickSubtitles(audioLanguage: String?) {
+        if (subtitleWish != null || burnSubtitle != null) return
+        val texts = textGroups()
+        if (texts.isEmpty() || texts.any { it.isSelected }) return
+        val facts = texts.map { g ->
+            val f = g.getTrackFormat(0)
+            val s = serverTrack(f)
+            TextTrackFacts(
+                language = f.language,
+                label = f.label,
+                forced = f.selectionFlags and C.SELECTION_FLAG_FORCED != 0,
+                isDefault = s?.isDefault ?: (f.selectionFlags and C.SELECTION_FLAG_DEFAULT != 0),
+                fromServer = s != null,
+                sdh = f.roleFlags and C.ROLE_FLAG_DESCRIBES_MUSIC_AND_SOUND != 0 || sdhTitle(f.label) || sdhTitle(s?.title),
+            )
+        }
+        val k = subtitleToShow(facts, audioLanguage, subtitlePrefs())
+        if (k >= 0) {
+            Log.i(TAG, "subtitles: ${facts[k].label ?: facts[k].language}")
+            select(texts[k])
+        }
     }
 
     private fun select(g: Tracks.Group) {
@@ -691,10 +798,48 @@ class PlayerViewModel(private val c: AppContainer, context: Context, itemId: Lon
                 startJob = viewModelScope.launch { open(id, 0.0) }
                 return null
             }
+            // The phone picks from what this player offered (offerControls): a place in the same lists the menus show.
+            "audio" -> {
+                val k = cmd.track?.removePrefix("a")?.toIntOrNull() ?: return "No such sound track"
+                (audioChoices().getOrNull(k) ?: return "That sound track isn't here any more").onPick()
+            }
+            "subtitle" -> {
+                val subs = subtitleChoices()
+                val k = if (cmd.track == null) 0 else cmd.track.removePrefix("s").toIntOrNull()?.takeIf { it > 0 } ?: return "No such subtitles"
+                (subs.getOrNull(k) ?: return "Those subtitles aren't here any more").onPick()
+            }
+            "volume" -> volume.setLevel(cmd.level ?: return "No volume")
+            "mute" -> volume.setMuted(cmd.muted == true)
             else -> return "This device doesn't know that one yet"
         }
         report(if (player.playWhenReady) PlayState.Playing else PlayState.Paused)
+        offerControls()
         return null
+    }
+
+    /**
+     * What the phone may change while this plays: the audio and subtitle choices the menus show (ids: their places,
+     * "a0"…, and "s1"… after Off), and the volume. Null before it has started.
+     */
+    private fun remoteControls(): RemoteControls? {
+        if (info == null) return null
+        val audio = audioChoices()
+        val subs = subtitleChoices()
+        val selectedSub = subs.indexOfFirst { it.selected }
+        return RemoteControls(
+            audio = audio.mapIndexed { k, a -> RemoteTrack("a$k", a.label) },
+            audioId = audio.indexOfFirst { it.selected }.takeIf { it >= 0 }?.let { "a$it" },
+            subtitles = subs.mapIndexedNotNull { k, s -> if (k == 0) null else RemoteTrack("s$k", s.label) },
+            subtitleId = selectedSub.takeIf { it > 0 }?.let { "s$it" },
+            volume = volume.level(),
+            muted = volume.muted,
+            canPause = true,
+        )
+    }
+
+    /** Tells Reelhouse (for the phone remote) what this player offers now, while it's the one on screen. */
+    private fun offerControls() {
+        if (c.remoteReceiver.player === remoteHandler) c.remoteReceiver.offer(remoteControls())
     }
 
     /** What plays here and where it's got to, for carrying on on another device; the player here stops. */
@@ -705,7 +850,10 @@ class PlayerViewModel(private val c: AppContainer, context: Context, itemId: Lon
     }
 
     override fun onCleared() {
-        if (c.remoteReceiver.player === remoteHandler) c.remoteReceiver.player = null
+        if (c.remoteReceiver.player === remoteHandler) {
+            c.remoteReceiver.player = null
+            c.remoteReceiver.offer(null) // nothing for the phone to change now
+        }
         if (!endedReported) report(PlayState.Stopped)
         info?.sessionId?.let { sid -> c.scope.launch { runCatching { c.api.endSession(sid) } } }
         player.removeListener(listener)

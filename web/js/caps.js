@@ -71,3 +71,14 @@ export function browserCaps() {
   };
   return cached;
 }
+
+/** iOS keeps the volume under the hardware buttons: setting it from a page is silently ignored. */
+export const VOLUME_SETTABLE = (() => {
+  try {
+    const v = document.createElement('video');
+    v.volume = 0.5;
+    return v.volume === 0.5;
+  } catch {
+    return false;
+  }
+})();

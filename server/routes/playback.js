@@ -3,13 +3,15 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { parseJson, get, run } from '../db.js';
-import { requireUser, requireAdmin, signPlayToken, verifyPlayToken, canAccessLibrary, clientIp } from '../auth.js';
+import { requireUser, requireAdmin, signPlayToken, verifyPlayToken, clientIp } from '../auth.js';
 import { getAccessibleItem, recordProgress, adjacentEpisodes, serializeMany, playableIdsUnder } from '../items.js';
 import {
-  decide, directContentType, qualitiesFor, QUALITIES, MAX_AUDIO_OFFSET_MS, MAX_SUBTITLE_OFFSET_MS,
+  decide, directContentType, qualitiesFor, selectAudio, QUALITIES, MAX_AUDIO_OFFSET_MS, MAX_SUBTITLE_OFFSET_MS,
 } from '../transcode/profile.js';
 import { copyFailedFor, copySegmentStarts, createSession, getSession, listSessions } from '../transcode/hls.js';
 import { subtitleVtt } from '../transcode/subtitles.js';
+import { believedForced } from '../media/forced.js';
+import { codesFor, inLanguage } from '../media/languages.js';
 import { mkvEncodedFor } from '../media/ffmpeg.js';
 import { matroskaKeyframes } from '../media/matroska.js';
 import { stateChanged } from '../events.js';
@@ -58,6 +60,19 @@ function playableItem(user, id) {
   return row;
 }
 
+/**
+ * The sound track to play when the player asked for none (null: the file's default): one in the language Settings →
+ * Languages prefers, when the file's default track isn't in it already and another track is. A browser plays only a
+ * file's default track, so it then gets the file converted (with the picture copied: decide()).
+ */
+export function preferredAudioIndex(media, language = getSetting('audioLanguage')) {
+  const codes = codesFor(language);
+  if (!codes.length || !media?.audio?.length) return null;
+  const fileDefault = selectAudio(media, null);
+  if (inLanguage(fileDefault?.language, codes)) return null;
+  return media.audio.find((a) => inLanguage(a.language, codes))?.index ?? null;
+}
+
 function subtitleTracks(row, media, token) {
   const tracks = [];
   for (const s of media.subtitles || []) {
@@ -86,6 +101,12 @@ function subtitleTracks(row, media, token) {
       kind: 'text',
       url: `/api/subtitles/${row.id}/x${i}.vtt?token=${token}`,
     });
+  });
+  // An embedded track's forced flag only where it can be believed (server/media/forced.js); a sidecar's comes from
+  // its name ("….en.forced.srt"), which is said on purpose.
+  const flags = tracks.map((t) => (t.external ? !!t.forced : believedForced(t, tracks)));
+  tracks.forEach((t, i) => {
+    t.forced = flags[i];
   });
   return tracks;
 }
@@ -122,7 +143,7 @@ router.post('/playback/:id', requireUser, async (req, res) => {
   }
   const decision = decide(media, body.caps || {}, {
     quality: body.quality,
-    audioIndex: body.audioIndex,
+    audioIndex: body.audioIndex ?? preferredAudioIndex(media),
     burnSubtitle: body.burnSubtitle,
     audioOffsetMs: body.audioOffsetMs,
     subtitleOffsetMs: body.subtitleOffsetMs,
@@ -228,8 +249,9 @@ router.get('/stream/:id', (req, res) => {
   const id = Number(req.params.id);
   const user = streamUser(req, id);
   if (!user) return res.status(401).end();
-  const row = get('SELECT * FROM items WHERE id = ?', id);
-  if (!row?.file_path || !canAccessLibrary(user, row.library_id)) return res.status(404).end();
+  // As for any item: their libraries and content rating limit (as they are now, not when the token was made).
+  const row = getAccessibleItem(user, id);
+  if (!row?.file_path) return res.status(404).end();
   if (req.query.download) {
     if (!getSetting('allowDownloads')) return res.status(403).end();
     res.attachment(path.basename(row.file_path));
@@ -281,8 +303,8 @@ router.get('/subtitles/:id/:file', async (req, res) => {
   const id = Number(req.params.id);
   const user = streamUser(req, id);
   if (!user) return res.status(401).end();
-  const row = get('SELECT * FROM items WHERE id = ?', id);
-  if (!row || !canAccessLibrary(user, row.library_id)) return res.status(404).end();
+  const row = getAccessibleItem(user, id);
+  if (!row) return res.status(404).end();
   const key = req.params.file.replace(/\.vtt$/, '');
   try {
     const file = await subtitleVtt(row, key);

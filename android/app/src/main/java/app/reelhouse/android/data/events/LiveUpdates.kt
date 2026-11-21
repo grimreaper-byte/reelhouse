@@ -9,6 +9,7 @@ import app.reelhouse.android.data.connection.ConnectionManager
 import app.reelhouse.android.data.joinUrl
 import app.reelhouse.android.data.model.Defaults
 import app.reelhouse.android.data.remote.RemoteCommand
+import app.reelhouse.android.data.remote.RemoteControls
 import app.reelhouse.android.data.remote.RemoteState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -60,8 +61,11 @@ sealed interface ServerEvent {
     /** The phone remote (data/remote): one of this person's devices came or went: ask for the list again. */
     data object RemoteTargetsChanged : ServerEvent
 
-    /** What one of them plays changed (null: nothing now). */
-    data class RemoteStateChanged(val targetId: String, val state: RemoteState?) : ServerEvent
+    /** What one of them plays changed (null: nothing now), and what the phone may change there (since 0.26.0). */
+    data class RemoteStateChanged(val targetId: String, val state: RemoteState?, val controls: RemoteControls? = null) : ServerEvent
+
+    /** This device's stream as a target opened (remote-hello): it tells Reelhouse again what it offers. */
+    data object RemoteHello : ServerEvent
 
     /** A device answered a command this phone sent; [problem] says what went wrong ("blocked", or a sentence). */
     data class RemoteDone(val id: String, val ok: Boolean, val problem: String?) : ServerEvent
@@ -85,7 +89,9 @@ fun parseServerEvent(type: String?, data: String): ServerEvent? = runCatching {
         "remote-state" -> ServerEvent.RemoteStateChanged(
             obj["targetId"]?.jsonPrimitive?.content ?: return null,
             obj["state"]?.takeIf { it !is JsonNull }?.let { AppJson.decodeFromJsonElement(RemoteState.serializer(), it) },
+            obj["controls"]?.takeIf { it !is JsonNull }?.let { AppJson.decodeFromJsonElement(RemoteControls.serializer(), it) },
         )
+        "remote-hello" -> ServerEvent.RemoteHello
         "remote-done" -> ServerEvent.RemoteDone(
             obj["id"]?.jsonPrimitive?.content ?: return null,
             obj["ok"]?.jsonPrimitive?.booleanOrNull != false,

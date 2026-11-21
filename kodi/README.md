@@ -19,9 +19,11 @@ A Kodi add-on that brings Reelhouse to Kodi in two ways:
   net.
 - **Direct Play:** Kodi plays nearly every format itself, so it always gets the original file; nothing is converted.
   Subtitle files next to the video (`.srt`, `.ass`, `.vtt`) are added and named by language; subtitles inside the
-  file work as usual. They start off (since 0.14.2), whatever Kodi's preferred subtitle language: only a file's
-  forced subtitles for the audio playing show by themselves, and Kodi going on to the next or previous episode keeps
-  the ones that were showing.
+  file work as usual. The sound track and subtitles start as Reelhouse's **Settings → Languages** says (since 0.16.0,
+  with server 0.26.0), whatever Kodi's own preferred languages: a preferred audio language's track when the file has
+  one; subtitles off, only a file's forced ones for the audio playing (the default, since 0.14.2; only where the
+  file's forced flag can be believed, as the main README says), in a preferred language when the sound is in another,
+  or always. Kodi going on to the next or previous episode keeps the ones that were showing, or keeps them off.
 - **Per-user:** Kodi signs in as one Reelhouse user, sees only the libraries that user may see, and keeps that
   user's watch history.
 
@@ -141,7 +143,8 @@ yet.
 | Reelhouse address, Sign in…, Sign out | The server and account. Signing out offers to remove the Reelhouse items from Kodi. |
 | Open Reelhouse | Opens Reelhouse's own screens (see above). |
 | Open Reelhouse when Kodi starts | Off by default. Kodi opens straight into Reelhouse's screens. |
-| Let your phone control Kodi | On by default (add-on 0.15.0, Reelhouse 0.25.0). The Reelhouse app on your phone, on the same network, can play films and episodes here and pause, skip, seek or stop them; "Playing from …" says which phone. Needs Live updates on. |
+| Let your phone control Kodi | On by default (add-on 0.15.0, Reelhouse 0.25.0). The Reelhouse app on your phone, on the same network, can play films and episodes here and pause, skip, seek or stop them; "Playing from …" says which phone. Since add-on 0.16.0 (Reelhouse 0.26.0) also live channels (with channel up and down), the sound track, subtitles and Kodi's volume. Needs Live updates on. |
+| Let anyone at home use Kodi from their phone | Off by default (add-on 0.16.0, Reelhouse 0.26.0). Other people with an account on the same Reelhouse can use Kodi from their phones too, and see what's playing, when they're on the same network. It plays as this Kodi's account, and only what both of you may watch; they see what's playing only when their own account may. |
 | Sync when Kodi starts | On by default. |
 | Live updates | On by default. Keeps a connection open to Reelhouse while Kodi runs. |
 | Full check every | Never, 15 or 30 minutes, an hour (default), 3 or 12 hours. |

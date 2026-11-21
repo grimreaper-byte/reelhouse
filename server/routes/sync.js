@@ -8,6 +8,7 @@ import { serializeItem, statesFor } from '../items.js';
 import { getSetting } from '../settings.js';
 import { VERSION } from '../version.js';
 import { LIBRARY_ORDER } from '../libraries.js';
+import { ratingSql } from '../ratings.js';
 
 const router = Router();
 const MAX_DETAILS = 200;
@@ -72,8 +73,13 @@ router.get('/sync/libraries/:id/items', requireUser, (req, res) => {
   if (!get('SELECT 1 FROM libraries WHERE id = ?', libraryId) || !canAccessLibrary(req.user, libraryId)) {
     return res.status(404).json({ error: 'No such library' });
   }
-  // A film once, as its best copy (server/versions.js), which is what Kodi plays.
-  const rows = all(`SELECT id, type, parent_id, show_id, updated_at FROM items WHERE library_id = ? AND version_of IS NULL ORDER BY ${TYPE_ORDER}, id`, libraryId);
+  // A film once, as its best copy (server/versions.js), which is what Kodi plays. Only what their content rating limit
+  // allows (a show's seasons and episodes go with it): Kodi removes what's no longer listed.
+  const rows = all(
+    `SELECT id, type, parent_id, show_id, updated_at FROM items i WHERE library_id = ? AND version_of IS NULL AND ${ratingSql(req.user)}
+      ORDER BY ${TYPE_ORDER}, id`,
+    libraryId,
+  );
   const states = statesFor(req.user.id, rows.filter((r) => r.type === 'movie' || r.type === 'episode').map((r) => r.id));
   res.json({
     items: rows.map((r) => ({
@@ -93,7 +99,8 @@ router.post('/sync/items', requireUser, (req, res) => {
   const libs = allowedLibraryIds(req.user);
   if (!ids.length || !libs.length) return res.json({ items: [] });
   const rows = all(
-    `SELECT * FROM items WHERE id IN (${placeholders(ids)}) AND library_id IN (${placeholders(libs)}) ORDER BY ${TYPE_ORDER}, id`,
+    `SELECT * FROM items i WHERE id IN (${placeholders(ids)}) AND library_id IN (${placeholders(libs)}) AND ${ratingSql(req.user)}
+      ORDER BY ${TYPE_ORDER}, id`,
     ...ids,
     ...libs,
   );
@@ -106,7 +113,11 @@ router.post('/sync/states', requireUser, (req, res) => {
   const ids = idList(req.body, MAX_STATES);
   const libs = allowedLibraryIds(req.user);
   if (!ids.length || !libs.length) return res.json({ states: [] });
-  const rows = all(`SELECT id FROM items WHERE id IN (${placeholders(ids)}) AND library_id IN (${placeholders(libs)})`, ...ids, ...libs);
+  const rows = all(
+    `SELECT id FROM items i WHERE id IN (${placeholders(ids)}) AND library_id IN (${placeholders(libs)}) AND ${ratingSql(req.user)}`,
+    ...ids,
+    ...libs,
+  );
   const states = statesFor(req.user.id, rows.map((r) => r.id));
   res.json({ states: rows.map((r) => ({ id: r.id, state: stateOf(states.get(r.id)) })) });
 });

@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import os from 'node:os';
 import { EventEmitter } from 'node:events';
 import { all, run, tx } from './db.js';
+import { codesFor, languageOfRegion } from './media/languages.js';
 
 export const settingsEvents = new EventEmitter();
 
@@ -32,6 +33,11 @@ const DEFAULTS = {
   tonemapHdr: true,
   remoteQuality: 'original', // nothing converted that needn't be; a slow upload can pick lower
   allowDownloads: false, // servers set up before this default keep theirs (migration v18)
+
+  // Languages (Settings → Languages): the sound track and the subtitles films and episodes start with, everywhere.
+  audioLanguage: '', // a language id (server/media/languages.js); '' plays the file's default track
+  subtitleMode: 'forced', // off (forced ones too) | forced (only a file's forced ones) | foreign | always
+  subtitleLanguage: '', // for foreign and always; '' is the metadata language's
 
   // Requests (server/requests.js): anyone can ask for a film that isn't on the server; finding films needs tmdbApiKey.
   requestsEnabled: true,
@@ -191,10 +197,25 @@ export function serverId() {
   return crypto.createHash('sha256').update(`reelhouse-server-id:${getSetting('secret')}`).digest('hex').slice(0, 20);
 }
 
-// What apps follow from the server's settings: their quality away from home, and whether they may download.
-export const APP_DEFAULT_KEYS = ['remoteQuality', 'allowDownloads'];
+/** The subtitle modes of Settings → Languages, in the order it lists them. */
+export const SUBTITLE_MODES = ['off', 'forced', 'foreign', 'always'];
+
+/** The preferred subtitle language's id: the one set, else the metadata language's. */
+export const subtitleLanguage = () => getSetting('subtitleLanguage') || languageOfRegion(getSetting('metadataLanguage'));
+
+// What apps follow from the server's settings: their quality away from home, whether they may download, and the
+// sound track and subtitles to start with (each language with all the codes files use for it, so players only
+// look a track's up). The metadata language is the subtitle language when none is set.
+export const APP_DEFAULT_KEYS = ['remoteQuality', 'allowDownloads', 'audioLanguage', 'subtitleMode', 'subtitleLanguage', 'metadataLanguage'];
 export function appDefaults() {
-  return { remoteQuality: getSetting('remoteQuality'), allowDownloads: !!getSetting('allowDownloads') };
+  const audio = getSetting('audioLanguage') || null;
+  const subtitles = subtitleLanguage();
+  return {
+    remoteQuality: getSetting('remoteQuality'),
+    allowDownloads: !!getSetting('allowDownloads'),
+    audio: { language: audio, codes: audio ? codesFor(audio) : [] },
+    subtitles: { mode: getSetting('subtitleMode'), language: subtitles, codes: codesFor(subtitles) },
+  };
 }
 
 export const MASK = '••••••••';

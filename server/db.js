@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { DATA_DIR } from './lib/paths.js';
+import { sqlRated } from './ratings.js';
 
 let db;
 const stmtCache = new Map();
@@ -259,11 +260,19 @@ const MIGRATIONS = [
     PRIMARY KEY (user_id, channel_uuid)
   );
   `,
+  // v21: a content rating limit an admin can give an account (server/ratings.js): the oldest age of the ratings they may
+  // see (NULL = no limit), and whether titles without a rating show for them.
+  `
+  ALTER TABLE users ADD COLUMN max_age INTEGER;
+  ALTER TABLE users ADD COLUMN allow_unrated INTEGER NOT NULL DEFAULT 0;
+  `,
 ];
 
 export function openDb(file = path.join(DATA_DIR, 'reelhouse.db')) {
   db = new DatabaseSync(file);
   db.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000; PRAGMA synchronous = NORMAL;');
+  // rh_rated(rating, maxAge, allowUnrated): whether a limited account may see a title (ratingSql in server/ratings.js).
+  db.function('rh_rated', { deterministic: true }, sqlRated);
   migrate();
   return db;
 }

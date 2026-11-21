@@ -16,6 +16,8 @@ function upgrade() {
   run('DROP TABLE recording_series'); // v19, after this one
   run('ALTER TABLE users DROP COLUMN live_tv_series');
   run('DROP TABLE channel_views'); // v20
+  run('ALTER TABLE users DROP COLUMN max_age'); // v21
+  run('ALTER TABLE users DROP COLUMN allow_unrated');
   run('PRAGMA user_version = 17');
   closeDb();
   openDb(file);

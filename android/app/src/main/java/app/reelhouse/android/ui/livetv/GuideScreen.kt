@@ -94,6 +94,7 @@ import app.reelhouse.android.ui.common.remoteFocus
 import app.reelhouse.android.ui.common.startFocus
 import app.reelhouse.android.ui.components.FilterChip
 import app.reelhouse.android.ui.components.statusRowBar
+import app.reelhouse.android.ui.remote.castingTo
 import app.reelhouse.android.ui.theme.Palette
 import kotlin.math.max
 import kotlin.math.min
@@ -152,7 +153,14 @@ fun GuideScreen(radio: Boolean, onPlay: (Channel) -> Unit, onBack: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (radio) "Radio" else "Live TV") },
+                // While the phone remote plays on another device, a channel picked here plays there.
+                title = {
+                    val device = castingTo()
+                    Column {
+                        Text(if (radio) "Radio" else "Live TV")
+                        device?.let { Text("Plays on ${it.name}", style = MaterialTheme.typography.bodySmall, color = Palette.Accent) }
+                    }
+                },
                 navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } },
                 expandedHeight = statusRow.height,
                 windowInsets = statusRow.insets,

@@ -144,6 +144,8 @@ function streamDetails(req, channel, extra = {}) {
   return {
     userId: req.user.id,
     username: req.user.username,
+    // The sign-in it plays on, so the phone remote knows which device is showing it (server/remote.js).
+    sessionId: req.sessionId,
     itemId: `live:${channel.uuid}`,
     title: channel.name,
     grandparentTitle: null,

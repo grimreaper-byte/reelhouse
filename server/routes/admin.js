@@ -3,7 +3,8 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { requireAdmin } from '../auth.js';
-import { APP_DEFAULT_KEYS, MASK, appDefaults, getSetting, publicSettings, stripMasked, updateSettings } from '../settings.js';
+import { APP_DEFAULT_KEYS, MASK, SUBTITLE_MODES, appDefaults, getSetting, publicSettings, stripMasked, updateSettings } from '../settings.js';
+import { LANGUAGES } from '../media/languages.js';
 import { defaultsChanged, liveTvChanged } from '../events.js';
 import { announceRequests } from '../requests.js';
 import { appInfo, saveApk, removeApk, ApkError } from '../android.js';
@@ -43,7 +44,7 @@ router.use(requireAdmin);
 router.get('/settings', (req, res) => {
   res.json({
     settings: publicSettings(),
-    options: { encoders: HW_ENCODERS, qualities: QUALITIES, ddnsProviders: DDNS_PROVIDERS },
+    options: { encoders: HW_ENCODERS, qualities: QUALITIES, ddnsProviders: DDNS_PROVIDERS, languages: LANGUAGES, subtitleModes: SUBTITLE_MODES },
   });
 });
 
@@ -69,6 +70,13 @@ function validate(update) {
   if ('encoder' in u && !HW_ENCODERS.some((e) => e.id === u.encoder)) throw new Error('Unknown encoder');
   if ('vaapiDevice' in u && !/^\/dev\/dri\/[\w.-]+$/.test(u.vaapiDevice)) throw new Error('VAAPI device must be a path like /dev/dri/renderD128');
   if ('remoteQuality' in u && !QUALITIES.some((q) => q.id === u.remoteQuality)) throw new Error('Unknown quality');
+  for (const key of ['audioLanguage', 'subtitleLanguage']) {
+    if (key in u) {
+      u[key] = String(u[key] ?? '').trim();
+      if (u[key] && !LANGUAGES.includes(u[key])) throw new Error('Unknown language');
+    }
+  }
+  if ('subtitleMode' in u && !SUBTITLE_MODES.includes(u.subtitleMode)) throw new Error('Unknown subtitle choice');
   if ('requestsEnabled' in u) u.requestsEnabled = !!u.requestsEnabled;
   if ('requestsLimit' in u) u.requestsLimit = int(u.requestsLimit || 0, 0, 1000, 'Requests per person');
   if ('x264Preset' in u && !['ultrafast', 'superfast', 'veryfast', 'faster', 'fast', 'medium'].includes(u.x264Preset)) {

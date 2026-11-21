@@ -128,6 +128,15 @@ private fun SignedIn() {
             backStack.add(PlayerKey(id, at))
         }
     }
+    // A channel or station: here, or on the device the phone remote plays on.
+    val watch: (String, Boolean) -> Unit = { uuid, radio ->
+        if (c.remote.active.value != null) {
+            c.remote.playChannel(uuid)
+            openRemote()
+        } else {
+            backStack.add(LiveKey(uuid, radio))
+        }
+    }
     val itemNav = ItemNav(
         open = { id -> backStack.add(ItemKey(id)) },
         play = play,
@@ -148,12 +157,24 @@ private fun SignedIn() {
                     cmd.from?.let { Toast.makeText(context, "Playing from $it", Toast.LENGTH_SHORT).show() }
                     c.remoteReceiver.done(cmd)
                 }
-                cmd.type == "stop" && top is PlayerKey -> {
+                cmd.type == "play" && cmd.channel != null -> {
+                    // Channel up/down (zap) in the channel player open; else this channel's player, in place of one open.
+                    val live = c.remoteReceiver.player.takeIf { top is LiveKey }
+                    if (cmd.zap && live != null) {
+                        c.remoteReceiver.done(cmd, live(cmd))
+                    } else {
+                        if (top is PlayerKey || top is LiveKey) backStack.removeAt(backStack.lastIndex)
+                        backStack.add(LiveKey(cmd.channel, cmd.radio))
+                        if (!cmd.zap) cmd.from?.let { Toast.makeText(context, "Playing from $it", Toast.LENGTH_SHORT).show() }
+                        c.remoteReceiver.done(cmd)
+                    }
+                }
+                cmd.type == "stop" && (top is PlayerKey || top is LiveKey) -> {
                     backStack.removeAt(backStack.lastIndex)
                     c.remoteReceiver.done(cmd)
                 }
                 else -> {
-                    val player = c.remoteReceiver.player.takeIf { top is PlayerKey }
+                    val player = c.remoteReceiver.player.takeIf { top is PlayerKey || top is LiveKey }
                     c.remoteReceiver.done(cmd, if (player == null) "Nothing is playing on ${c.deviceName}" else player(cmd))
                 }
             }
@@ -174,7 +195,7 @@ private fun SignedIn() {
                     HomeScreen(
                         HomeNav(
                             openItem = { backStack.add(ItemKey(it.id)) },
-                            watchChannel = { backStack.add(LiveKey(it.uuid, it.radio)) },
+                            watchChannel = { watch(it.uuid, it.radio) },
                             search = { backStack.add(SearchKey()) },
                             settings = { backStack.add(SettingsKey) },
                             downloads = { backStack.add(DownloadsKey) },
@@ -187,7 +208,7 @@ private fun SignedIn() {
                 entry<ItemKey> { key -> ItemScreen(key.id, itemNav) }
                 entry<SearchKey> { key -> SearchScreen(key.query, onOpenItem = { backStack.add(ItemKey(it.id)) }, onBack = back) }
                 entry<PersonKey> { key -> PersonScreen(key.name, key.fromItem, onOpenItem = { backStack.add(ItemKey(it.id)) }, onBack = back) }
-                entry<GuideKey> { key -> GuideScreen(key.radio, onPlay = { backStack.add(LiveKey(it.uuid, it.radio)) }, onBack = back) }
+                entry<GuideKey> { key -> GuideScreen(key.radio, onPlay = { watch(it.uuid, it.radio) }, onBack = back) }
                 entry<LiveKey> { key -> LivePlayerScreen(key.channel, key.radio, onBack = back) }
                 entry<SettingsKey> { SettingsScreen(onBack = back, onLicences = { backStack.add(LicencesKey) }, onPairTv = { backStack.add(PairTvKey()) }) }
                 entry<PairTvKey> { key -> PairTvScreen(key.link, onBack = back) }

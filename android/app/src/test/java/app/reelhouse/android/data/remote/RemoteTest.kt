@@ -2,6 +2,7 @@ package app.reelhouse.android.data.remote
 
 import app.reelhouse.android.data.events.ServerEvent
 import app.reelhouse.android.data.events.parseServerEvent
+import app.reelhouse.android.ui.remote.stateLine
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -29,7 +30,78 @@ class RemoteTest {
             parseServerEvent("remote", """{"id":"c3","type":"play","itemId":1,"start":90,"from":"Pixel"}"""),
         )
         assertNull(parseServerEvent("remote-state", """{"state":null}"""))
-        assertNull(parseServerEvent("remote-hello", """{"targetId":"t1"}"""))
+        assertEquals(ServerEvent.RemoteHello, parseServerEvent("remote-hello", """{"targetId":"t1"}"""))
+    }
+
+    @Test
+    fun `phase 2's events - what a device offers, a channel playing, and commands for them`() {
+        val offer = RemoteControls(
+            audio = listOf(RemoteTrack("a0", "English · AC3 · 5.1"), RemoteTrack("a1", "French")), audioId = "a1",
+            subtitles = listOf(RemoteTrack("s1", "English")), subtitleId = null, volume = 80, muted = false, canPause = true,
+        )
+        assertEquals(
+            ServerEvent.RemoteStateChanged("t1", RemoteState(title = "One", live = true, channel = "ch1", programme = "The News", age = 5), offer),
+            parseServerEvent(
+                "remote-state",
+                """{"targetId":"t1","state":{"itemId":null,"title":"One","live":true,"channel":"ch1","radio":false,"programme":"The News","state":"playing","age":5},""" +
+                    """"controls":{"audio":[{"id":"a0","label":"English · AC3 · 5.1"},{"id":"a1","label":"French"}],"audioId":"a1",""" +
+                    """"subtitles":[{"id":"s1","label":"English"}],"subtitleId":null,"volume":80,"muted":false,"canPause":true}}""",
+            ),
+        )
+        assertEquals(ServerEvent.RemoteStateChanged("t1", null, null), parseServerEvent("remote-state", """{"targetId":"t1","state":null,"controls":null}"""))
+        assertEquals(
+            ServerEvent.RemoteCommandReceived(RemoteCommand("c4", "play", channel = "ch2", radio = false, name = "Two", zap = true, from = "sam's Galaxy")),
+            parseServerEvent("remote", """{"id":"c4","type":"play","channel":"ch2","radio":false,"name":"Two","zap":true,"from":"sam's Galaxy"}"""),
+        )
+        assertEquals(RemoteCommand("c5", "subtitle", track = null), (parseServerEvent("remote", """{"id":"c5","type":"subtitle","track":null}""") as ServerEvent.RemoteCommandReceived).command)
+        assertEquals(35, (parseServerEvent("remote", """{"id":"c6","type":"volume","level":35}""") as ServerEvent.RemoteCommandReceived).command.level)
+        // A device from before 0.26.0: no controls.
+        assertNull((parseServerEvent("remote-state", """{"targetId":"t1","state":null}""") as ServerEvent.RemoteStateChanged).controls)
+    }
+
+    @Test
+    fun `the tracks sheet is worth showing with more than one sound track or any subtitles`() {
+        assertEquals(false, RemoteControls(audio = listOf(RemoteTrack("a0", "English"))).hasTracks)
+        assertEquals(true, RemoteControls(audio = listOf(RemoteTrack("a0", "English"), RemoteTrack("a1", "French"))).hasTracks)
+        assertEquals(true, RemoteControls(subtitles = listOf(RemoteTrack("s1", "English"))).hasTracks)
+    }
+
+    @Test
+    fun `someone else's shared device says whose it is`() {
+        assertEquals("Living room TV · dave's", RemoteTarget("t", "tv", "Living room TV", owner = "dave").label)
+        assertEquals("Fire TV", RemoteTarget("t", "tv", "Fire TV").label)
+    }
+
+    @Test
+    fun `a channel's second line is what's on`() {
+        assertEquals("The News", RemoteState(title = "One", live = true, programme = "The News").secondLine)
+        assertEquals("A Show · S1 · E3", RemoteState(show = "A Show", season = 1, episode = 3).secondLine)
+    }
+
+    @Test
+    fun `the phone's volume buttons go 5 at a time, within 0 to 100`() {
+        assertEquals(55, stepVolume(50, up = true))
+        assertEquals(45, stepVolume(50, up = false))
+        assertEquals(100, stepVolume(98, up = true))
+        assertEquals(0, stepVolume(3, up = false))
+    }
+
+    @Test
+    fun `a player's volume from the phone - muting keeps the level for later`() {
+        var v = 0.8f
+        val volume = RemoteVolume({ v }, { v = it })
+        assertEquals(80, volume.level())
+        volume.setMuted(true)
+        assertEquals(0f, v)
+        assertEquals(80, volume.level()) // what it goes back to
+        volume.setMuted(false)
+        assertEquals(0.8f, v)
+        volume.setLevel(30)
+        assertEquals(0.3f, v, 0.0001f)
+        volume.setLevel(0)
+        assertEquals(true, volume.muted)
+        volume.setMuted(false)
+        assertEquals(0.3f, v, 0.0001f) // back to the last level heard
     }
 
     @Test
@@ -54,5 +126,13 @@ class RemoteTest {
     fun `an episode's line names the show, series and episode`() {
         assertEquals("A Show · S1 · E3", RemoteState(show = "A Show", season = 1, episode = 3).showLine)
         assertNull(RemoteState(title = "A Film").showLine)
+    }
+
+    @Test
+    fun `a device line says what plays, or only that something does when it isn't for this account`() {
+        assertEquals("Paused · A Film", stateLine(RemoteState(title = "A Film", state = "paused")))
+        assertEquals("Playing · A Show · S1 · E3", stateLine(RemoteState(title = "Pilot", show = "A Show", season = 1, episode = 3)))
+        assertEquals("Playing", stateLine(RemoteState(title = null)))
+        assertNull(stateLine(null))
     }
 }

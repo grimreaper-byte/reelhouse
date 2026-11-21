@@ -1,6 +1,6 @@
 # Privacy policy: the Reelhouse app for Android
 
-Last updated: 20 November 2026
+Last updated: 21 November 2026
 
 Reelhouse is software you run yourself. The Reelhouse app for Android connects only to the Reelhouse server you pair
 it with or sign in to: your own, or one whose owner gave you an account. The people who make Reelhouse run no servers
@@ -16,8 +16,11 @@ Only to the Reelhouse server you connect it to:
 - what you play and how far you got, watched marks, what you search for, films you ask the server's admin to add
   (Requests), downloads you start, and recordings you schedule;
 - a picture for your account, if you choose one;
-- if you use the app as a remote for your other devices, what you ask them to do (play this, pause, skip, stop), which
-  the server passes on to them; on a TV box, the server is told the app is open, so your phone can find it;
+- if you use the app as a remote for your other devices, what you ask them to do (play this, pause, skip, stop, change
+  the sound, subtitles or volume), which the server passes on to them; on a TV box, the server is told the app is
+  open, and what it offers your phone (its sound tracks, subtitles and volume), so your phone can find and control it.
+  A device you share with anyone at home is shown, with what's playing on it (to each of them only what their own
+  account may see), to the others with an account on that server when they're on the same network;
 - for the app tunnel, when you pair at home, the public half of a key made on the phone (the private half never leaves
   it). Paired away from home, the tunnel uses a key your server put in the pairing code.
 
