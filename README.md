@@ -376,11 +376,12 @@ were showing; anything else you start begins with them off again.
 
 **What's being watched:** admins see a TV in the top bar (next to the account button) with the number of streams
 playing right now on its screen, from browsers, the Android app and Kodi alike. It updates by itself, and clicking it
-opens **Settings → Activity & logs**, which lists each stream in the order it started (an episode with its show,
-series and episode number): who, on which device, played directly or converted (and why), and how far in. The log
-records every stream that starts and stops, with the user and device, e.g. `User "admin" started "My Movie" on Pixel 8
-(192.168.0.20) (direct play)` and `User "admin" stopped "My Movie" … at 3:50 of 7:57`. A player that goes quiet (a
-closed tab, a lost connection) counts as stopped after 2 minutes, or 15 while paused.
+opens **Settings → Activity & logs**, which lists each stream in the order it started, with its cover (an episode's is
+its season's, else its show's; an episode with its show, series and episode number): who, on which device, played
+directly or converted (and why), and how far in. The log records every stream that starts and stops, with the user and
+device, e.g. `User "admin" started "My Movie" on Pixel 8 (192.168.0.20) (direct play)` and `User "admin" stopped "My
+Movie" … at 3:50 of 7:57`. A player that goes quiet (a closed tab, a lost connection) counts as stopped after 2
+minutes, or 15 while paused.
 
 **Out of sync?** The same panel has **Sync** controls for the audio and the subtitles. Use the −/+ buttons (50 ms
 steps) or type any number of milliseconds: positive values play it **later**, negative values **earlier**.

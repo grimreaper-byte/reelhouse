@@ -26,8 +26,9 @@ export async function activityTab(ctx) {
               h('div.sub', `${s.state === 'paused' ? 'Paused' : 'Playing'} · ${s.radio ? 'Live radio' : `Live TV${s.qualityLabel ? ` (${s.qualityLabel})` : ''}`}`),
               s.programme && h('div.sub', s.programme),
             ))
+          // The film's cover; an episode's is its season's, else its show's (the server's poster chain).
           : h('div.list-row.activity-card',
-            h('img', { src: `/api/images/${s.itemId}/thumb?w=240`, alt: '', loading: 'lazy' }),
+            h('img.poster', { src: `/api/images/${s.itemId}/poster?w=160`, alt: '', loading: 'lazy' }),
             h('div.grow',
               // An episode: its show, then "S1 · E3 — its title", as the player has them.
               h('div.title', s.grandparentTitle || s.title),

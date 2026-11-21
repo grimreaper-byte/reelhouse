@@ -650,7 +650,13 @@ pre.code { background: var(--bg); border: 1px solid var(--border); border-radius
 .path-chip { display: flex; align-items: center; gap: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 6px 6px 6px 12px; margin-bottom: 8px; font-family: ui-monospace, Consolas, monospace; font-size: 13px; }
 .path-chip span { flex: 1; word-break: break-all; }
 .activity-card { display: flex; gap: 14px; align-items: center; }
-.activity-card img { width: 120px; aspect-ratio: 16/9; object-fit: cover; border-radius: 4px; background: var(--bg-elev2); }
+.activity-card img { flex: none; width: 120px; aspect-ratio: 16/9; object-fit: cover; border-radius: 4px; background: var(--bg-elev2); }
+.activity-card img.poster { width: 72px; aspect-ratio: 2/3; }
+/* A cover stays beside the text, even on a phone (smaller there). */
+.activity-card:has(> img.poster) { flex-wrap: nowrap; }
+.activity-card:has(> img.poster) .grow { flex: 1 1 0; }
+.activity-card:has(> img.poster) .sub { word-break: normal; overflow-wrap: anywhere; }
+@media (max-width: 600px) { .activity-card img.poster { width: 56px; } }
 .activity-card.live img { object-fit: contain; padding: 8px 14px; }
 .bar { height: 4px; background: var(--bg-elev3); border-radius: 2px; overflow: hidden; margin-top: 6px; }
 .bar > div { height: 100%; background: var(--accent); }
