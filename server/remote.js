@@ -27,6 +27,8 @@ import { channels, channelByUuid, liveTvOn } from './livetv/guide.js';
 
 /** What a target is: a browser tab, Kodi, the app on a TV box, the app on a phone or tablet. */
 export const TARGET_KINDS = new Set(['web', 'kodi', 'tv', 'phone']);
+/** What the app says a device is, for its icon in the phone's list (app 0.16.2+): a tablet, or a Fire TV. */
+export const TARGET_FORMS = new Set(['tablet', 'firetv']);
 export const COMMANDS = new Set([
   'play', 'pause', 'resume', 'seek', 'skip', 'stop', 'next', 'previous', 'audio', 'subtitle', 'volume', 'mute',
 ]);
@@ -37,7 +39,7 @@ const MAX_TRACKS = 30;
 const LABEL_LENGTH = 80;
 const TRACK_ID_LENGTH = 40;
 
-// id → { id, kind, name, userId, username, sessionId, where, client, claim, shared, controls }
+// id → { id, kind, form, name, userId, username, sessionId, where, client, claim, shared, controls }
 const targets = new Map();
 const controllers = new Set(); // { client, userId, sessionId, where }
 // command id → { senderUserId, senderSession, targetId, targetUserId, targetSession, at }
@@ -123,8 +125,8 @@ function nudge(target) {
 
 /**
  * An event stream opened (GET /api/events): `?target=web|kodi|tv|phone` makes it a target (`&shared=1`: anyone at
- * home may use it), `?controller=1` a phone that wants to hear about its targets. A target hears its id first
- * (remote-hello), for claim() and reportControls().
+ * home may use it; `&form=tablet|firetv`: what it is, for its icon), `?controller=1` a phone that wants to hear about
+ * its targets. A target hears its id first (remote-hello), for claim() and reportControls().
  */
 export function joinStream(req, client, query = {}) {
   const sessionId = req.sessionId;
@@ -137,6 +139,7 @@ export function joinStream(req, client, query = {}) {
       ...base,
       id: crypto.randomBytes(9).toString('base64url'),
       kind: query.target,
+      form: TARGET_FORMS.has(query.form) ? query.form : null,
       name: (req.device || browserName(req.headers?.['user-agent'])).slice(0, 80),
       username: req.user.username,
       claim: ++claims,
@@ -219,6 +222,7 @@ export function stateFor(target, viewer, state = stateOf(target)) {
 const describe = (t, viewer) => ({
   id: t.id,
   kind: t.kind,
+  form: t.form,
   name: t.name,
   owner: t.userId === viewer.id ? null : t.username,
   state: stateFor(t, viewer),

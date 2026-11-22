@@ -152,7 +152,7 @@ fun RemoteControlScreen(onBack: () -> Unit) {
                     title = {
                         active?.let { t ->
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(targetIcon(t.kind), contentDescription = null, tint = Palette.Accent, modifier = Modifier.size(22.dp))
+                                Icon(targetIcon(t), contentDescription = null, tint = Palette.Accent, modifier = Modifier.size(22.dp))
                                 Text(
                                     t.label,
                                     maxLines = 1,
@@ -178,7 +178,7 @@ fun RemoteControlScreen(onBack: () -> Unit) {
                 val target = active ?: return@Column
                 if (state == null) {
                     Spacer(Modifier.height(48.dp))
-                    Icon(targetIcon(target.kind), contentDescription = null, tint = Palette.TextDim, modifier = Modifier.size(56.dp))
+                    Icon(targetIcon(target), contentDescription = null, tint = Palette.TextDim, modifier = Modifier.size(56.dp))
                     Spacer(Modifier.height(16.dp))
                     Text("Nothing is playing on ${target.name}", style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
                     Text(

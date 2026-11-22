@@ -227,6 +227,22 @@ test('a phone at home lists its owner’s devices at home, each once, but not it
   assert.deepEqual((await targets(tv)).map((t) => t.name).sort(), ['Kodi', 'Pixel']);
 });
 
+test('a device can say it’s a tablet or a Fire TV, for its icon; anything else is left out', async () => {
+  const phone = await signIn('dave', 'Pixel');
+  const fireTv = await signIn('dave', 'Fire TV Stick 4K');
+  const tablet = await signIn('dave', 'Kitchen tablet');
+  const box = await signIn('dave', 'Shield');
+  const odd = await signIn('dave', 'Toaster');
+  await listen(fireTv, 'target=tv&form=firetv');
+  await listen(tablet, 'target=phone&form=tablet');
+  await listen(box, 'target=tv'); // an older app, or a TV box that isn't a Fire TV
+  await listen(odd, 'target=tv&form=toaster');
+  const list = await targets(phone);
+  assert.deepEqual(list.map((t) => [t.name, t.kind, t.form]), [
+    ['Fire TV Stick 4K', 'tv', 'firetv'], ['Kitchen tablet', 'phone', 'tablet'], ['Shield', 'tv', null], ['Toaster', 'tv', null],
+  ]);
+});
+
 test('only the same network: a phone away from home sees its devices where it is, not those at home', async () => {
   const phone = await signIn('dave', 'Pixel');
   const homeTv = await signIn('dave', 'Home TV');

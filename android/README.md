@@ -123,6 +123,10 @@ subtitles; a volume slider and mute set its volume, and the phone's volume butto
 Other people's devices they share with anyone at home are listed too ("Living room TV · dave's"): they play as that
 person's account, and only what both of you may watch.
 
+Since 0.16.2 (with Reelhouse 0.26.2): each device in **Play on** has an icon for what it is. A Fire TV (a stick, a
+Cube or a TV with Fire TV built in) shows a stick beside its remote, and a tablet shows a tablet; other TV boxes and
+Kodi show a TV, and browsers a computer. On a tablet the list starts with **This tablet**.
+
 On a TV box the app takes a phone's commands while it's open (**Settings → Phone remote**, on by default there). On a
 tablet that switch is off until you turn it on. **Let others at home use it**, under it, lets other accounts' phones
 on the same network use the device too (off until you turn it on). A phone is the remote, so it has neither switch

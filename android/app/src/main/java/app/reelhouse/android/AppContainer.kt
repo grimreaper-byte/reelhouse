@@ -14,7 +14,10 @@ import app.reelhouse.android.data.downloads.FileDownloader
 import app.reelhouse.android.data.downloads.downloadsToRemove
 import app.reelhouse.android.data.remote.RemoteControl
 import app.reelhouse.android.data.remote.RemoteReceiver
+import app.reelhouse.android.data.remote.liveStreamQuery
 import app.reelhouse.android.data.update.AppUpdater
+import app.reelhouse.android.ui.common.deviceForm
+import app.reelhouse.android.ui.common.isFireTv
 import app.reelhouse.android.ui.common.isPhone
 import app.reelhouse.android.ui.common.isRemoteDevice
 import kotlinx.coroutines.flow.SharingStarted
@@ -53,6 +56,9 @@ class AppContainer(app: Application) {
     /** A phone (not a tablet or a TV): it's the remote, so never a device the phone remote controls. */
     val phone: Boolean = !tvBox && isPhone(app)
 
+    /** What this device is, for its icon in a phone's Play on list: `firetv`, `tablet` or null (deviceForm). */
+    private val form: String? = deviceForm(tvBox, phone, isFireTv(app))
+
     /**
      * Whether a phone may control this device (Settings; on by default on a TV box, off on a tablet until switched on;
      * never on a phone, which has no switch, even if one was switched on before phones lost it).
@@ -85,14 +91,9 @@ class AppContainer(app: Application) {
     val http: OkHttpClient = Http.client(::tokenFor)
     val api: ReelhouseApi = ReelhouseApi(http, base = { connection.baseUrl }, onUnauthorized = ::signedOutByServer)
     val connection: ConnectionManager = ConnectionManager(app, store, api, RoutePlanner(GoTunnels), scope)
-    // The live stream says what this device is to the phone remote: a phone hears about the devices it can control,
-    // and a device a phone may control takes its commands (shared with anyone at home when that's on too).
+    // The live stream says what this device is to the phone remote (liveStreamQuery).
     private val liveQuery: StateFlow<String> = combine(remoteTargetOn, remoteSharedOn) { on, shared ->
-        listOfNotNull(
-            "controller=1".takeIf { !tvBox },
-            (if (tvBox) "target=tv" else "target=phone").takeIf { on },
-            "shared=1".takeIf { on && shared },
-        ).joinToString("&").let { if (it.isEmpty()) "" else "?$it" }
+        liveStreamQuery(tvBox, form, target = on, shared = shared)
     }.stateIn(scope, SharingStarted.Eagerly, "")
     val live = LiveUpdates(http, connection, scope, liveQuery)
     val remote = RemoteControl(api, live, connection, scope)

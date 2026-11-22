@@ -90,14 +90,29 @@ data class RemoteControls(
 }
 
 /**
- * A device the phone can control. [kind]: web | kodi | tv | phone. [owner]: whose it is, when it's someone else's
- * that they share with anyone at home (it plays as their account).
+ * The live stream's query, which says what this device is to the phone remote. A phone or tablet hears about the
+ * devices it can control (`controller`). A device a phone may control ([target]) takes its commands, as a `tv` or a
+ * `phone` (a tablet), saying what it is ([form]: deviceForm), and shared with anyone at home when [shared] is on too.
+ */
+fun liveStreamQuery(tvBox: Boolean, form: String?, target: Boolean, shared: Boolean): String =
+    listOfNotNull(
+        "controller=1".takeIf { !tvBox },
+        (if (tvBox) "target=tv" else "target=phone").takeIf { target },
+        form?.let { "form=$it" }?.takeIf { target },
+        "shared=1".takeIf { target && shared },
+    ).joinToString("&").let { if (it.isEmpty()) "" else "?$it" }
+
+/**
+ * A device the phone can control. [kind]: web | kodi | tv | phone. [form]: what it says it is, when it says (tablet |
+ * firetv; app 0.16.2 and up with server 0.26.2 and up). [owner]: whose it is, when it's someone else's that they share
+ * with anyone at home (it plays as their account).
  */
 @Serializable
 data class RemoteTarget(
     val id: String,
     val kind: String,
     val name: String,
+    val form: String? = null,
     val owner: String? = null,
     val state: RemoteState? = null,
     val controls: RemoteControls? = null,

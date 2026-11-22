@@ -75,6 +75,19 @@ fun isPhone(context: Context): Boolean =
 /** Whether a screen with this smallest width (dp) is a phone's; 0 is Android's "not known", taken as not a phone. */
 fun phoneSized(smallestWidthDp: Int): Boolean = smallestWidthDp in 1 until 600
 
+/** A Fire TV (Fire OS): a stick, a Cube or a TV with Fire TV built in, which Android doesn't tell apart. */
+fun isFireTv(context: Context): Boolean = context.packageManager.hasSystemFeature("amazon.hardware.fire_tv")
+
+/**
+ * What this device tells the server it is, for its icon in the phone remote's list: `firetv`, `tablet`, or null (a
+ * phone, or a TV box other than a Fire TV, which the server knows by its kind).
+ */
+fun deviceForm(tvBox: Boolean, phone: Boolean, fireTv: Boolean): String? = when {
+    tvBox -> "firetv".takeIf { fireTv }
+    phone -> null
+    else -> "tablet"
+}
+
 private const val ARROW_MOVED_FOCUS_MS = 400L
 private const val KEEP_FROM_EDGE = 0.12f
 private val ARROW_SCROLL = 160.dp

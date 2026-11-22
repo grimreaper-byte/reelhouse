@@ -626,6 +626,10 @@ own player, the Cast button carries on over there from where you are, and the re
 behind it. (The app's top bar shows how it's connected as a coloured dot after the name, which makes room for the
 button; Settings still says it in words.)
 
+<p align="center">
+  <img src="docs/screenshots/android-play-on.jpg" alt="The app's Play on list on a phone: this phone, then a Fire TV playing a film, a browser, a tablet, Kodi and a TV, each with an icon for what it is" width="300">
+</p>
+
 Since 0.26.0 (with app 0.16.0 and Kodi add-on 0.16.0):
 
 - **Live TV and radio:** with a device picked, a channel tapped in the app's guide (which then says "Plays on …")
@@ -640,6 +644,9 @@ Since 0.26.0 (with app 0.16.0 and Kodi add-on 0.16.0):
   the same network, marked with whose it is. It plays as the device's own account (its watch history), and only what
   both of you may watch, so a [content rating](#content-ratings) limit still holds. Others see what it's playing only
   when their own account may see it; otherwise just that something is playing.
+
+Since 0.26.2 (with app 0.16.2), each device in the list has an icon for what it is: a Fire TV, a tablet, another TV
+box or Kodi, or a browser. On a tablet, the list's first entry is **This tablet**.
 
 What it can play on:
 

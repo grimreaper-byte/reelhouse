@@ -2,8 +2,12 @@ package app.reelhouse.android.data.remote
 
 import app.reelhouse.android.data.events.ServerEvent
 import app.reelhouse.android.data.events.parseServerEvent
+import app.reelhouse.android.ui.common.deviceForm
 import app.reelhouse.android.ui.common.phoneSized
+import app.reelhouse.android.ui.remote.DeviceIcon
+import app.reelhouse.android.ui.remote.deviceIcon
 import app.reelhouse.android.ui.remote.stateLine
+import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -145,4 +149,35 @@ class RemoteTest {
         assertEquals(false, phoneSized(800)) // a Fire HD 10
         assertEquals(false, phoneSized(0)) // Android doesn't know: not taken as a phone
     }
+
+    @Test
+    fun `a device says what it is - a Fire TV or a tablet - and the stream query carries it while it may be controlled`() {
+        assertEquals("firetv", deviceForm(tvBox = true, phone = false, fireTv = true))
+        assertNull(deviceForm(tvBox = true, phone = false, fireTv = false)) // another TV box: its kind says it
+        assertEquals("tablet", deviceForm(tvBox = false, phone = false, fireTv = false))
+        assertNull(deviceForm(tvBox = false, phone = true, fireTv = false))
+
+        assertEquals("?target=tv&form=firetv", liveStreamQuery(tvBox = true, form = "firetv", target = true, shared = false))
+        assertEquals("?target=tv&form=firetv&shared=1", liveStreamQuery(tvBox = true, form = "firetv", target = true, shared = true))
+        assertEquals("?target=tv", liveStreamQuery(tvBox = true, form = null, target = true, shared = false))
+        assertEquals("", liveStreamQuery(tvBox = true, form = "firetv", target = false, shared = true))
+        assertEquals("?controller=1&target=phone&form=tablet", liveStreamQuery(tvBox = false, form = "tablet", target = true, shared = false))
+        assertEquals("?controller=1", liveStreamQuery(tvBox = false, form = "tablet", target = false, shared = false))
+        assertEquals("?controller=1", liveStreamQuery(tvBox = false, form = null, target = false, shared = false))
+    }
+
+    @Test
+    fun `each device's icon - what it says it is, else its kind`() {
+        assertEquals(DeviceIcon.FireTv, deviceIcon("tv", "firetv"))
+        assertEquals(DeviceIcon.Tablet, deviceIcon("phone", "tablet"))
+        assertEquals(DeviceIcon.Tv, deviceIcon("tv", null))
+        assertEquals(DeviceIcon.Tv, deviceIcon("kodi", null))
+        assertEquals(DeviceIcon.Computer, deviceIcon("web", null))
+        assertEquals(DeviceIcon.Phone, deviceIcon("phone", null)) // an older app on a tablet
+        assertEquals(DeviceIcon.Tv, deviceIcon("tv", "toaster")) // something new from a later app: by its kind
+        assertEquals("firetv", parseTarget("""{"id":"t","kind":"tv","name":"Fire TV Stick 4K","form":"firetv"}""").form)
+        assertNull(parseTarget("""{"id":"t","kind":"tv","name":"Shield"}""").form) // an older server
+    }
+
+    private fun parseTarget(json: String): RemoteTarget = Json { ignoreUnknownKeys = true }.decodeFromString(json)
 }

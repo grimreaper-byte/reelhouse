@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.Computer
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.TabletAndroid
 import androidx.compose.material.icons.filled.Tv
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -51,12 +52,28 @@ import app.reelhouse.android.data.remote.RemoteTarget
 import app.reelhouse.android.ui.common.LocalRemoteDevice
 import app.reelhouse.android.ui.theme.Palette
 
-/** The icon for a kind of device. */
-fun targetIcon(kind: String): ImageVector = when (kind) {
-    "web" -> Icons.Filled.Computer
-    "phone" -> Icons.Filled.PhoneAndroid
-    else -> Icons.Filled.Tv // a TV box, Kodi
+/** What a device looks like in the phone remote's list. */
+enum class DeviceIcon { Phone, Tablet, Tv, FireTv, Computer }
+
+/** A device's icon: by what it says it is ([RemoteTarget.form], from app 0.16.2), else by its kind. */
+fun deviceIcon(kind: String, form: String?): DeviceIcon = when {
+    form == "firetv" -> DeviceIcon.FireTv
+    form == "tablet" -> DeviceIcon.Tablet
+    kind == "web" -> DeviceIcon.Computer
+    kind == "phone" -> DeviceIcon.Phone // the app before 0.16.2, on a tablet (or before 0.16.1, on a phone)
+    else -> DeviceIcon.Tv // a TV box other than a Fire TV, Kodi
 }
+
+val DeviceIcon.vector: ImageVector
+    get() = when (this) {
+        DeviceIcon.Phone -> Icons.Filled.PhoneAndroid
+        DeviceIcon.Tablet -> Icons.Filled.TabletAndroid
+        DeviceIcon.Tv -> Icons.Filled.Tv
+        DeviceIcon.FireTv -> FireTvIcon
+        DeviceIcon.Computer -> Icons.Filled.Computer
+    }
+
+fun targetIcon(t: RemoteTarget): ImageVector = deviceIcon(t.kind, t.form).vector
 
 /**
  * "Playing · A Show · S1 · E3", "Paused · A Film" or "Playing · One · The News", for a device's line in the list; just
@@ -106,15 +123,18 @@ fun PlayOnSheet(onDismiss: () -> Unit, onRemote: () -> Unit, onPicked: ((RemoteT
     val targets by c.remote.targets.collectAsState()
     val active by c.remote.active.collectAsState()
     LaunchedEffect(Unit) { c.remote.refresh() }
+    // The Cast button is on phones and tablets (not TV boxes).
+    val self = if (c.phone) "phone" else "tablet"
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true), containerColor = Palette.Elevated) {
         Column(Modifier.fillMaxWidth().padding(bottom = 24.dp)) {
             Text("Play on", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp))
-            TargetRow(Icons.Filled.PhoneAndroid, "This phone", null, selected = active == null) {
+            val selfIcon = if (c.phone) DeviceIcon.Phone else DeviceIcon.Tablet
+            TargetRow(selfIcon.vector, "This $self", null, selected = active == null) {
                 c.remote.disconnect()
                 onDismiss()
             }
             for (t in targets) {
-                TargetRow(targetIcon(t.kind), t.label, targetLine(t), selected = active?.id == t.id) {
+                TargetRow(targetIcon(t), t.label, targetLine(t), selected = active?.id == t.id) {
                     c.remote.connect(t)
                     onDismiss()
                     when {
@@ -144,7 +164,7 @@ fun PlayOnSheet(onDismiss: () -> Unit, onRemote: () -> Unit, onPicked: ((RemoteT
                 )
             }
             Text(
-                "Lists your devices with Reelhouse open on the same network as this phone, and others' that they share " +
+                "Lists your devices with Reelhouse open on the same network as this $self, and others' that they share " +
                     "with anyone at home (what plays there counts on their account).",
                 style = MaterialTheme.typography.bodySmall,
                 color = Palette.TextFaint,
