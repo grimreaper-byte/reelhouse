@@ -1,11 +1,15 @@
 # Privacy policy: the Reelhouse app for Android
 
-Last updated: 21 November 2026
+Last updated: 22 November 2026
 
 Reelhouse is software you run yourself. The Reelhouse app for Android connects only to the Reelhouse server you pair
 it with or sign in to: your own, or one whose owner gave you an account. The people who make Reelhouse run no servers
 for the app and receive no data from it. A pairing link opens a page on Reelhouse's website on the way, which never
 sees the code in it (see **Pairing links** below).
+
+This policy covers the app wherever you get it: from GitHub, from your Reelhouse server, from Google Play, or from the
+Amazon Appstore for Fire TV and Fire tablets. Where they differ, it says so. The stores have their own privacy
+policies for what they record when you install or update an app.
 
 ## What the app sends, and where
 
@@ -30,10 +34,10 @@ straight to that TV over your home network, encrypted with a key that only the T
 What that server keeps is up to whoever runs it. Reelhouse's server keeps your watch history and resume points, and a
 log of what was played on which device, which its admins can see.
 
-## What stays on your phone
+## What stays on your device
 
-The server's address, your sign-in token, your settings, the tunnel's keys and the videos you download. They stay
-until you sign out, delete them, or uninstall the app.
+The server's address, your sign-in token, your settings, the tunnel's keys and the videos you download, on the phone,
+tablet or TV the app is on. They stay until you sign out, delete them, or uninstall the app.
 
 ## Camera
 
@@ -46,7 +50,8 @@ Some places' laws make Google Play tell apps their users' age range (California 
 Texas). There, the app from Google Play asks Google Play for yours when it starts, through Google Play's Age Signals
 API. It uses the answer only to show a notice: that Reelhouse is meant for adults, if you're under 18, or that Google
 Play needs you to confirm your age. It keeps the answer nowhere and sends it nowhere, not to your Reelhouse server
-either. Anywhere else it doesn't ask. The app from GitHub or from your Reelhouse server never asks.
+either. Anywhere else it doesn't ask. The app from GitHub, from your Reelhouse server or from the Amazon Appstore
+never asks.
 
 ## Pairing links
 
@@ -62,8 +67,9 @@ Only to show how downloads are going.
 ## Nothing else
 
 No ads, no analytics, no crash reporting, and no third-party services in the app, apart from Google Play itself for
-the age check above in the app from Google Play. No data is sold or shared. Film details and artwork come through your
-Reelhouse server (which may fetch them from TMDB), not from the app directly.
+the age check above in the app from Google Play. The app from the Amazon Appstore uses no Amazon services: the
+Appstore installs and updates it, and that's all. No data is sold or shared. Film details and artwork come through
+your Reelhouse server (which may fetch them from TMDB), not from the app directly.
 
 ## Deleting your account and data
 
@@ -76,8 +82,9 @@ there is nothing to delete with us. To delete it:
    history and picture, and signs out your devices.
 2. **If you run the server yourself,** delete accounts the same way. To remove everything, stop Reelhouse and delete
    its data folder (`/config` in Docker).
-3. **On your phone,** open the app's **Settings** and choose **Sign out**, which removes the sign-in and the tunnel's
-   keys. Delete downloaded videos under **Downloads**, or uninstall the app, which removes everything it stored.
+3. **On your phone, tablet or TV,** open the app's **Settings** and choose **Sign out**, which removes the sign-in and
+   the tunnel's keys. Delete downloaded videos under **Downloads**, or uninstall the app, which removes everything it
+   stored.
 
 ## Changes and questions
 
