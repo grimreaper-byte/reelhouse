@@ -15,6 +15,7 @@ import app.reelhouse.android.data.downloads.downloadsToRemove
 import app.reelhouse.android.data.remote.RemoteControl
 import app.reelhouse.android.data.remote.RemoteReceiver
 import app.reelhouse.android.data.update.AppUpdater
+import app.reelhouse.android.ui.common.isPhone
 import app.reelhouse.android.ui.common.isRemoteDevice
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -49,10 +50,17 @@ class AppContainer(app: Application) {
     /** Driven with a remote (a Fire TV, a TV box): a device the phone remote controls, not one that controls. */
     val tvBox: Boolean = isRemoteDevice(app)
 
-    /** Whether a phone may control this device (Settings; on by default on a TV box only). */
-    val remoteTargetOn = MutableStateFlow(prefs.remoteTarget ?: tvBox)
+    /** A phone (not a tablet or a TV): it's the remote, so never a device the phone remote controls. */
+    val phone: Boolean = !tvBox && isPhone(app)
+
+    /**
+     * Whether a phone may control this device (Settings; on by default on a TV box, off on a tablet until switched on;
+     * never on a phone, which has no switch, even if one was switched on before phones lost it).
+     */
+    val remoteTargetOn = MutableStateFlow(!phone && (prefs.remoteTarget ?: tvBox))
 
     fun setRemoteTarget(on: Boolean) {
+        if (phone) return
         prefs.remoteTarget = on
         remoteTargetOn.value = on
     }

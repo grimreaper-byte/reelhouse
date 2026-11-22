@@ -65,6 +65,16 @@ fun isRemoteDevice(context: Context): Boolean =
     context.getSystemService(UiModeManager::class.java)?.currentModeType == Configuration.UI_MODE_TYPE_TELEVISION ||
         !context.packageManager.hasSystemFeature(PackageManager.FEATURE_TOUCHSCREEN)
 
+/**
+ * A phone, as against a tablet or a TV: a phone is the remote, so it isn't offered as a device the phone remote
+ * controls (Settings → Phone remote). Android's usual line: a screen whose smallest side is under 600 dp.
+ */
+fun isPhone(context: Context): Boolean =
+    !isRemoteDevice(context) && phoneSized(context.resources.configuration.smallestScreenWidthDp)
+
+/** Whether a screen with this smallest width (dp) is a phone's; 0 is Android's "not known", taken as not a phone. */
+fun phoneSized(smallestWidthDp: Int): Boolean = smallestWidthDp in 1 until 600
+
 private const val ARROW_MOVED_FOCUS_MS = 400L
 private const val KEEP_FROM_EDGE = 0.12f
 private val ARROW_SCROLL = 160.dp

@@ -2,6 +2,7 @@ package app.reelhouse.android.data.remote
 
 import app.reelhouse.android.data.events.ServerEvent
 import app.reelhouse.android.data.events.parseServerEvent
+import app.reelhouse.android.ui.common.phoneSized
 import app.reelhouse.android.ui.remote.stateLine
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -134,5 +135,14 @@ class RemoteTest {
         assertEquals("Playing · A Show · S1 · E3", stateLine(RemoteState(title = "Pilot", show = "A Show", season = 1, episode = 3)))
         assertEquals("Playing", stateLine(RemoteState(title = null)))
         assertNull(stateLine(null))
+    }
+
+    @Test
+    fun `phones are the remote, tablets and TVs can be controlled`() {
+        assertEquals(true, phoneSized(411)) // a usual phone
+        assertEquals(true, phoneSized(599))
+        assertEquals(false, phoneSized(600)) // a small tablet
+        assertEquals(false, phoneSized(800)) // a Fire HD 10
+        assertEquals(false, phoneSized(0)) // Android doesn't know: not taken as a phone
     }
 }

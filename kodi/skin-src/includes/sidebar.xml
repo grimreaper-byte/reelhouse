@@ -30,7 +30,9 @@
   </control>
   <!-- Now playing (while something plays), Home, the libraries and Search from the top; Live TV, Radio, Recordings,
        Settings and Exit at the bottom (base.py puts the bottom list on the foot for how many entries it holds, and gives
-       the top one the room above it). -->
-  <!-- include sidebar-list list=9000 top=132 height=652 up=noop down=9002 -->
-  <!-- include sidebar-list list=9002 top=800 height=256 up=9000 down=noop -->
+       the top one the room above it). Kodi counts a list's rows from its height here, when the screen opens, and not
+       again when base.py sets another: so the bottom list is as tall as its most entries (five rows: with four, the
+       fifth scrolled it and hid Live TV), and the top one as tall as the room left above those (nine rows). -->
+  <!-- include sidebar-list list=9000 top=132 height=588 up=noop down=9002 -->
+  <!-- include sidebar-list list=9002 top=736 height=320 up=9000 down=noop -->
 </control>

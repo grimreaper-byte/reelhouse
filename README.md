@@ -649,8 +649,9 @@ What it can play on:
   an iPhone or iPad (iOS keeps it under the buttons).
 - **Kodi** with the Reelhouse add-on (0.15.0 or newer; 0.16.0 for channels, sound, subtitles and volume), while Kodi
   is running. Off in the add-on's settings with **Let your phone control Kodi**.
-- **The Reelhouse app on a Fire TV or TV box**, while Reelhouse is open on it. On phones and tablets this is off until
-  switched on in the app's **Settings → Let your phone control this device**.
+- **The Reelhouse app on a Fire TV or TV box**, while Reelhouse is open on it. On a tablet this is off until switched
+  on in the app's **Settings → Let your phone control this device**; a phone is the remote, so it has no such switch
+  (since app 0.16.1).
 
 Only your own devices and shared ones are listed, and only those on the **same network** as the phone: at home
 together, or both at a friend's house through the app tunnel. Reelhouse checks this again for every command. The phone

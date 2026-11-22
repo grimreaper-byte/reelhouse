@@ -124,10 +124,11 @@ Other people's devices they share with anyone at home are listed too ("Living ro
 person's account, and only what both of you may watch.
 
 On a TV box the app takes a phone's commands while it's open (**Settings → Phone remote**, on by default there). On a
-phone or tablet that switch is off until you turn it on. **Let others at home use it**, under it, lets other accounts'
-phones on the same network use the device too (off until you turn it on). The top bar's connection status is a
-coloured dot after the name (green at home, amber through the tunnel or the web address, red offline); touch it, or
-see Settings, for the words.
+tablet that switch is off until you turn it on. **Let others at home use it**, under it, lets other accounts' phones
+on the same network use the device too (off until you turn it on). A phone is the remote, so it has neither switch
+(since 0.16.1: a screen whose smallest side is under 600 dp; a phone switched on before then stops taking commands).
+The top bar's connection status is a coloured dot after the name (green at home, amber through the tunnel or the web
+address, red offline); touch it, or see Settings, for the words.
 
 ## On a Fire TV or Android TV box
 

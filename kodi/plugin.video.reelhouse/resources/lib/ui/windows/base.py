@@ -210,7 +210,8 @@ class Screen(xbmcgui.WindowXML):
         self.nav_playing = self.app.playing()
         top, bottom = self.app.nav_items(self.nav_playing)
         self.nav_at_end = any(key == self.nav for key, _, _, _ in bottom)
-        # The bottom list sits on the sidebar's foot, as tall as its entries; the top one has the room above it.
+        # The bottom list sits on the sidebar's foot, as tall as its entries; the top one has the room above it. (How many
+        # rows each shows before scrolling comes from its height in sidebar.xml: Kodi doesn't count them again here.)
         end_top = 1080 - SIDEBAR_FOOT - len(bottom) * SIDEBAR_ROW
         end = self.getControl(SIDEBAR_END)
         end.setPosition(0, end_top)

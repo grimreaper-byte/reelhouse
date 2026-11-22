@@ -281,13 +281,31 @@ internal fun Row2(label: String, value: String) {
 @Composable
 private fun SettingSwitch(): SwitchColors = SwitchDefaults.colors(uncheckedThumbColor = Palette.TextDim, uncheckedBorderColor = Palette.TextFaint)
 
-/** The phone remote: whether a phone may control this device (on by default on a TV box), and what it is. */
+/**
+ * The phone remote: whether a phone may control this device (on by default on a TV box), and what it is. A phone has
+ * no switches: it's the remote (AppContainer.phone), so it only says where the Cast button is.
+ */
 @Composable
 private fun RemoteSection() {
     val c = LocalContext.current.container
+    Section("Phone remote")
+    if (!c.phone) RemoteTargetSwitches()
+    if (!c.tvBox) {
+        Text(
+            "To play on a TV, a browser or Kodi with Reelhouse open on the same network, use the Cast button at the top of Home or a film's page.",
+            style = MaterialTheme.typography.bodySmall,
+            color = Palette.TextDim,
+            modifier = Modifier.padding(vertical = 4.dp),
+        )
+    }
+}
+
+/** On a tablet or a TV: whether a phone may control it, and whether anyone at home may. */
+@Composable
+private fun RemoteTargetSwitches() {
+    val c = LocalContext.current.container
     val on by c.remoteTargetOn.collectAsState()
     val shared by c.remoteSharedOn.collectAsState()
-    Section("Phone remote")
     Row(
         Modifier.fillMaxWidth().toggleable(on, null, TextRing, role = Role.Switch) { c.setRemoteTarget(it) }.padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -320,13 +338,5 @@ private fun RemoteSection() {
             )
         }
         Switch(checked = on && shared, onCheckedChange = null, enabled = on, colors = SettingSwitch())
-    }
-    if (!c.tvBox) {
-        Text(
-            "To play on a TV, a browser or Kodi with Reelhouse open on the same network, use the Cast button at the top of Home or a film's page.",
-            style = MaterialTheme.typography.bodySmall,
-            color = Palette.TextDim,
-            modifier = Modifier.padding(vertical = 4.dp),
-        )
     }
 }

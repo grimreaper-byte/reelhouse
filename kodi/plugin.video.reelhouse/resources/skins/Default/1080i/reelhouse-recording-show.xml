@@ -344,11 +344,13 @@
   </control>
   <!-- Now playing (while something plays), Home, the libraries and Search from the top; Live TV, Radio, Recordings,
        Settings and Exit at the bottom (base.py puts the bottom list on the foot for how many entries it holds, and gives
-       the top one the room above it). -->
+       the top one the room above it). Kodi counts a list's rows from its height here, when the screen opens, and not
+       again when base.py sets another: so the bottom list is as tall as its most entries (five rows: with four, the
+       fifth scrolled it and hid Live TV), and the top one as tall as the room left above those (nine rows). -->
     <!-- One of the sidebar's two lists (9000); the names and counts show while either has the focus. At its ends the
      focus goes on to the other list or stops (noop, 9002: noop), rather than going round the list again. -->
   <control type="list" id="9000">
-    <left>0</left><top>132</top><width>460</width><height>652</height>
+    <left>0</left><top>132</top><width>460</width><height>588</height>
     <onup>noop</onup><ondown>9002</ondown>
     <orientation>vertical</orientation>
     <scrolltime tween="cubic" easing="out">150</scrolltime>
@@ -423,7 +425,7 @@
     <!-- One of the sidebar's two lists (9002); the names and counts show while either has the focus. At its ends the
      focus goes on to the other list or stops (9000, noop: noop), rather than going round the list again. -->
   <control type="list" id="9002">
-    <left>0</left><top>800</top><width>460</width><height>256</height>
+    <left>0</left><top>736</top><width>460</width><height>320</height>
     <onup>9000</onup><ondown>noop</ondown>
     <orientation>vertical</orientation>
     <scrolltime tween="cubic" easing="out">150</scrolltime>
