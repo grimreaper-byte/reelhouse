@@ -415,6 +415,14 @@ class PlayerViewModel(private val c: AppContainer, context: Context, itemId: Lon
 
     private fun handleError(e: PlaybackException) {
         val at = position()
+        val duration = info?.duration ?: player.duration.takeIf { it > 0 && it != C.TIME_UNSET }?.let { it / 1000.0 }
+        if (errorAtTheEnd(e.errorCode, at, duration)) {
+            Log.i(TAG, "playback error ${e.errorCodeName} at ${at.toInt()} s of ${duration?.toInt()} s: taken as the end")
+            pictureJob?.cancel()
+            _ui.update { it.copy(loading = false, error = null, status = null) }
+            onEnded()
+            return
+        }
         val recovery = recoveryFor(e.errorCode, info?.converted == true, forced)
         Log.w(TAG, "playback error ${e.errorCodeName}: ${e.message} -> $recovery")
         if (recovery == Recovery.Fail || retries >= MAX_RETRIES) {

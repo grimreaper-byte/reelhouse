@@ -136,6 +136,20 @@ class PlayerLogicTest {
     }
 
     @Test
+    fun `an error reading the file in its last seconds is its end - bytes after an MKV's segment`() {
+        val io = PlaybackException.ERROR_CODE_IO_UNSPECIFIED // Media3's EOFException at the end of such a file
+        // The Big Bang Theory 3x07 on the user's Fire TV: 1174.7 s long, the error once the position reached the end.
+        assertTrue(errorAtTheEnd(io, 1180.0, 1174.72))
+        assertTrue(errorAtTheEnd(io, 1162.0, 1174.72)) // within the last 15 s
+        assertTrue(errorAtTheEnd(PlaybackException.ERROR_CODE_PARSING_CONTAINER_MALFORMED, 39.0, 40.0))
+        assertFalse(errorAtTheEnd(io, 600.0, 1174.72)) // part-way through: the usual recovery
+        assertFalse(errorAtTheEnd(io, 1150.0, 1174.72))
+        assertFalse(errorAtTheEnd(PlaybackException.ERROR_CODE_DECODING_FAILED, 1174.0, 1174.72)) // not reading the file
+        assertFalse(errorAtTheEnd(io, 1174.0, null)) // the length isn't known
+        assertFalse(errorAtTheEnd(io, 10.0, 0.0))
+    }
+
+    @Test
     fun `only the qualities the server lists for the file are offered`() {
         val all = listOf(Quality("original", "Original"), Quality("8m-1080", "1080p · 8 Mbps"), Quality("4m-720", "720p · 4 Mbps"))
         assertEquals(listOf("original", "4m-720"), offeredQualities(all, listOf("original", "4m-720", "720k-360")).map { it.id })

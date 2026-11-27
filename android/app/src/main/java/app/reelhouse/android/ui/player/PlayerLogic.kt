@@ -206,6 +206,21 @@ fun recoveryFor(errorCode: Int, converted: Boolean, forced: Boolean): Recovery =
     else -> Recovery.Fail
 }
 
+/** How close to the end an error reading the file counts as its end ([errorAtTheEnd]), in seconds. */
+const val END_SLACK_S = 15.0
+
+/**
+ * Whether a playback error is really the end of the file: an error reading or parsing it (Media3's IO and parsing
+ * codes, 2000–3999) once the position is within [END_SLACK_S] of its duration. Some files carry a few bytes after
+ * their last frame (text added after an MKV's segment: Media3 reads it as one more element and runs out of file) or
+ * stop part-way through a block. Players built on ffmpeg stop there; Media3 fails, and retrying only fails again at
+ * the same place. Taken as the end, it's marked watched and the next episode follows, as anywhere else.
+ */
+fun errorAtTheEnd(errorCode: Int, positionS: Double, durationS: Double?): Boolean {
+    if (durationS == null || durationS <= 0) return false
+    return errorCode in 2000 until 4000 && positionS >= durationS - END_SLACK_S
+}
+
 /**
  * Whether a file played as it is has gone on long enough without a picture to give up on it, like the web
  * player's check: Media3 plays a file whose video it can't decode as sound alone, without an error. Only time spent
